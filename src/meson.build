@@ -11,7 +11,7 @@ headers = [
   'err.h',
   'file.h',
   'lut.h',
-  'platform_detect.h',
+  'platform-detect.h',
   'str.h',
   'utf8.h',
   'vec.h',
