@@ -1,6 +1,6 @@
 # rphii/c
 
-Collection of my C libraries all in one place.
+Collection of rphii's C-libraries all in one place.
 
 ## Containing:
 
@@ -20,6 +20,8 @@ Collection of my C libraries all in one place.
 - [`file.h`](src/file.h) File functions
 
 ## Compilation, installation
+
+This process is simplified with the help of the [meson build system](https://github.com/mesonbuild/meson):
 
     meson setup build
     meson compile -C build
