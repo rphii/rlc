@@ -18,7 +18,6 @@ headers = [
   ]
 
 install_headers(headers, subdir: 'rphii')
-
 rphiic = library('rphiic',
   sources,
   link_args: '-lm',
