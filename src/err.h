@@ -109,6 +109,11 @@
         printf(F(" * ", FG_BL_B) F("%s:%i \n", FG_BK_B) , __func__, __LINE__); \
     } while(0);
 
+#define NEW(T, result) do { \
+        result = malloc(sizeof(T)); \
+        if(!result) ABORT(ERR_MALLOC); \
+        memset(result, 0, sizeof(T)); \
+    } while(0) 
 
 #define TRY_BASE(stmt, fmt, ...)                do { if (stmt) { THROW(fmt, ##__VA_ARGS__); } } while(0)
 #define TRY_CONST(function)                     do { if (function) { THROW(ERR_##function); } } while(0)
