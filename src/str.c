@@ -628,7 +628,7 @@ IMPL_STR_AS_INT(rstr, RStr, RSTR_F);
     int A##_as_double(const N str, double *out) { \
         ASSERT_ARG(out); \
         char *endptr; \
-        ssize_t result = strtod(A##_iter_begin(str), &endptr); \
+        double result = strtod(A##_iter_begin(str), &endptr); \
         if(endptr != A##_iter_end(&str)) THROW("failed conversion to number: '%.*s'", F(str)); \
         *out = result; \
         return 0; \
