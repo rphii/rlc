@@ -1,5 +1,5 @@
 #include "utf8.h"
-#include <rphii/err.h>
+#include "err.h"
 
 void str_u8str(U8Str u8str, Str str) {
     ASSERT_ARG(u8str);

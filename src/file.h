@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <rphii/err.h>
-#include <rphii/str.h>
+#include "err.h"
+#include "str.h"
 
 /******************************************************************************/
 /* PUBLIC FUNCTION PROTOTYPES *************************************************/

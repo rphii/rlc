@@ -1,6 +1,6 @@
 #ifndef ATTR_H
 
-#include <rphii/platform_detect.h>
+#include "platform-detect.h"
 
 /* https://stackoverflow.com/questions/28166565/detect-gcc-as-opposed-to-msvc-clang-with-macro */
 #if defined(PLATFORM_LINUX) && defined(__GNUC__) && !defined(__clang__)

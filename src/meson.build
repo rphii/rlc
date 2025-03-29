@@ -17,11 +17,11 @@ headers = [
   'vec.h',
   ]
 
+install_headers(headers, subdir: 'rphii')
+
 rphiic = library('rphiic',
   sources,
   link_args: '-lm',
   install: true,
   )
-
-install_headers(headers, subdir: 'rphii')
 
