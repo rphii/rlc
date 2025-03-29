@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <ctype.h>
 
-#include <rphii/colorprint.h>
-#include <rphii/err.h>
+#include "colorprint.h"
+#include "err.h"
 
 /* {{{ source-only fluff */
 
@@ -19,7 +19,7 @@ VEC_IMPLEMENT(Str, str, char, BY_VAL, ERR);
 #undef VEC_SETTINGS_KEEP_ZERO_END
 #undef VEC_SETTINGS_STRUCT_ITEMS
 
-#include <rphii/vec.h>
+#include "vec.h"
 
 VEC_IMPLEMENT(VStr, vstr, Str, BY_REF, BASE, 0);
 VEC_IMPLEMENT(VStr, vstr, Str, BY_REF, ERR);

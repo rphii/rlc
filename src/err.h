@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include <rphii/colorprint.h>
-#include <rphii/attr.h>
+#include "colorprint.h"
+#include "attr.h"
 
 #ifndef DEBUG
 #define DEBUG           0

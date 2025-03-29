@@ -30,7 +30,7 @@ SOFTWARE. */
 
 #include <stdio.h>
 
-#include <rphii/err.h>
+#include "err.h"
 
 #ifndef vec_malloc
 #define vec_malloc  malloc

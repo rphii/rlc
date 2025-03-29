@@ -1,8 +1,8 @@
 #ifndef UTF8_H
 
 #include <stdint.h>
-#include <rphii/err.h>
-#include <rphii/str.h>
+#include "err.h"
+#include "str.h"
 
 typedef struct U8Point {
     uint32_t val;
