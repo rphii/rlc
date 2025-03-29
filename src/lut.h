@@ -260,11 +260,14 @@
         size_t hash = H(key); \
         N##KV **item = A##_static_get_item(lut, key, hash, true); \
         if(*item) { \
-            if((*item)->hash == LUT_EMPTY) { \
+            if((*item)->hash != LUT_EMPTY) { \
+                return 0; \
+            } \
+            /*if((*item)->hash == LUT_EMPTY) { \
                 (*item)->hash = hash; \
                 ++lut->used; \
             } \
-            return 0; \
+            return 0;*/ \
         } else { \
             size_t req = sizeof(**item); \
             /*if(LUT_IS_BY_REF(MK))*/ { \
