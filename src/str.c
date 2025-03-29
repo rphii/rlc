@@ -643,6 +643,7 @@ IMPL_STR_AS_INT(rstr, RStr, RSTR_F);
             if(i && !expand_pool) THROW("invalid bool: '%.*s'", F(str)); \
             if(!rstr_cmp(val_true[i], in)) { result = true; break; } \
             if(!rstr_cmp(val_false[i], in)) { result = false; break; } \
+            if(i >= 3 && expand_pool) THROW("invalid bool: '%.*s'", F(str)); \
         } \
         *out = result; \
         return 0; \
