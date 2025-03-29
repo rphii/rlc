@@ -624,6 +624,21 @@ IMPL_STR_AS_INT(str, Str, STR_F);
 IMPL_STR_AS_INT(rstr, RStr, RSTR_F);
 /*}}}*/
 
+#define IMPL_STR_AS_DOUBLE(A, N, F) /*{{{*/ \
+    int A##_as_double(const N str, double *out) { \
+        ASSERT_ARG(out); \
+        char *endptr; \
+        ssize_t result = strtod(A##_iter_begin(str), &endptr); \
+        if(endptr != A##_iter_end(&str)) THROW("failed conversion to number: '%.*s'", F(str)); \
+        *out = result; \
+        return 0; \
+    error: \
+        return -1; \
+    }
+IMPL_STR_AS_DOUBLE(str, Str, STR_F);
+IMPL_STR_AS_DOUBLE(rstr, RStr, RSTR_F);
+/*}}}*/
+
 #define IMPL_STR_AS_BOOL(A, N, F) /*{{{*/ \
     int A##_as_bool(const N str, bool *out, bool expand_pool) { \
         ASSERT_ARG(out); \

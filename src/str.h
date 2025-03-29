@@ -102,6 +102,11 @@ ErrDecl str_as_int(const Str str, ssize_t *out);
 #define ERR_rstr_as_int(...) "error while converting string to number"
 ErrDecl rstr_as_int(const RStr str, ssize_t *out);
 
+#define ERR_str_as_double(...) "error while converting string to number"
+ErrDecl str_as_double(const Str str, double *out);
+#define ERR_rstr_as_double(...) "error while converting string to number"
+ErrDecl rstr_as_double(const RStr str, double *out);
+
 #define ERR_str_as_bool(...) "error while converting string to bool"
 ErrDecl str_as_bool(const Str str, bool *out, bool expand_pool);
 #define ERR_rstr_as_bool(...) "error while converting string to bool"
