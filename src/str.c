@@ -600,9 +600,9 @@ IMPL_STR_LENGTH_NOF(rstr, RStr);
         for(;;) { \
             snip = RSTR_I0(snip, m); \
             n = rstr_find_substr(snip, pat); \
+            printff("n %zu, len_nof %zu", n, len_nof); \
             if(n >= rstr_length(snip)) break; \
             if(len_nof + n >= index) { \
-                printf(">>> %zu %zu %zu %zu\n", index, len_nof, snip.first, n);\
                 return (index - len_nof + snip.first); \
             } \
             len_nof += n; \
@@ -612,7 +612,7 @@ IMPL_STR_LENGTH_NOF(rstr, RStr);
             if(m++ >= rstr_length(snip)) break; \
             /*len -= (bool)(m);*/ \
         } \
-        return index; \
+        return A##_length(str); \
     }
 IMPL_STR_INDEX_NOF(str, Str);
 IMPL_STR_INDEX_NOF(rstr, RStr);
