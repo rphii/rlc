@@ -655,15 +655,13 @@ IMPL_STR_AS_DOUBLE(rstr, RStr, RSTR_F);
         }; \
         bool result = false; \
         for(size_t i = 0; i < 3; ++i) { \
-            if(i && !expand_pool) THROW("invalid bool: '%.*s'", F(str)); \
+            if(i && !expand_pool) return -1; \
             if(!rstr_cmp(val_true[i], in)) { result = true; break; } \
             if(!rstr_cmp(val_false[i], in)) { result = false; break; } \
-            if(i + 1 >= 3 && expand_pool) THROW("invalid bool: '%.*s'", F(str)); \
+            if(i + 1 >= 3 && expand_pool) return -1; \
         } \
         *out = result; \
         return 0; \
-    error: \
-        return -1; \
     }
 IMPL_STR_AS_BOOL(str, Str, STR_F);
 IMPL_STR_AS_BOOL(rstr, RStr, RSTR_F);
