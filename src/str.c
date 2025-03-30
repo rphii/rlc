@@ -602,7 +602,7 @@ IMPL_STR_LENGTH_NOF(rstr, RStr);
             n = rstr_find_substr(snip, pat); \
             if(n >= rstr_length(snip)) break; \
             if(len_nof + n >= index) { \
-                return index - len_nof + m; \
+                return len_nof + m; \
             } \
             len_nof += n; \
             snip = RSTR_I0(snip, n + pat.last); \
