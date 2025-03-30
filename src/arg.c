@@ -325,6 +325,7 @@ void argx_print_pre(const char *pre, ArgX *argx, const char *post) {
                 printf("%s" F(">", FG_BL_B), post);
             }
         } break;
+        case ARG_HELP: break;
         case ARG_NONE: break;
         case ARG__COUNT: break;
     }
@@ -351,6 +352,7 @@ void argx_print_post(const char *pre, ArgX *argx, const char *post, ArgXVal *val
             if(!val->f) break;
             printf("%s" F("=", FG_BK_B) F("%f", FG_GN) "%s", pre, *val->f, post);
         } break;
+        case ARG_HELP: break;
         case ARG_OPTION: break;
         case ARG_NONE: break;
         case ARG__COUNT: break;
