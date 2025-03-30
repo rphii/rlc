@@ -420,7 +420,7 @@ void argx_group_print(ArgBase *base, ArgXGroup *group) {
 
 int arg_help(struct Arg *arg) {
     ASSERT_ARG(arg);
-    if(arg->parse.help.x) {
+    if(arg->parse.help.x && arg->parse.help.get) {
         /* specific help */
         argx_print_specific(&arg->parse, &arg->base, arg->parse.help.x);
     } else {
@@ -558,6 +558,10 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
     }
     return 0;
 error:
+    if(!parse->help.get) {
+        parse->help.get = true;
+        parse->help.x = argx;
+    }
     return -1;
 }
 
@@ -566,6 +570,7 @@ ErrDecl arg_parse(struct Arg *arg, bool *quit_early) {
     ASSERT_ARG(arg->parse.base);
     ASSERT_ARG(quit_early);
     ArgParse *parse = &arg->parse;
+    ArgX *argx = 0;
     parse->i = 1;
     int err = 0;
     if(parse->argc < 2 && arg->base.show_help) arg_help(arg);
@@ -587,7 +592,6 @@ ErrDecl arg_parse(struct Arg *arg, bool *quit_early) {
                 }
                 RStr arg_query = RSTR_I0(argV, 2);
                 /* long option */
-                ArgX *argx = 0;
                 TRYC(arg_parse_getopt(&arg->opt, &argx, arg_query));
                 TRYC(argx_parse(parse, argx));
             } else {
@@ -619,6 +623,7 @@ clean:
     //argx_group_free(&parse->queue);
     return err;
 error:
+    arg_help(arg);
     ERR_CLEAN;
 }
 
