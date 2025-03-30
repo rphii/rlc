@@ -602,6 +602,7 @@ IMPL_STR_LENGTH_NOF(rstr, RStr);
             n = rstr_find_substr(snip, pat); \
             if(n >= rstr_length(snip)) break; \
             if(len_nof + n >= index) { \
+                printff("%zu %zu %zu %zu", index, len_nof, snip.first, n);\
                 return (index - len_nof + snip.first); \
             } \
             len_nof += n; \
