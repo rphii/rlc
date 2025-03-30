@@ -91,6 +91,14 @@ typedef enum {
 #define VEC_REF_BY_REF
 #define VEC_REF(M)       VEC_REF_##M
 
+#define VEC_VAL_BY_VAL
+#define VEC_VAL_BY_REF   *
+#define VEC_VAL(M)       VEC_VAL_##M
+
+#define VEC_RREF_BY_VAL
+#define VEC_RREF_BY_REF  &
+#define VEC_RREF(M)      VEC_RREF_##M
+
 #define VEC_ASSERT_REAL(x)   ASSERT(x, "assertion failed")
 
 #define VEC_ASSERT_BY_REF(x)    VEC_ASSERT_REAL(x)
@@ -208,6 +216,7 @@ typedef enum {
     /****************************************/
 
 #define VEC_INCLUDE_SORT(N, A, T, M)                void A##_sort(N *vec);
+#define VEC_INCLUDE_SORT2(N, A, T, M, A2)           void A##_sort_##A2(N *vec);
 
 /*
  * int A##_cmp(N *a, N *b) -> compare vec
@@ -490,14 +499,34 @@ typedef enum {
         for (h = n; h /= 2;) { \
             for (i = h; i < n; i++) { \
                 /*t = a[i]; */\
-                temp = *A##_get_at(vec, i); \
+                temp = VEC_VAL(M) A##_get_at(vec, i); \
                 /*for (j = i; j >= h && t < a[j - h]; j -= h) { */\
-                for (j = i; j >= h && CMP(&temp, A##_get_at(vec, j-h)) < 0; j -= h) { \
+                for (j = i; j >= h && CMP(VEC_RREF(M) temp, A##_get_at(vec, j-h)) < 0; j -= h) { \
                     A##_set_at(vec, j, A##_get_at(vec, j-h)); \
                     /*a[j] = a[j - h]; */\
                 } \
                 /*a[j] = t; */\
-                A##_set_at(vec, j, &temp); \
+                A##_set_at(vec, j, VEC_RREF(M) temp); \
+            } \
+        } \
+    }
+
+#define VEC_IMPLEMENT_SORT2(N, A, T, M, CMP, A2) \
+    inline void A##_sort_##A2(N *vec) { \
+        /* shell sort, https://rosettacode.org/wiki/Sorting_algorithms/Shell_sort#C */ \
+        size_t h, i, j, n = A##_length(*vec); \
+        T temp; \
+        for (h = n; h /= 2;) { \
+            for (i = h; i < n; i++) { \
+                /*t = a[i]; */\
+                temp = VEC_VAL(M) A##_get_at(vec, i); \
+                /*for (j = i; j >= h && t < a[j - h]; j -= h) { */\
+                for (j = i; j >= h && CMP(VEC_RREF(M) temp, A##_get_at(vec, j-h)) < 0; j -= h) { \
+                    A##_set_at(vec, j, A##_get_at(vec, j-h)); \
+                    /*a[j] = a[j - h]; */\
+                } \
+                /*a[j] = t; */\
+                A##_set_at(vec, j, VEC_RREF(M) temp); \
             } \
         } \
     }
