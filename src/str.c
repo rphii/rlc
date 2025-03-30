@@ -590,6 +590,33 @@ IMPL_STR_LENGTH_NOF(str, Str);
 IMPL_STR_LENGTH_NOF(rstr, RStr);
 /*}}}*/
 
+#define IMPL_STR_INDEX_NOF(A, N) /*{{{*/ \
+    size_t A##_index_nof(const N str, size_t index) { \
+        /*size_t len = A##_length(str);*/ \
+        size_t len_nof = 0; \
+        size_t n = 0, m = 0; \
+        RStr snip = A##_rstr(str); \
+        RStr pat = RSTR("\033["); \
+        for(;;) { \
+            snip = RSTR_I0(snip, m); \
+            n = rstr_find_substr(snip, pat); \
+            if(n >= rstr_length(snip)) break; \
+            if(len_nof + n >= index) { \
+                return index - len_nof + m; \
+            } \
+            len_nof += n; \
+            snip = RSTR_I0(snip, n + pat.last); \
+            m = rstr_find_ch(snip, 'm', 0); \
+            /*len -= (m + pat.last);*/ \
+            if(m++ >= rstr_length(snip)) break; \
+            /*len -= (bool)(m);*/ \
+        } \
+        return index; \
+    }
+IMPL_STR_INDEX_NOF(str, Str);
+IMPL_STR_INDEX_NOF(rstr, RStr);
+/*}}}*/
+
 #define IMPL_STR_SPLICE(A, N) /*{{{*/ \
     RStr A##_splice(const N to_splice, RStr *prev_splice, char sep) { \
         RStr result = A##_rstr(to_splice); \
