@@ -595,13 +595,15 @@ IMPL_STR_LENGTH_NOF(rstr, RStr);
         /*size_t len = A##_length(str);*/ \
         size_t len_nof = 0; \
         size_t n = 0, m = 0; \
+        size_t first = str.first; \
         RStr snip = A##_rstr(str); \
         RStr pat = RSTR("\033["); \
         for(;;) { \
             snip = RSTR_I0(snip, m); \
             n = rstr_find_substr(snip, pat); \
+            /*printff("%zu %zu %zu %zu", len_nof,n,index,snip.first-first);*/\
             if(len_nof + n > index) { \
-                return (index - len_nof + snip.first); \
+                return (index - len_nof + snip.first-first); \
             } \
             if(n >= rstr_length(snip)) break; \
             len_nof += n; \
