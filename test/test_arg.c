@@ -90,6 +90,11 @@ error:
 #define TEST_TWIN_SHORT 1
 #endif
 
+int hello_world(int *n) {
+    printf("Hello, %i worlds!\n", *n);
+    return 0;
+}
+
 int main(const int argc, const char **argv) {
 
     int err = 0;
@@ -102,7 +107,7 @@ int main(const int argc, const char **argv) {
     ssize_t nfuck = 0;
     bool quit_early = false;
 
-    arg_init(arg, argc, argv, RSTR("test_arg"), RSTR("this is a test program to verify the functionality of an argument parser"), RSTR("github: https://github.com/rphii"), '-', true, 0);
+    arg_init(arg, argc, argv, RSTR("test_arg"), RSTR("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), RSTR("github: https://github.com/rphii"), '-', true, 0);
 
     x=argx_init(arg_opt(arg), n_arg++, 'h', RSTR("help"), RSTR("print this help"));
       argx_help(x, arg);
@@ -125,7 +130,7 @@ int main(const int argc, const char **argv) {
         x=argx_init(g, n_arg++, 0, RSTR("lmao"), RSTR("what the fuck"));
           argx_opt_enum(x, CONFIG_LMAO);
           argx_int(x, &nfuck, 0);
-          argx_func(x, arg_help, arg, true);
+          argx_func(x, hello_world, &nfuck, true);
 
     TRYC(arg_parse(arg, &quit_early));
     if(quit_early) return 0;
