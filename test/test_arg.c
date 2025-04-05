@@ -111,6 +111,7 @@ int main(const int argc, const char **argv) {
 
     x=argx_init(arg_opt(arg), n_arg++, 'h', RSTR("help"), RSTR("print this help"));
       argx_help(x, arg);
+    x=argx_init(arg_opt(arg), n_arg++, 0, RSTR("xyz"), RSTR("nothing"));
     x=argx_init(arg_opt(arg), n_arg++, 'b', RSTR("bool"), RSTR("boolean value"));
       argx_bool(x, &config.boolean, &preset.boolean);
     x=argx_init(arg_opt(arg), n_arg++, 'f', RSTR("double"), RSTR("double value"));
@@ -131,6 +132,10 @@ int main(const int argc, const char **argv) {
           argx_opt_enum(x, CONFIG_LMAO);
           argx_int(x, &nfuck, 0);
           argx_func(x, hello_world, &nfuck, true);
+        x=argx_init(g, n_arg++, 0, RSTR("test"), RSTR("what the fuck"));
+        x=argx_init(g, n_arg++, 0, RSTR("useless"), RSTR("what the fuck"));
+        x=argx_init(g, n_arg++, 0, RSTR("verbose"), RSTR("what the fuck"));
+    x=argx_init(arg_opt(arg), n_arg++, 0, RSTR("very-long-option-that-is-very-important-and-cool-but-serves-no-purpose-whatsoever-anyways-how-are-you-doing-today"), RSTR("select another option"));
 
     TRYC(arg_parse(arg, &quit_early));
     if(quit_early) return 0;

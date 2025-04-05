@@ -394,6 +394,43 @@ IMPL_STR_FIND_NWS(rstr, RStr);
 /*}}}*/
 
 
+#define IMPL_STR_FIND_RFIND_F(A, N, R) /*{{{*/ \
+    size_t A##_##R##find_f(const N str, size_t *out_iE) { \
+        size_t i0 = A##_##R##find_substr(str, RSTR(FS_BEG)); \
+        if(out_iE) { \
+            RStr s = RSTR_I0(A##_rstr(str), i0); \
+            size_t iE = rstr_find_ch(s, 'm', 0); \
+            if(iE < rstr_length(s)) ++iE; \
+            *out_iE = iE; \
+        } \
+        return i0; \
+    }
+IMPL_STR_FIND_RFIND_F(str, Str, /*none*/);
+IMPL_STR_FIND_RFIND_F(rstr, RStr, /*none*/);
+IMPL_STR_FIND_RFIND_F(str, Str, r);
+IMPL_STR_FIND_RFIND_F(rstr, RStr, r);
+/*}}}*/
+
+#define IMPL_STR_RFIND_SUBSTR(A, N) /*{{{*/ \
+    inline size_t A##_rfind_substr(const N str, const RStr sub) { \
+        /* basic checks */ \
+        size_t n = rstr_length(sub); \
+        size_t m = A##_length(str); \
+        if(!n) return 0; \
+        if(n > m) { \
+            return m; \
+        } \
+        const char *s = rstr_iter_at(&sub, 0); \
+        for(size_t i = m - n + 1; i > 0; --i) { \
+            const char *t = A##_iter_at(&str, i - 1); \
+            if(!memcmp(s, t, n)) return i - 1; \
+        } \
+        return m; \
+    }
+IMPL_STR_RFIND_SUBSTR(str, Str);
+IMPL_STR_RFIND_SUBSTR(rstr, RStr);
+/*}}}*/
+
 #define IMPL_STR_RFIND_NCH(A, N) /*{{{*/ \
     size_t A##_rfind_nch(const N str, char ch, size_t n) {  \
         size_t ni = 0; \

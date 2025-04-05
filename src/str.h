@@ -140,6 +140,7 @@ STR_INCLUDE_CONST(size_t, find_nch, char ch, size_t n);
 STR_INCLUDE_CONST(size_t, find_ch, char ch, size_t n);
 STR_INCLUDE_CONST(size_t, find_ws);
 STR_INCLUDE_CONST(size_t, find_nws);
+STR_INCLUDE_CONST(size_t, find_f, size_t *);
 STR_INCLUDE_CONST(size_t, count_overlap, const RStr b, bool ignorecase);
 STR_INCLUDE_CONST(size_t, find_substr, RStr sub);
 
@@ -147,6 +148,8 @@ STR_INCLUDE_CONST(size_t, rfind_nch, char ch, size_t n);
 STR_INCLUDE_CONST(size_t, rfind_ch, char ch, size_t n);
 STR_INCLUDE_CONST(size_t, rfind_ws);
 STR_INCLUDE_CONST(size_t, rfind_nws);
+STR_INCLUDE_CONST(size_t, rfind_f, size_t *);
+STR_INCLUDE_CONST(size_t, rfind_substr, RStr sub);
 
 STR_INCLUDE_CONST(size_t, pair_ch, char c1);
 STR_INCLUDE_CONST(size_t, count_ch, char ch);

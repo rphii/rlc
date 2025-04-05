@@ -1,4 +1,7 @@
 #include "arg.h"
+#undef SSIZE_MAX
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 typedef enum {
     ARG_NONE,
@@ -197,10 +200,15 @@ void arg_init(struct Arg *arg, const int argc, const char **argv, RStr program, 
     arg->parse.argc = (int)argc;
     arg->parse.argv = (char **)argv;
     arg->parse.base = &arg->base;
-    arg->print.bounds.max = 80;
-    arg->print.bounds.desc = 36;
-    arg->print.bounds.opt = 6;
     arg->print.bounds.c = 2;
+    arg->print.bounds.opt = 6;
+    struct winsize w;
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    int desc = w.ws_col * 45;
+    if(desc % 200) desc += 200 - desc % 200;
+    desc /= 100;
+    arg->print.bounds.desc = desc;
+    arg->print.bounds.max = w.ws_col;
 }
 
 #define ERR_argx_group_push(...) "failed adding argument x"
@@ -341,6 +349,8 @@ void arg_do_print(Arg *arg, bool endline) {
     Str *line = &arg->print.line;
     size_t len_nof = str_length_nof(arg->print.line);
     size_t len = str_length(arg->print.line);
+    RStr fmt = RSTR("");
+    size_t f0, fE;
     bool repeat = false;
     //int pad = arg->print.progress <= arg->print.pad ? arg->print.pad - arg->print.progress : arg->print.pad;
     int pad = arg->print.progress > arg->print.pad ? 0 : arg->print.pad - arg->print.progress;
@@ -352,43 +362,49 @@ void arg_do_print(Arg *arg, bool endline) {
             arg->print.progress = 0;
         }
     }
+    size_t off0 = arg->print.progress;
     while(len) {
         //printff("LEN NOF %zu", len_nof);
-        if(len_nof > arg->print.bounds.max + (repeat ? 4 : 2)) {
-            if(repeat) {
-                size_t n = str_index_nof(*line, arg->print.bounds.max - pad - 4);
-                //printff(">>> N = %zu", n);
-                printf("%*s" F("..", FG_BK_B) "%.*s" F("..", FG_BK_B) "\n", pad, "", (int)n, str_iter_begin(*line));
-                arg->print.progress = n;
-                line->first += n;
-            } else {
-                size_t n = str_index_nof(*line, arg->print.bounds.max - pad - 2);
-                printf("%*s%.*s" F("..", FG_BK_B) "\n", pad, "", (int)n, str_iter_begin(*line));
-                arg->print.progress = n;
-                line->first += n;
-            }
-            repeat = true;
+        printf("%*s", pad, "");
+        if(repeat) {
+            printf(F(",,", FG_BK_B));
+        }
+
+        size_t m = len;
+        if(len_nof + pad + (repeat ? 4 : 2) > arg->print.bounds.max) {
+            m = arg->print.bounds.max - pad - (repeat ? 4 : 2);
+        }
+        size_t n = str_index_nof(*line, m);
+
+        RStr line_print = str_rstr(STR_IE(*line, n));
+        f0 = rstr_rfind_f(line_print, &fE);
+        //printff("\n%zu/%zu/%zu", f0, fE, len);
+        if(f0+fE < m) fmt = str_rstr(STR_IE(STR_I0(*line, f0), fE));
+        //printf("%.*s{%zu}", RSTR_F(fmt), rstr_length(fmt));
+        printf("%.*s", RSTR_F(fmt));
+        printf("%.*s", RSTR_F(line_print));
+        if(f0 < m) fmt = str_rstr(STR_IE(STR_I0(*line, f0), fE));
+
+        if(len_nof + pad + (repeat ? 4 : 2) > arg->print.bounds.max) {
+            printf(F("..", FG_BK_B) "\n");
+            arg->print.progress = n;
+            line->first += n;
         } else {
-            if(repeat) {
-                size_t index = len + 2 >= arg->print.bounds.max ? arg->print.bounds.max - 2 : len;
-                size_t n = str_index_nof(*line, index);
-                printf(F("..", FG_BK_B) "%*s%.*s", pad, "", (int)n, str_iter_begin(*line));
-                arg->print.progress = n;
-                line->first += n;
-            } else {
-                printf("%*s%.*s", pad, "", STR_F(*line));
-            }
+            //printf("%.*s", STR_F(*line));
             if(endline) {
                 printf("\n");
                 arg->print.progress = 0;
+        off0 = 0;
             } else {
                 //printff("LINE %zu", str_length_nof(*line));
                 arg->print.progress += pad + str_length_nof(*line);
             }
             str_clear(line);
         }
+        //printff(" PROGRESS %zu/%zu(%zu)", arg->print.progress, pad, arg->print.pad);
         len_nof = str_length_nof(*line);
         len = str_length(*line);
+        repeat = true;
         //printff("len %zu",len);getchar();
     }
 }
@@ -423,20 +439,32 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
                 str_copy(&arg->print.line, &STR(" "));
                 arg_do_print(arg, false);
                 arg->print.pad = arg->print.progress;
+		//printff("PADDING %zu", arg->print.pad);
+                str_clear(&arg->print.line);
             }
-            str_clear(&arg->print.line);
             TRYG(str_extend_back(&arg->print.line, arg->print.buf));
-            arg_do_print(arg, false);
+                //arg_do_print(arg, false);
+            //arg_do_print(arg, false);
         } break;
         case ARG_PRINT_DESC: {
-            arg->print.pad = arg->print.bounds.desc;
             if(arg->print.prev == ARG_PRINT_TYPE) {
+                arg_do_print(arg, false);
                 if(arg->print.progress + 1 > arg->print.bounds.desc) {
                     str_copy(&arg->print.line, &STR(""));
                     arg_do_print(arg, true);
                     arg->print.pad = arg->print.bounds.opt + 4;
-                }
-            }
+                } else {
+		    TRYC(str_fmt(&arg->print.line, " "));
+		    for(size_t i = arg->print.progress + 2; i < arg->print.bounds.desc; ++i) {
+		        //TRYC(str_fmt(&arg->print.line, "·"));
+		        TRYC(str_fmt(&arg->print.line, F("%c", FG_BK_B), i % 2 ? '~' : ' '));
+		    }
+                    arg_do_print(arg, false);
+		    arg->print.pad = arg->print.bounds.desc;
+		}
+	    } else {
+                arg->print.pad = arg->print.bounds.desc;
+	    }
             str_clear(&arg->print.line);
             TRYG(str_extend_back(&arg->print.line, arg->print.buf));
             arg_do_print(arg, false);

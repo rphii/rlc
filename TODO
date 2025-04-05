@@ -3,4 +3,9 @@ arg.c
     print min/max with --help
     don't print current/default value with --help if type is none...
     custom type... (allowing e.g. vectors)
+    option for n times the same arg
+    option to set - or ~ or . etc (spacing thing)
+    option to set max width manually, enable/disable auto width
+    check for spaces in long options
+
 
