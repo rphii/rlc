@@ -352,7 +352,7 @@ void argx_env(struct Arg *arg, RStr opt, RStr desc, RStr *val, RStr *ref) {
     ArgX *x = argx_init(&arg->env, 0, 0, opt, desc);
     x->id = ARG_ENV;
     x->val.s = val;
-    x->ref.s = val;
+    x->ref.s = ref;
 }
 
 /* }}} */
@@ -888,12 +888,10 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
             for(size_t i = 0; i < vargx_length(argx->o->vec); ++i) {
                 ArgX *x = vargx_get_at(&argx->o->vec, i);
                 *x->val.b = false;
-                printff("RESET %.*s", RSTR_F(x->info.opt));
             }
             for(RStr flag = {0}; flag.first < argV.last; flag = rstr_splice(argV, &flag, parse->base->flag_sep)) {
                 if(!flag.s) continue;
                 ArgX *x = 0;
-                printff("ENABLE %.*s", RSTR_F(flag));
                 TRYC(arg_parse_getopt(argx->o, &x, flag));
                 TRYC(argx_parse(parse, x));
             }
@@ -932,6 +930,7 @@ void arg_parse_setref_argx(struct ArgX *argx) {
         } break;
         case ARG_ENV:
         case ARG_STRING: {
+            //printff("SETTING STR %.*s=%.*s", RSTR_F(argx->info.opt), RSTR_F(*argx->ref.s));
             if(argx->ref.s) *argx->val.s = *argx->ref.s;
         } break;
         case ARG_OPTION: {
@@ -973,6 +972,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     ArgParse *parse = &arg->parse;
     parse->argv = (char **)argv;
     parse->argc = argc;
+    Str temp_clean_env = {0};
     ArgX *argx = 0;
     parse->i = 1;
     int err = 0;
@@ -1024,6 +1024,15 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
             TRYG(vrstr_push_back(arg->base.rest, &argV));
         }
     }
+    /* gather environment variables */
+    for(size_t i = 0; i < vargx_length(arg->env.vec); ++i) {
+        ArgX *x = vargx_get_at(&arg->env.vec, i);
+        TRYG(rstr_copy(&temp_clean_env, &x->info.opt));
+        const char *cenv = getenv(temp_clean_env.s);
+        if(!cenv) continue;
+        RStr env = RSTR_L(cenv);
+        *x->val.s = env;
+    }
     /* now go over the queue and do post processing */
     vargx_sort(&parse->queue);
     for(size_t i = 0; i < vargx_length(parse->queue); ++i) {
@@ -1037,6 +1046,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         }
     }
 clean:
+    str_free(&temp_clean_env);
     vargx_free(&parse->queue);
     //DO THIS OUTSIDE:
     //if(*quit_early) {

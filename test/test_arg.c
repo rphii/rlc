@@ -59,6 +59,7 @@ int main(const int argc, const char **argv) {
     preset.flags.other = true;
     preset.flags.safe = true;
     preset.id = CONFIG_LMAO;
+    preset.config = RSTR("path/to/config");
 
     arg_init(arg, RSTR("test_arg"), RSTR("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), RSTR("github: https://github.com/rphii"));
     //arg_init_width(arg, 40, 45);
@@ -106,6 +107,8 @@ int main(const int argc, const char **argv) {
 
     TRYC(arg_parse(arg, argc, argv, &quit_early));
     if(quit_early) goto clean;
+
+    printff("ARG_CONFIG_PATH is = [%.*s]", RSTR_F(config.config));
 
 #if 0 /*{{{*/
     //arg_init(arg);
