@@ -435,7 +435,7 @@ void arg_do_print(Arg *arg, bool endline) {
 #if 1
         RStr line_print = str_rstr(STR_IE(*line, n));
         f0 = rstr_rfind_f(line_print, &fE);
-        if(f0+fE < n) fmt = str_rstr(STR_IE(STR_I0(*line, f0), fE));
+        //if(f0+fE < n) fmt = str_rstr(STR_IE(STR_I0(*line, f0), fE));
         printf("%.*s%.*s", RSTR_F(fmt), RSTR_F(line_print));
         if(f0 < n) fmt = str_rstr(STR_IE(STR_I0(*line, f0), fE));
 #else
