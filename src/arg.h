@@ -7,6 +7,7 @@
 #define ARG_INIT_DEFAULT_SHOW_HELP  true
 #define ARG_INIT_DEFAULT_FLAG_SEP   ','
 
+#define ARG_F_ENV       BOLD FG_WT_B
 #define ARG_VAL_F       FG_GN
 #define ARG_TYPE_F      FG_CY
 #define ARG_OPTION_F    FG_BL
@@ -34,7 +35,7 @@ void arg_free(struct Arg **arg);
 
 struct ArgXGroup *arg_pos(struct Arg *arg);
 struct ArgXGroup *arg_opt(struct Arg *arg);
-struct ArgXGroup *arg_env(struct Arg *arg);
+//struct ArgXGroup *arg_env(struct Arg *arg);
 
 struct ArgX *argx_init(struct ArgXGroup *group, size_t index, const unsigned char c, const RStr optX, const RStr descX);
 void argx_str(struct ArgX *x, RStr *val, RStr *ref);
@@ -48,6 +49,7 @@ void argx_opt_enum(struct ArgX *x, int val);
 void argx_flag_set(struct ArgX *x, bool *val, bool *ref);
 void argx_func(struct ArgX *x, void *func, void *data, bool quit_early);
 void argx_help(struct ArgX *x, struct Arg *arg);
+void argx_env(struct Arg *arg, RStr opt, RStr desc, RStr *val, RStr *ref);
 
 struct ArgX *argx_new(struct TArgX *group, const unsigned char c, const RStr opt, const RStr desc);
 

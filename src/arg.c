@@ -10,6 +10,7 @@ typedef enum {
     ARG_INT,
     ARG_FLOAT,
     ARG_STRING,
+    ARG_ENV,
     //ARG_EXOTIC,
     ARG_OPTION,
     ARG_FLAGS,
@@ -26,6 +27,7 @@ const char *arglist_str(ArgList id) {
         case ARG_INT: return "<int>";
         case ARG_FLOAT: return "<double>";
         case ARG_STRING: return "<string>";
+        case ARG_ENV: return "<env>";
         case ARG_OPTION: return "<option>";
         case ARG_HELP: return "<help>";
         case ARG_FLAGS: return "<flags>";
@@ -185,9 +187,9 @@ ArgXGroup *arg_pos(Arg *arg) {
 ArgXGroup *arg_opt(Arg *arg) {
     return &arg->opt;
 }
-ArgXGroup *arg_env(Arg *arg) {
-    return &arg->env;
-}
+//ArgXGroup *arg_env(Arg *arg) {
+//    return &arg->env;
+//}
 
 void arg_init(struct Arg *arg, RStr program, RStr description, RStr epilog) {
     ASSERT_ARG(arg);
@@ -343,6 +345,14 @@ void argx_help(struct ArgX *x, struct Arg *arg) {
     x->attr.callback.func = (ArgFunction)arg_help;
     x->attr.callback.data = arg;
     x->attr.callback.quit_early = true;
+}
+void argx_env(struct Arg *arg, RStr opt, RStr desc, RStr *val, RStr *ref) {
+    ASSERT_ARG(arg);
+    ASSERT_ARG(val);
+    ArgX *x = argx_init(&arg->env, 0, 0, opt, desc);
+    x->id = ARG_ENV;
+    x->val.s = val;
+    x->ref.s = val;
 }
 
 /* }}} */
@@ -579,6 +589,7 @@ void argx_print_pre(Arg *arg, ArgX *argx) { /*{{{*/
                 arg_handle_print(arg, ARG_PRINT_TYPE, F(">", ARG_FLAG_F));
             }
         } break;
+        case ARG_ENV:
         case ARG_NONE:
         case ARG_HELP: {
             arg_handle_print(arg, ARG_PRINT_TYPE, "");
@@ -592,6 +603,7 @@ void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
     ASSERT_ARG(val);
     ArgXVal out = *val;
     switch(argx->id) {
+        case ARG_ENV:
         case ARG_STRING: {
             if(val->s && rstr_length(*val->s)) {
                 arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%.*s", ARG_VAL_F), RSTR_F(*val->s));
@@ -632,7 +644,9 @@ void argx_print(Arg *arg, ArgX *x, bool detailed) { /*{{{*/
         arg_handle_print(arg, ARG_PRINT_SHORT, F("%c%c", BOLD FG_WT_B), pfx, x->info.c);
     }
     /* print long form (should always be available) */
-    if(x->group && x->group->parent) {
+    if(x->id == ARG_ENV) {
+        arg_handle_print(arg, ARG_PRINT_SHORT, F("%.*s", ARG_F_ENV), RSTR_F(x->info.opt));
+    } else if(x->group && x->group->parent) {
         arg_handle_print(arg, ARG_PRINT_LONG, F("  %.*s", BOLD FG_WT_B), RSTR_F(x->info.opt));
     } else {
         arg_handle_print(arg, ARG_PRINT_LONG, F("%c%c%.*s", BOLD FG_WT_B), pfx, pfx, RSTR_F(x->info.opt));
@@ -693,6 +707,8 @@ void argx_print_specific(Arg *arg, ArgParse *parse, ArgX *x) { /*{{{*/
 } /*}}}*/
 
 void argx_group_print(Arg *arg, ArgXGroup *group) { /*{{{*/
+    ASSERT_ARG(arg);
+    ASSERT_ARG(group);
     if(!vargx_length(group->vec)) {
         return;
     }
@@ -885,6 +901,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
         case ARG_HELP: {
             parse->help.get = true;
         } break;
+        case ARG_ENV: ABORT(ERR_UNREACHABLE);
         /* above */
         case ARG__COUNT:
         case ARG_NONE: break;
@@ -913,6 +930,7 @@ void arg_parse_setref_argx(struct ArgX *argx) {
         case ARG_FLOAT: {
             if(argx->ref.f) *argx->val.f = *argx->ref.f;
         } break;
+        case ARG_ENV:
         case ARG_STRING: {
             if(argx->ref.s) *argx->val.s = *argx->ref.s;
         } break;

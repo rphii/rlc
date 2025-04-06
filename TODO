@@ -7,5 +7,6 @@ arg.c
     option to set - or ~ or . etc (spacing thing)
     option to set max width manually, enable/disable auto width
     check for spaces in long options
+    auto-generate autocompletion for bash
 
 

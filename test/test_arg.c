@@ -102,6 +102,8 @@ int main(const int argc, const char **argv) {
         x=argx_init(g, n_arg++, 0, RSTR("other"), RSTR("enable other operation"));
           argx_flag_set(x, &config.flags.other, &preset.flags.other);
 
+    argx_env(arg, RSTR("ARG_CONFIG_PATH"), RSTR("config path"), &config.config, &preset.config);
+
     TRYC(arg_parse(arg, argc, argv, &quit_early));
     if(quit_early) goto clean;
 
