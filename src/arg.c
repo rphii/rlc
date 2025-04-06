@@ -854,6 +854,11 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
         case ARG_FLAG: {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
             if(need_help) break;
+            ASSERT(argx->o, ERR_NULLPTR);
+            for(size_t i = 0; i < vargx_length(argx->o->vec); ++i) {
+                ArgX *x = vargx_get_at(&argx->o->vec, i);
+                *x->val.b = false;
+            }
             for(RStr flag = {0}; flag.first < argV.last; flag = rstr_splice(argV, &flag, parse->base->flag_sep)) {
                 if(!flag.s) continue;
                 ArgX *x = 0;
