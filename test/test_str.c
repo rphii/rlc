@@ -33,10 +33,17 @@ void test_str_rfind_f(void) { /*{{{*/
     printf("%s [%.*s] %zu/%zu/%zu\n", __func__, STR_F(t), i0, iE, l);
 } /*}}}*/
 
+void test_str_length_nof(void){/*{{{*/
+    RStr s = RSTR(F("Hello", BOLD) ", " F("World", IT) "!");
+    size_t len = rstr_length_nof(s);
+    printf("%s [%.*s] %zu\n", __func__, RSTR_F(s), len);
+}/*}}}*/
+
 int main(void) {
 
     test_str_rfind_substr();
     test_str_rfind_f();
+    test_str_length_nof();
 #if 0
     RStr s = RSTR("Hello " F("World!", BOLD IT FG_BK_B) "\n");
     printf("[%.*s]%zu\n", RSTR_F(s), rstr_length(s));
