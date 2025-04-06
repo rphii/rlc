@@ -10,6 +10,15 @@ typedef enum {
     CONFIG_LMAO,
 } ConfigList;
 
+typedef enum {
+    CONFIG_MODE_NONE,
+    CONFIG_MODE_HELLO,
+    CONFIG_MODE_INT,
+    CONFIG_MODE_FLOAT,
+    CONFIG_MODE_STRING,
+    CONFIG_MODE_BOOL,
+} ConfigModeList;
+
 typedef struct Config {
     ssize_t whole;
     bool boolean;
@@ -19,6 +28,13 @@ typedef struct Config {
     ConfigList id;
     ConfigList id2;
     ConfigList id3;
+    struct {
+        ConfigModeList id;
+        ssize_t z;
+        RStr s;
+        double f;
+        bool b;
+    } mode;
     struct {
         bool safe;
         bool unsafe;
@@ -62,7 +78,7 @@ int main(const int argc, const char **argv) {
     preset.config = RSTR("path/to/config");
 
     arg_init(arg, RSTR("test_arg"), RSTR("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), RSTR("github: https://github.com/rphii"));
-    arg_init_width(arg, 30, 45);
+    //arg_init_width(arg, 40, 45);
 
     x=argx_init(arg_opt(arg), n_arg++, 'h', RSTR("help"), RSTR("print this help"));
       argx_help(x, arg);
@@ -86,7 +102,7 @@ int main(const int argc, const char **argv) {
         x=argx_init(g, n_arg++, 0, RSTR("lmao"), RSTR("what the fuck"));
           argx_opt_enum(x, CONFIG_LMAO);
           argx_int(x, &nfuck, 0);
-          argx_func(x, hello_world, &nfuck, true);
+          argx_func(x, hello_world, &nfuck, false);
         x=argx_init(g, n_arg++, 0, RSTR("test"), RSTR("what the fuck"));
           argx_opt_enum(x, 6);
         x=argx_init(g, n_arg++, 0, RSTR("useless"), RSTR("what the fuck"));
@@ -103,12 +119,32 @@ int main(const int argc, const char **argv) {
         x=argx_init(g, n_arg++, 0, RSTR("other"), RSTR("enable other operation"));
           argx_flag_set(x, &config.flags.other, &preset.flags.other);
 
+    x=argx_pos(arg, n_arg++, RSTR("mode"), RSTR("the main mode"));
+      g=argx_opt(x, &config.mode.id, &preset.mode.id);
+        x=argx_init(g, n_arg++, 0, RSTR("none"), RSTR("do nothing"));
+          argx_opt_enum(x, CONFIG_MODE_NONE);
+        x=argx_init(g, n_arg++, 0, RSTR("hello"), RSTR("print hello"));
+          argx_func(x, hello_world, &nfuck, true);
+          argx_opt_enum(x, CONFIG_MODE_HELLO);
+        x=argx_init(g, n_arg++, 0, RSTR("int"), RSTR("set int"));
+          argx_int(x, &config.mode.z, &preset.mode.z);
+          argx_opt_enum(x, CONFIG_MODE_INT);
+        x=argx_init(g, n_arg++, 0, RSTR("float"), RSTR("set float"));
+          argx_dbl(x, &config.mode.f, &preset.mode.f);
+          argx_opt_enum(x, CONFIG_MODE_FLOAT);
+        x=argx_init(g, n_arg++, 0, RSTR("string"), RSTR("set string"));
+          argx_str(x, &config.mode.s, &preset.mode.s);
+          argx_opt_enum(x, CONFIG_MODE_STRING);
+        x=argx_init(g, n_arg++, 0, RSTR("bool"), RSTR("set bool"));
+          argx_bool(x, &config.mode.b, &preset.mode.b);
+          argx_opt_enum(x, CONFIG_MODE_BOOL);
+
     argx_env(arg, RSTR("ARG_CONFIG_PATH"), RSTR("config path"), &config.config, &preset.config);
 
     TRYC(arg_parse(arg, argc, argv, &quit_early));
     if(quit_early) goto clean;
 
-    printff("ARG_CONFIG_PATH is = [%.*s]", RSTR_F(config.config));
+    //printff("ARG_CONFIG_PATH is = [%.*s]", RSTR_F(config.config));
 
 #if 0 /*{{{*/
     //arg_init(arg);
