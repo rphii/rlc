@@ -108,7 +108,7 @@ int main(const int argc, const char **argv) {
     bool quit_early = false;
 
     arg_init(arg, argc, argv, RSTR("test_arg"), RSTR("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), RSTR("github: https://github.com/rphii"), '-', true, 0);
-    arg_init_width(arg, 40, 45);
+    //arg_init_width(arg, 40, 45);
 
     x=argx_init(arg_opt(arg), n_arg++, 'h', RSTR("help"), RSTR("print this help"));
       argx_help(x, arg);
@@ -134,8 +134,11 @@ int main(const int argc, const char **argv) {
           argx_int(x, &nfuck, 0);
           argx_func(x, hello_world, &nfuck, true);
         x=argx_init(g, n_arg++, 0, RSTR("test"), RSTR("what the fuck"));
+          argx_opt_enum(x, 6);
         x=argx_init(g, n_arg++, 0, RSTR("useless"), RSTR("what the fuck"));
+          argx_opt_enum(x, 7);
         x=argx_init(g, n_arg++, 0, RSTR("verbose"), RSTR("what the fuck"));
+          argx_opt_enum(x, 8);
     x=argx_init(arg_opt(arg), n_arg++, 0, RSTR("very-long-option-that-is-very-important-and-cool-but-serves-no-purpose-whatsoever-anyways-how-are-you-doing-today"), RSTR("select another option"));
 
     TRYC(arg_parse(arg, &quit_early));

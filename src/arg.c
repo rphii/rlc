@@ -462,7 +462,7 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
 		    TRYC(str_fmt(&arg->print.line, " "));
 		    for(size_t i = arg->print.progress + 2; i < arg->print.bounds.desc; ++i) {
 		        //TRYC(str_fmt(&arg->print.line, "·"));
-                TRYC(str_fmt(&arg->print.line, F("%c", FG_BK_B), i % 2 ? '-' : ' '));
+                TRYC(str_fmt(&arg->print.line, F("%c", FG_BK_B), !((i + 1) % 3) ? '-' : ' '));
             }
             arg_do_print(arg, false);
             arg->print.pad = arg->print.bounds.desc;
@@ -589,7 +589,7 @@ void argx_print(Arg *arg, ArgX *x, bool detailed) { /*{{{*/
     bool is_detailed_option = false;
     if(detailed && x->id == ARG_OPTION && x->o) {
         is_detailed_option = true;
-        arg_handle_print(arg, ARG_PRINT_NONE, "\n");
+        arg_handle_print(arg, ARG_PRINT_NONE, "\n\n");
         for(size_t i = 0; i < vargx_length(x->o->vec); ++i) {
             //arg_handle_print(arg, ARG_PRINT_NONE, "\n");
             ArgX *xx = vargx_get_at(&x->o->vec, i);
@@ -602,7 +602,18 @@ void argx_print(Arg *arg, ArgX *x, bool detailed) { /*{{{*/
         if(!is_detailed_option) arg_handle_print(arg, ARG_PRINT_NONE, "\n");
         arg_handle_print(arg, ARG_PRINT_SHORT, "current value");
     }
-    argx_print_post(arg, x, &x->val);
+    if(detailed && x->id == ARG_OPTION && x->o) {
+        ssize_t *n = x->val.z;
+        ASSERT(n, ERR_NULLPTR);
+        for(size_t i = 0; i < vargx_length(x->o->vec); ++i) {
+            ArgX *xx = vargx_get_at(&x->o->vec, i);
+            if(xx->e != *n) continue;
+            argx_print(arg, xx, false);
+            break;
+        }
+    } else {
+        argx_print_post(arg, x, &x->val);
+    }
     if(detailed) {
         arg_handle_print(arg, ARG_PRINT_SHORT, "default value");
         argx_print_post(arg, x, &x->ref);
@@ -694,6 +705,17 @@ error:
     return -1;
 }
 
+#define ERR_arg_parse_getopt_short(arg, ...) "failed getting short option"
+ErrDecl arg_parse_getopt_short(Arg *arg, ArgX **x, const unsigned char c) {
+    ASSERT_ARG(arg);
+    ASSERT_ARG(x);
+    *x = arg->opt_short[c];
+    if(!*x) THROW("value " F("%c", FG_BL_B) " is not a valid short option", c);
+    return 0;
+error:
+    return -1;
+}
+
 #define ERR_arg_parse_getv(...) "failed getting an argument"
 ErrDecl arg_parse_getv(ArgParse *parse, RStr *argV, bool *need_help) {
     ASSERT_ARG(parse);
@@ -730,13 +752,13 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
     /* add to queue for post processing */
     TRYG(vargx_push_back(&parse->queue, argx));
     RStr argV = RSTR("");
+    /* check if we want to get help for this */
     if(parse->help.get) {
         if(!parse->help.x || (argx->group ? parse->help.x == argx->group->parent : false)) {
             parse->help.x = argx;
             //printff("GETTING HELP [%.*s]", RSTR_F(parse->help.x->info.opt));
         }
     }
-    /* check if we want to get help for this */
     /* check enum / option */
     if(argx->group && argx->group->parent && argx->group->parent->id == ARG_OPTION) {
         *argx->group->parent->val.z = argx->e;
@@ -821,7 +843,14 @@ ErrDecl arg_parse(struct Arg *arg, bool *quit_early) {
                 TRYC(arg_parse_getopt(&arg->opt, &argx, arg_query));
                 TRYC(argx_parse(parse, argx));
             } else {
+                RStr arg_queries = RSTR_I0(argV, 1);
                 /* short option */
+                for(size_t i = 0; i < rstr_length(arg_queries); ++i) {
+                    const unsigned char query = rstr_get_at(&arg_queries, i);
+                    TRYC(arg_parse_getopt_short(arg, &argx, query));
+                    TRYC(argx_parse(parse, argx));
+                    //printff("SHORT OPTION! %.*s", RSTR_F(arg_queries));
+                }
                 //ArgX *argx = arg->opt_short[
             }
         } else if(arg->base.rest) {
