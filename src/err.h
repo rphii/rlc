@@ -48,6 +48,7 @@
 #define ERR_UNREACHABLE     "unreachable error"
 #define ERR_UNIMPLEMENTED   "unimplemented"
 #define ERR_NULL_ARG        "unexpected null pointer argument received"
+#define ERR_NULLPTR         "unexpected null pointer"
 #define ERR_SYSTEM          "failed executing system command"
 #define ERR_POPEN           ERR_SYSTEM
 

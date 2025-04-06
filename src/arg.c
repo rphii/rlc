@@ -202,13 +202,20 @@ void arg_init(struct Arg *arg, const int argc, const char **argv, RStr program, 
     arg->parse.base = &arg->base;
     arg->print.bounds.c = 2;
     arg->print.bounds.opt = 6;
-    struct winsize w;
-    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-    int desc = w.ws_col * 45;
+    arg_init_width(arg, 80, 45);
+}
+
+void arg_init_width(struct Arg *arg, int width, int percent) {
+    if(width == 0) {
+        struct winsize w;
+        ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+        width = w.ws_col;
+    }
+    int desc = width * 45;
     if(desc % 200) desc += 200 - desc % 200;
     desc /= 100;
     arg->print.bounds.desc = desc;
-    arg->print.bounds.max = w.ws_col;
+    arg->print.bounds.max = width;
 }
 
 #define ERR_argx_group_push(...) "failed adding argument x"
@@ -352,9 +359,8 @@ void arg_do_print(Arg *arg, bool endline) {
     RStr fmt = RSTR("");
     size_t f0, fE;
     bool repeat = false;
-    //int pad = arg->print.progress <= arg->print.pad ? arg->print.pad - arg->print.progress : arg->print.pad;
+    //printff("DO[%.*s] PROG[%zu] LEN[%zu] LEN_NOF[%zu] PAD[%zu]", STR_F(arg->print.line), arg->print.progress, len, len_nof, arg->print.pad);
     int pad = arg->print.progress > arg->print.pad ? 0 : arg->print.pad - arg->print.progress;
-    //printff("PAD %zu", pad);
     if(!len) {
         /* TODO: DRY */
         if(endline) {
@@ -362,50 +368,52 @@ void arg_do_print(Arg *arg, bool endline) {
             arg->print.progress = 0;
         }
     }
-    size_t off0 = arg->print.progress;
     while(len) {
-        //printff("LEN NOF %zu", len_nof);
+
+        size_t relevant_progress = (!repeat ? arg->print.progress : 0);
+        if(repeat) {
+            pad = arg->print.pad;
+            relevant_progress = 0;
+        }
+
         printf("%*s", pad, "");
         if(repeat) {
-            printf(F(",,", FG_BK_B));
+            printf(F("..", FG_BK_B));
         }
 
         size_t m = len;
-        if(len_nof + pad + (repeat ? 4 : 2) > arg->print.bounds.max) {
-            m = arg->print.bounds.max - pad - (repeat ? 4 : 2);
+        if(len_nof + pad + (repeat ? 4 : 2) + relevant_progress > arg->print.bounds.max) {
+            m = arg->print.bounds.max - relevant_progress - pad - (repeat ? 4 : 2);
         }
         size_t n = str_index_nof(*line, m);
 
+#if 1
         RStr line_print = str_rstr(STR_IE(*line, n));
         f0 = rstr_rfind_f(line_print, &fE);
-        //printff("\n%zu/%zu/%zu", f0, fE, len);
-        if(f0+fE < m) fmt = str_rstr(STR_IE(STR_I0(*line, f0), fE));
-        //printf("%.*s{%zu}", RSTR_F(fmt), rstr_length(fmt));
-        printf("%.*s", RSTR_F(fmt));
+        if(f0+fE < n) fmt = str_rstr(STR_IE(STR_I0(*line, f0), fE));
+        printf("%.*s%.*s", RSTR_F(fmt), RSTR_F(line_print));
+        if(f0 < n) fmt = str_rstr(STR_IE(STR_I0(*line, f0), fE));
+#else
+        RStr line_print = str_rstr(STR_IE(*line, n));
         printf("%.*s", RSTR_F(line_print));
-        if(f0 < m) fmt = str_rstr(STR_IE(STR_I0(*line, f0), fE));
+#endif
 
-        if(len_nof + pad + (repeat ? 4 : 2) > arg->print.bounds.max) {
+        if(len_nof + pad + (repeat ? 4 : 2) + relevant_progress > arg->print.bounds.max) {
             printf(F("..", FG_BK_B) "\n");
-            arg->print.progress = n;
+            arg->print.progress += n;
             line->first += n;
         } else {
-            //printf("%.*s", STR_F(*line));
             if(endline) {
                 printf("\n");
                 arg->print.progress = 0;
-        off0 = 0;
             } else {
-                //printff("LINE %zu", str_length_nof(*line));
                 arg->print.progress += pad + str_length_nof(*line);
             }
             str_clear(line);
         }
-        //printff(" PROGRESS %zu/%zu(%zu)", arg->print.progress, pad, arg->print.pad);
         len_nof = str_length_nof(*line);
         len = str_length(*line);
         repeat = true;
-        //printff("len %zu",len);getchar();
     }
 }
 
@@ -438,13 +446,14 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
             if(arg->print.prev == ARG_PRINT_LONG) {
                 str_copy(&arg->print.line, &STR(" "));
                 arg_do_print(arg, false);
-                arg->print.pad = arg->print.progress;
-		//printff("PADDING %zu", arg->print.pad);
+                //arg->print.pad = arg->print.progress;
+                arg->print.pad = arg->print.bounds.opt + 2;
+		//printff("\nPADDING\n%*s%zu", arg->print.pad, "", arg->print.pad);
                 str_clear(&arg->print.line);
             }
             TRYG(str_extend_back(&arg->print.line, arg->print.buf));
-                //arg_do_print(arg, false);
             //arg_do_print(arg, false);
+            //str_clear(&arg->print.line);
         } break;
         case ARG_PRINT_DESC: {
             if(arg->print.prev == ARG_PRINT_TYPE) {
@@ -457,14 +466,14 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
 		    TRYC(str_fmt(&arg->print.line, " "));
 		    for(size_t i = arg->print.progress + 2; i < arg->print.bounds.desc; ++i) {
 		        //TRYC(str_fmt(&arg->print.line, "·"));
-		        TRYC(str_fmt(&arg->print.line, F("%c", FG_BK_B), i % 2 ? '~' : ' '));
-		    }
-                    arg_do_print(arg, false);
-		    arg->print.pad = arg->print.bounds.desc;
-		}
-	    } else {
+                TRYC(str_fmt(&arg->print.line, F("%c", FG_BK_B), i % 2 ? '-' : ' '));
+            }
+            arg_do_print(arg, false);
+            arg->print.pad = arg->print.bounds.desc;
+                }
+            } else {
                 arg->print.pad = arg->print.bounds.desc;
-	    }
+            }
             str_clear(&arg->print.line);
             TRYG(str_extend_back(&arg->print.line, arg->print.buf));
             arg_do_print(arg, false);
@@ -581,19 +590,30 @@ void argx_print(Arg *arg, ArgX *x, bool detailed) { /*{{{*/
     if(rstr_length(x->info.desc)) {
         arg_handle_print(arg, ARG_PRINT_DESC, "%.*s", RSTR_F(x->info.desc));
     }
+    bool is_detailed_option = false;
+    if(detailed && x->id == ARG_OPTION && x->o) {
+        is_detailed_option = true;
+        arg_handle_print(arg, ARG_PRINT_NONE, "\n");
+        for(size_t i = 0; i < vargx_length(x->o->vec); ++i) {
+            //arg_handle_print(arg, ARG_PRINT_NONE, "\n");
+            ArgX *xx = vargx_get_at(&x->o->vec, i);
+            argx_print(arg, xx, false);
+        }
+    }
     /* print value */
     if(detailed) {
-        arg_handle_print(arg, ARG_PRINT_NONE, "\n\n");
+        arg_handle_print(arg, ARG_PRINT_NONE, "\n");
+        if(!is_detailed_option) arg_handle_print(arg, ARG_PRINT_NONE, "\n");
         arg_handle_print(arg, ARG_PRINT_SHORT, "current value");
     }
     argx_print_post(arg, x, &x->val);
     if(detailed) {
         arg_handle_print(arg, ARG_PRINT_SHORT, "default value");
         argx_print_post(arg, x, &x->ref);
-        arg_handle_print(arg, ARG_PRINT_NONE, "\n");
+        //arg_handle_print(arg, ARG_PRINT_NONE, "\n");
     }
     /* done */
-    //arg_handle_print(arg, ARG_PRINT_NONE, "\n");
+    //rg_handle_print(arg, ARG_PRINT_NONE, "\n");
 } /*}}}*/
 
 void argx_print_specific(Arg *arg, ArgParse *parse, ArgX *x) { /*{{{*/

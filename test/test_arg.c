@@ -108,6 +108,7 @@ int main(const int argc, const char **argv) {
     bool quit_early = false;
 
     arg_init(arg, argc, argv, RSTR("test_arg"), RSTR("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), RSTR("github: https://github.com/rphii"), '-', true, 0);
+    arg_init_width(arg, 40, 45);
 
     x=argx_init(arg_opt(arg), n_arg++, 'h', RSTR("help"), RSTR("print this help"));
       argx_help(x, arg);

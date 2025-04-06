@@ -2,6 +2,8 @@
 
 #include "str.h"
 
+#define ARG_INIT_DEFAULT_WIDTH  80
+
 /* types of arguments
  *
  * */
@@ -15,6 +17,10 @@ typedef int (*ArgFunction)(void *);
 
 struct Arg *arg_new(void);
 void arg_init(struct Arg *arg, const int argc, const char **argv, RStr program, RStr description, RStr epilog, unsigned char prefix, bool show_help, VrStr *rest);
+void arg_init_prefix(struct Arg *arg, unsigned char prefix);
+void arg_init_help(struct Arg *arg, bool show_help);
+void arg_init_width(struct Arg *arg, int width, int percent);
+
 void arg_free(struct Arg **arg);
 
 struct ArgXGroup *arg_pos(struct Arg *arg);
