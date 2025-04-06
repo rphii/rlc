@@ -11,8 +11,8 @@ typedef enum {
     ARG_STRING,
     //ARG_EXOTIC,
     ARG_OPTION,
-    ARG_HELP,
     ARG_FLAG,
+    ARG_HELP,
     /* above */
     ARG__COUNT
 } ArgList;
@@ -877,11 +877,59 @@ error:
     return -1;
 }
 
+void arg_parse_setref_group(struct ArgXGroup *group);
+
+void arg_parse_setref_argx(struct ArgX *argx) {
+    ASSERT_ARG(argx);
+    switch(argx->id) {
+        case ARG_BOOL: {
+            if(argx->ref.b) *argx->val.b = *argx->ref.b;
+        } break;
+        case ARG_INT: {
+            if(argx->ref.z) *argx->val.z = *argx->ref.z;
+        } break;
+        case ARG_FLOAT: {
+            if(argx->ref.f) *argx->val.f = *argx->ref.f;
+        } break;
+        case ARG_STRING: {
+            if(argx->ref.s) *argx->val.s = *argx->ref.s;
+        } break;
+        case ARG_OPTION: {
+            if(argx->ref.z) *argx->val.z = *argx->ref.z;
+            if(argx->o) arg_parse_setref_group(argx->o);
+        } break;
+        case ARG_FLAG: {
+            if(argx->o) arg_parse_setref_group(argx->o);
+        } break;
+        case ARG_HELP:
+        case ARG_NONE:
+        case ARG__COUNT: break;
+    }
+}
+
+void arg_parse_setref_group(struct ArgXGroup *group) {
+    ASSERT_ARG(group);
+    for(size_t i = 0; i < vargx_length(group->vec); ++i) {
+        ArgX *x = vargx_get_at(&group->vec, i);
+        arg_parse_setref_argx(x);
+    }
+}
+
+void arg_parse_setref(struct Arg *arg) {
+    ASSERT_ARG(arg);
+    /* first verify some things */
+    /* finally assign */
+    arg_parse_setref_group(&arg->opt);
+    arg_parse_setref_group(&arg->env);
+    //arg_parse_setref_group(&arg->pos);
+}
+
 ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, bool *quit_early) {
     ASSERT_ARG(arg);
     ASSERT_ARG(arg->parse.base);
     ASSERT_ARG(quit_early);
     ASSERT_ARG(argv);
+    arg_parse_setref(arg);
     ArgParse *parse = &arg->parse;
     parse->argv = (char **)argv;
     parse->argc = argc;
