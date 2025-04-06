@@ -3,6 +3,7 @@ sources = [
   'file.c',
   'str.c',
   'utf8.c',
+  'arg.c',
   ]
 
 headers = [
@@ -15,6 +16,7 @@ headers = [
   'str.h',
   'utf8.h',
   'vec.h',
+  'arg.h',
   ]
 
 install_headers(headers, subdir: 'rphii')
