@@ -12,6 +12,7 @@ typedef enum {
     //ARG_EXOTIC,
     ARG_OPTION,
     ARG_HELP,
+    ARG_FLAG,
     /* above */
     ARG__COUNT
 } ArgList;
@@ -25,6 +26,7 @@ const char *arglist_str(ArgList id) {
         case ARG_STRING: return "<string>";
         case ARG_OPTION: return "<option>";
         case ARG_HELP: return "<help>";
+        case ARG_FLAG: return "<flag>";
         //case ARG_EXOTIC: return "<exotic>";
         case ARG__COUNT: return "(internal:count)";
     }
@@ -32,11 +34,12 @@ const char *arglist_str(ArgList id) {
 }
 
 typedef struct ArgBase {
-    RStr program;       // program name
-    RStr desc;          // description of program
-    RStr epilog;        // text below argument help
-    unsigned char prefix;        // default: -
-    bool show_help;     // display help if no arguments provided
+    RStr program;           // program name
+    RStr desc;              // description of program
+    RStr epilog;            // text below argument help
+    unsigned char prefix;   // default: -
+    unsigned char flag_sep; // default: ,
+    bool show_help;         // display help if no arguments provided
     VrStr *rest;
 } ArgBase;
 
@@ -184,21 +187,18 @@ ArgXGroup *arg_env(Arg *arg) {
     return &arg->env;
 }
 
-void arg_init(struct Arg *arg, const int argc, const char **argv, RStr program, RStr description, RStr epilog, unsigned char prefix, bool show_help, VrStr *rest) {
+void arg_init(struct Arg *arg, RStr program, RStr description, RStr epilog) {
     ASSERT_ARG(arg);
-    ASSERT_ARG(argv);
     arg->base.program = program;
     arg->base.desc = description;
     arg->base.epilog = epilog;
-    arg->base.prefix = prefix;
-    arg->base.show_help = show_help;
-    arg->base.rest = rest;
+    arg->base.prefix = ARG_INIT_DEFAULT_PREFIX;
+    arg->base.show_help = ARG_INIT_DEFAULT_SHOW_HELP;
+    arg->base.flag_sep = ARG_INIT_DEFAULT_FLAG_SEP;
     arg->pos.desc = RSTR("Usage");
     arg->opt.desc = RSTR("Options");
     arg->env.desc = RSTR("Environment Variables");
     arg->opt.root = arg;
-    arg->parse.argc = (int)argc;
-    arg->parse.argv = (char **)argv;
     arg->parse.base = &arg->base;
     arg->print.bounds.c = 2;
     arg->print.bounds.opt = 6;
@@ -206,6 +206,7 @@ void arg_init(struct Arg *arg, const int argc, const char **argv, RStr program, 
 }
 
 void arg_init_width(struct Arg *arg, int width, int percent) {
+    ASSERT_ARG(arg);
     if(width == 0) {
         struct winsize w;
         ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
@@ -217,6 +218,22 @@ void arg_init_width(struct Arg *arg, int width, int percent) {
     arg->print.bounds.desc = desc;
     arg->print.bounds.max = width;
 }
+
+void arg_init_show_help(struct Arg *arg, bool show_help) {
+    ASSERT_ARG(arg);
+    arg->base.show_help = show_help;
+}
+
+void arg_init_prefix(struct Arg *arg, unsigned char prefix) {
+    ASSERT_ARG(arg);
+    arg->base.prefix = prefix;
+}
+
+void arg_init_rest(struct Arg *arg, VrStr *rest) {
+    ASSERT_ARG(arg);
+    arg->base.rest = rest;
+}
+
 
 #define ERR_argx_group_push(...) "failed adding argument x"
 ErrDecl argx_group_push(ArgXGroup *group, ArgX *in, ArgX **out) {
@@ -300,6 +317,15 @@ struct ArgXGroup *argx_opt(ArgX *x, void *val, void *ref) {
     x->ref.z = (ssize_t *)ref;
     x->o = options;
     return options;
+}
+
+struct ArgXGroup *argx_flag(struct ArgX *x) {
+    ArgXGroup *flags = wargx_new();
+    flags->desc = x->info.opt;
+    flags->parent = x;
+    x->id = ARG_FLAG;
+    x->o = flags;
+    return flags;
 }
 
 void argx_help(struct ArgX *x, struct Arg *arg) {
@@ -460,10 +486,10 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
                     arg->print.pad = arg->print.bounds.opt + 4;
                 } else {
 		    TRYC(str_fmt(&arg->print.line, " "));
-		    for(size_t i = arg->print.progress + 2; i < arg->print.bounds.desc; ++i) {
-		        //TRYC(str_fmt(&arg->print.line, "·"));
-                TRYC(str_fmt(&arg->print.line, F("%c", FG_BK_B), !((i + 1) % 3) ? '-' : ' '));
-            }
+		    /////for(size_t i = arg->print.progress + 2; i < arg->print.bounds.desc; ++i) {
+		    /////    //TRYC(str_fmt(&arg->print.line, "·"));
+            /////    TRYC(str_fmt(&arg->print.line, F("%c", FG_BK_B), !((i + 1) % 2) ? '-' : ' '));
+            /////}
             arg_do_print(arg, false);
             arg->print.pad = arg->print.bounds.desc;
                 }
@@ -503,25 +529,44 @@ void argx_print_pre(Arg *arg, ArgX *argx) { /*{{{*/
         case ARG_INT:
         case ARG_BOOL:
         case ARG_FLOAT: {
-            arg_handle_print(arg, ARG_PRINT_TYPE, F("%s", FG_CY_B), arglist_str(argx->id));
+            arg_handle_print(arg, ARG_PRINT_TYPE, F("%s", ARG_TYPE_F), arglist_str(argx->id));
         } break;
         case ARG_OPTION: {
             ArgXGroup *g = argx->o;
             if(vargx_length(g->vec)) {
-                arg_handle_print(arg, ARG_PRINT_TYPE, F("<", FG_BL_B));
+                arg_handle_print(arg, ARG_PRINT_TYPE, F("<", ARG_OPTION_F));
                 for(size_t i = 0; i < vargx_length(g->vec); ++i) {
-                    if(i) arg_handle_print(arg, ARG_PRINT_TYPE, F("|", FG_BL_B));
+                    if(i) arg_handle_print(arg, ARG_PRINT_TYPE, F("|", ARG_OPTION_F));
                     ArgX *x = vargx_get_at(&g->vec, i);
                     ASSERT_ARG(x->group);
                     ASSERT_ARG(x->group->parent);
                     ASSERT_ARG(x->group->parent->val.z);
                     if(*x->group->parent->val.z == i) {
-                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", FG_BL_B UL), RSTR_F(x->info.opt));
+                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_OPTION_F UL), RSTR_F(x->info.opt));
                     } else {
-                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", FG_BL_B), RSTR_F(x->info.opt));
+                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_OPTION_F), RSTR_F(x->info.opt));
                     }
                 }
-                arg_handle_print(arg, ARG_PRINT_TYPE, F(">", FG_BL_B));
+                arg_handle_print(arg, ARG_PRINT_TYPE, F(">", ARG_OPTION_F));
+            }
+        } break;
+        case ARG_FLAG: {
+            ArgXGroup *g = argx->o;
+            if(vargx_length(g->vec)) {
+                arg_handle_print(arg, ARG_PRINT_TYPE, F("<", ARG_FLAG_F));
+                for(size_t i = 0; i < vargx_length(g->vec); ++i) {
+                    if(i) arg_handle_print(arg, ARG_PRINT_TYPE, F("|", ARG_FLAG_F));
+                    ArgX *x = vargx_get_at(&g->vec, i);
+                    ASSERT_ARG(x->group);
+                    ASSERT_ARG(x->group->parent);
+                    ASSERT(x->id == ARG_BOOL, "the option [%.*s] in [--%.*s] should be set as a bool", RSTR_F(x->info.opt), RSTR_F(x->group->parent->info.opt));
+                    if(*x->val.b) {
+                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_FLAG_F UL), RSTR_F(x->info.opt));
+                    } else {
+                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_FLAG_F), RSTR_F(x->info.opt));
+                    }
+                }
+                arg_handle_print(arg, ARG_PRINT_TYPE, F(">", ARG_FLAG_F));
             }
         } break;
         case ARG_NONE:
@@ -561,6 +606,7 @@ void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
         } break;
         case ARG_HELP:
         case ARG_OPTION:
+        case ARG_FLAG:
         case ARG_NONE: {
             arg_handle_print(arg, ARG_PRINT_VALUE, "");
         } break;
@@ -744,7 +790,14 @@ error:
     return -1;
 }
 
-#define ERR_argx_parse(parse, argx) "failed parsing argument " F("[%.*s]", BOLD FG_WT_B) " " F("%s", FG_CY_B), RSTR_F(argx->info.opt), arglist_str(argx->id)
+void arg_parse_getv_undo(ArgParse *parse) {
+    ASSERT_ARG(parse);
+    ASSERT_ARG(parse->argv);
+    ASSERT(parse->i, "nothing left to undo");
+    --parse->i;
+}
+
+#define ERR_argx_parse(parse, argx) "failed parsing argument " F("[%.*s]", BOLD FG_WT_B) " " F("%s", ARG_TYPE_F), RSTR_F(argx->info.opt), arglist_str(argx->id)
 ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
     ASSERT_ARG(parse);
     ASSERT_ARG(argx);
@@ -773,6 +826,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
             }
             if(rstr_as_bool(argV, argx->val.b, true)) {
                 *argx->val.b = argx->ref.b ? !*argx->ref.b : true;
+                arg_parse_getv_undo(parse);
             }
         } break;
         case ARG_INT: {
@@ -797,6 +851,16 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
             TRYC(arg_parse_getopt(argx->o, &x, argV));
             TRYC(argx_parse(parse, x));
         } break;
+        case ARG_FLAG: {
+            TRYC(arg_parse_getv(parse, &argV, &need_help));
+            if(need_help) break;
+            for(RStr flag = {0}; flag.first < argV.last; flag = rstr_splice(argV, &flag, parse->base->flag_sep)) {
+                if(!flag.s) continue;
+                ArgX *x = 0;
+                TRYC(arg_parse_getopt(argx->o, &x, flag));
+                TRYC(argx_parse(parse, x));
+            }
+        } break;
         case ARG_HELP: {
             parse->help.get = true;
         } break;
@@ -813,11 +877,14 @@ error:
     return -1;
 }
 
-ErrDecl arg_parse(struct Arg *arg, bool *quit_early) {
+ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, bool *quit_early) {
     ASSERT_ARG(arg);
     ASSERT_ARG(arg->parse.base);
     ASSERT_ARG(quit_early);
+    ASSERT_ARG(argv);
     ArgParse *parse = &arg->parse;
+    parse->argv = (char **)argv;
+    parse->argc = argc;
     ArgX *argx = 0;
     parse->i = 1;
     int err = 0;
@@ -872,10 +939,10 @@ ErrDecl arg_parse(struct Arg *arg, bool *quit_early) {
     }
 clean:
     vargx_free(&parse->queue);
-    if(*quit_early) {
-        arg_free(&arg);
-    }
-    //argx_group_free(&parse->queue);
+    //DO THIS OUTSIDE:
+    //if(*quit_early) {
+    //    arg_free(&arg);
+    //}
     return err;
 error:
     arg_help(arg);
