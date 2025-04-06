@@ -1080,7 +1080,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         if(x && x->attr.callback.func) {
             //printff("CALLBACK!");
             if(x->attr.callback.func(x->attr.callback.data)) {
-                ERR_PRINTF("failed executing function for " F("[%.*s]", BOLD) "\n", RSTR_F(x->info.opt));
+                THROW_PRINT("failed executing function for " F("[%.*s]", BOLD) "\n", RSTR_F(x->info.opt));
                 goto error_skip_help;
             }
             *quit_early = x->attr.callback.quit_early;
