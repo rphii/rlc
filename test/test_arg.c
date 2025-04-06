@@ -96,11 +96,11 @@ int main(const int argc, const char **argv) {
     x=argx_init(arg_opt(arg), n_arg++, 'F', RSTR("flags"), RSTR("set different flags"));
       g=argx_flag(x);
         x=argx_init(g, n_arg++, 0, RSTR("safe"), RSTR("enable safe operation"));
-          argx_bool(x, &config.flags.safe, &preset.flags.safe);
+          argx_flag_set(x, &config.flags.safe, &preset.flags.safe);
         x=argx_init(g, n_arg++, 0, RSTR("unsafe"), RSTR("enable unsafe operation"));
-          argx_bool(x, &config.flags.unsafe, &preset.flags.unsafe);
+          argx_flag_set(x, &config.flags.unsafe, &preset.flags.unsafe);
         x=argx_init(g, n_arg++, 0, RSTR("other"), RSTR("enable other operation"));
-          argx_bool(x, &config.flags.other, &preset.flags.other);
+          argx_flag_set(x, &config.flags.other, &preset.flags.other);
 
     TRYC(arg_parse(arg, argc, argv, &quit_early));
     if(quit_early) goto clean;
