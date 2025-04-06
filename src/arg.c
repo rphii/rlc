@@ -868,7 +868,9 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
     }
     /* check enum / option */
     if(argx->group && argx->group->parent && argx->group->parent->id == ARG_OPTION) {
-        *argx->group->parent->val.z = argx->e;
+        if(argx->group->parent->val.z) {
+            *argx->group->parent->val.z = argx->e;
+        }
     }
     /* actually begin parsing */
     bool need_help = false;
@@ -1077,7 +1079,10 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         //printff("CHECK QUEUE [%.*s]", RSTR_F(x->info.opt));
         if(x && x->attr.callback.func) {
             //printff("CALLBACK!");
-            TRY(x->attr.callback.func(x->attr.callback.data), "failed executing function for " F("[%.*s]", BOLD), RSTR_F(x->info.opt));
+            if(x->attr.callback.func(x->attr.callback.data)) {
+                ERR_PRINTF("failed executing function for " F("[%.*s]", BOLD) "\n", RSTR_F(x->info.opt));
+                goto error_skip_help;
+            }
             *quit_early = x->attr.callback.quit_early;
             if(*quit_early) break;
         }
@@ -1096,6 +1101,7 @@ clean:
     return err;
 error:
     arg_help(arg);
+error_skip_help:
     ERR_CLEAN;
 }
 
