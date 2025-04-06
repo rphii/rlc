@@ -568,10 +568,10 @@ void argx_print_pre(Arg *arg, ArgX *argx) { /*{{{*/
                 for(size_t i = 0; i < vargx_length(g->vec); ++i) {
                     if(i) arg_handle_print(arg, ARG_PRINT_TYPE, F("|", ARG_OPTION_F));
                     ArgX *x = vargx_get_at(&g->vec, i);
-                    ASSERT_ARG(x->group);
-                    ASSERT_ARG(x->group->parent);
-                    ASSERT_ARG(x->group->parent->val.z);
-                    if(*x->group->parent->val.z == i) {
+                    //ASSERT_ARG(x->group);
+                    //ASSERT_ARG(x->group->parent);
+                    //ASSERT_ARG(x->group->parent->val.z);
+                    if(x->group && x->group->parent && x->group->parent->val.z && *x->group->parent->val.z == i) {
                         arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_OPTION_F UL), RSTR_F(x->info.opt));
                     } else {
                         arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_OPTION_F), RSTR_F(x->info.opt));
