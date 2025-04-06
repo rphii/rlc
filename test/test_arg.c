@@ -26,62 +26,6 @@ typedef struct Config {
     } flags;
 } Config;
 
-#define ERR_main_arg(...) ERR_UNREACHABLE
-int main_arg(struct Arg *arg, Config *c, Config *p, const int argc, const char **argv) {
-    //ArgOpt *opt, *cat, *c2, *c3;
-
-    /* 
-     
-    n ARG_NONE, ARG_NONE,
-    b ARG_BOOL, ARG_BOOL,
-    i ARG_INTE, ARG_INT,
-    f ARG_FLOA, ARG_FLOAT,
-    s ARG_STRI, ARG_STRING,
-    x ARG_EXOT, ARG_EXOTIC,
-    o ARG_OPTI, ARG_OPTION,
-     
-     *
-     * */
-
-#if 0
-    TRYC(arg_attach_help(arg, argc, argv, RSTR("this is a test arg parser"), RSTR("https://github.com/rphii/c-arg")));
-    TRYC(argopt_new(arg, &arg->options, &opt, 0, RSTR("--boring"), RSTR("a boring boolean value")));
-    argopt_set_bool(opt, &c->boring, &p->boring);
-    TRYC(argopt_new(arg, &arg->options, &opt, 0, RSTR("--verbose"), RSTR("verbosity level")));
-    argopt_set_int(opt, &c->verbose, &p->verbose);
-    TRYC(argopt_new(arg, &arg->options, &opt, 0, RSTR("--math"), RSTR("the math value")));
-    argopt_set_float(opt, &c->math, &p->math);
-    TRYC(argopt_new(arg, &arg->options, &opt, 0, RSTR("--config"), RSTR("config path")));
-    argopt_set_str(opt, &c->config, &p->config);
-
-    TRYC(argopt_new(arg, &arg->options, &cat, 0, RSTR("--action"), RSTR("specify what to do")));
-    TRYC(argopt_set_option(cat, (int *)&c->id, (int *)&p->id));
-    TRYC(argopt_new(arg, cat->options, &opt, 0, RSTR("none"), RSTR("specify what to do")));
-    argopt_set_enum(opt, CONFIG_NONE);
-    argopt_set_int(opt, &c->verbose, &p->verbose);
-    TRYC(argopt_new(arg, cat->options, &opt, 0, RSTR("print"), RSTR("specify what to do")));
-    argopt_set_enum(opt, CONFIG_PRINT);
-    TRYC(argopt_new(arg, cat->options, &opt, 0, RSTR("browser"), RSTR("specify what to do")));
-    argopt_set_enum(opt, CONFIG_BROWSER);
-
-    TRYC(argopt_set_option(opt, (int *)&c->id2, (int *)&p->id2));
-    TRYC(argopt_new(arg, opt->options, &c2, 0, RSTR("firefox"), RSTR("")));
-    TRYC(argopt_new(arg, opt->options, &c2, 0, RSTR("zen"), RSTR("")));
-    TRYC(argopt_new(arg, opt->options, &c2, 0, RSTR("brave"), RSTR("")));
-
-    TRYC(argopt_set_option(c2, (int *)&c->id3, (int *)&p->id3));
-    TRYC(argopt_new(arg, c2->options, &c3, 0, RSTR("private"), RSTR("")));
-    TRYC(argopt_new(arg, c2->options, &c3, 0, RSTR("public"), RSTR("")));
-
-    TRYC(argopt_new(arg, cat->options, &opt, 0, RSTR("lmao"), RSTR("specify what to do")));
-    argopt_set_enum(opt, CONFIG_LMAO);
-#endif
-
-    return 0;
-error:
-    return -1;
-}
-
 #define TEST(msg)   do { \
         printf(F("=== %s ===", BOLD FG_BL_B) "\n", #msg); \
         arg_free(&arg); \
@@ -111,6 +55,10 @@ int main(const int argc, const char **argv) {
     struct ArgXGroup *g;
     ssize_t nfuck = 0;
     bool quit_early = false;
+
+    preset.flags.other = true;
+    preset.flags.safe = true;
+    preset.id = CONFIG_LMAO;
 
     arg_init(arg, RSTR("test_arg"), RSTR("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), RSTR("github: https://github.com/rphii"));
     //arg_init_width(arg, 40, 45);
