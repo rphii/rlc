@@ -10,5 +10,7 @@ arg.c
     auto-generate autocompletion for bash
     if desc/etc prints a \n, reset also internally.
     cannot set short arg to prefix
+    enable pushing to rest via argx_ to individually control whether or not additional arguments are allowed. also allows for nice help printing
+    check for correctness of general structure in setref. .... e.g. argx_flag -> argx_flag_set ! and also arg_opt -> arg_opt_enum ... stuff like that
 
 

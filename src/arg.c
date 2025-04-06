@@ -690,12 +690,14 @@ void argx_print(Arg *arg, ArgX *x, bool detailed) { /*{{{*/
     }
     if(detailed && x->id == ARG_OPTION && x->o) {
         ssize_t *n = x->val.z;
-        ASSERT(n, ERR_NULLPTR);
-        for(size_t i = 0; i < vargx_length(x->o->vec); ++i) {
+        for(size_t i = 0; n && i < vargx_length(x->o->vec); ++i) {
             ArgX *xx = vargx_get_at(&x->o->vec, i);
             if(xx->e != *n) continue;
             argx_print(arg, xx, false);
             break;
+        }
+        if(!n) {
+            arg_handle_print(arg, ARG_PRINT_NONE, "\n");
         }
     } else {
         argx_print_post(arg, x, &x->val);
