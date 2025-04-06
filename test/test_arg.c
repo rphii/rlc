@@ -19,6 +19,11 @@ typedef struct Config {
     ConfigList id;
     ConfigList id2;
     ConfigList id3;
+    struct {
+        bool safe;
+        bool unsafe;
+        bool other;
+    } flags;
 } Config;
 
 #define ERR_main_arg(...) ERR_UNREACHABLE
@@ -107,7 +112,7 @@ int main(const int argc, const char **argv) {
     ssize_t nfuck = 0;
     bool quit_early = false;
 
-    arg_init(arg, argc, argv, RSTR("test_arg"), RSTR("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), RSTR("github: https://github.com/rphii"), '-', true, 0);
+    arg_init(arg, RSTR("test_arg"), RSTR("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), RSTR("github: https://github.com/rphii"));
     //arg_init_width(arg, 40, 45);
 
     x=argx_init(arg_opt(arg), n_arg++, 'h', RSTR("help"), RSTR("print this help"));
@@ -139,10 +144,18 @@ int main(const int argc, const char **argv) {
           argx_opt_enum(x, 7);
         x=argx_init(g, n_arg++, 0, RSTR("verbose"), RSTR("what the fuck"));
           argx_opt_enum(x, 8);
-    x=argx_init(arg_opt(arg), n_arg++, 0, RSTR("very-long-option-that-is-very-important-and-cool-but-serves-no-purpose-whatsoever-anyways-how-are-you-doing-today"), RSTR("select another option"));
+    //x=argx_init(arg_opt(arg), n_arg++, 0, RSTR("very-long-option-that-is-very-important-and-cool-but-serves-no-purpose-whatsoever-anyways-how-are-you-doing-today"), RSTR("select another option"));
+    x=argx_init(arg_opt(arg), n_arg++, 'F', RSTR("flags"), RSTR("set different flags"));
+      g=argx_flag(x);
+        x=argx_init(g, n_arg++, 0, RSTR("safe"), RSTR("enable safe operation"));
+          argx_bool(x, &config.flags.safe, &preset.flags.safe);
+        x=argx_init(g, n_arg++, 0, RSTR("unsafe"), RSTR("enable unsafe operation"));
+          argx_bool(x, &config.flags.unsafe, &preset.flags.unsafe);
+        x=argx_init(g, n_arg++, 0, RSTR("other"), RSTR("enable other operation"));
+          argx_bool(x, &config.flags.other, &preset.flags.other);
 
-    TRYC(arg_parse(arg, &quit_early));
-    if(quit_early) return 0;
+    TRYC(arg_parse(arg, argc, argv, &quit_early));
+    if(quit_early) goto clean;
 
 #if 0 /*{{{*/
     //arg_init(arg);
