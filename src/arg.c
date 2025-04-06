@@ -988,6 +988,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         if(need_help) break;
         if(!rstr_length(argV)) continue;
         if(!parse->force_done_parsing && rstr_length(argV) >= 1 && rstr_get_at(&argV, 0) == pfx) {
+            /* regular checking for options */
             if(rstr_length(argV) >= 2 && rstr_get_at(&argV, 1) == pfx) {
                 if(rstr_length(argV) == 2) {
                     parse->force_done_parsing = true;
@@ -1007,6 +1008,16 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
                     //printff("SHORT OPTION! %.*s", RSTR_F(arg_queries));
                 }
                 //ArgX *argx = arg->opt_short[
+            }
+            /* in case of trying to get help, also search env */
+            if(parse->help.get && !parse->help.x && parse->i < parse->argc) {
+                arg_parse_getv(parse, &argV, &need_help);
+                ArgX *x = targx_get(&arg->env.lut, argV);
+                if(x) {
+                    arg->parse.help.x = x;
+                } else {
+                    arg_parse_getv_undo(parse);
+                }
             }
         } else if(arg->base.rest) {
             /* no argument, push rest */
