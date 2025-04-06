@@ -11,6 +11,7 @@ typedef enum {
     ARG_FLOAT,
     ARG_STRING,
     ARG_ENV,
+    ARG_POS,
     //ARG_EXOTIC,
     ARG_OPTION,
     ARG_FLAGS,
@@ -28,6 +29,7 @@ const char *arglist_str(ArgList id) {
         case ARG_FLOAT: return "<double>";
         case ARG_STRING: return "<string>";
         case ARG_ENV: return "<env>";
+        case ARG_POS: return "<pos>";
         case ARG_OPTION: return "<option>";
         case ARG_HELP: return "<help>";
         case ARG_FLAGS: return "<flags>";
@@ -123,6 +125,7 @@ typedef struct ArgParse {
     char **argv;
     bool force_done_parsing;
     size_t i;
+    size_t n_pos_parsed;
     VArgX queue;
     ArgBase *base;  // need the info of prefix...
     struct {
@@ -346,6 +349,13 @@ void argx_help(struct ArgX *x, struct Arg *arg) {
     x->attr.callback.data = arg;
     x->attr.callback.quit_early = true;
 }
+
+struct ArgX *argx_pos(struct Arg *arg, size_t index, RStr opt, RStr desc) {
+    ASSERT_ARG(arg);
+    ArgX *x = argx_init(&arg->pos, index, 0, opt, desc);
+    return x;
+}
+
 void argx_env(struct Arg *arg, RStr opt, RStr desc, RStr *val, RStr *ref) {
     ASSERT_ARG(arg);
     ASSERT_ARG(val);
@@ -378,7 +388,7 @@ void argx_func(struct ArgX *x, void *func, void *data, bool quit_early) {
     ASSERT_ARG(func);
     x->attr.callback.func = func;
     x->attr.callback.data = data;
-    x->attr.callback.quit_early = true;
+    x->attr.callback.quit_early = quit_early;
 }
 void argx_opt_enum(struct ArgX *x, int val) {
     ASSERT_ARG(x);
@@ -589,11 +599,12 @@ void argx_print_pre(Arg *arg, ArgX *argx) { /*{{{*/
                 arg_handle_print(arg, ARG_PRINT_TYPE, F(">", ARG_FLAG_F));
             }
         } break;
+        case ARG_HELP: {
+            arg_handle_print(arg, ARG_PRINT_TYPE, F("<arg>", ARG_TYPE_F));
+        } break;
+        case ARG_POS:
         case ARG_ENV:
         case ARG_NONE:
-        case ARG_HELP: {
-            arg_handle_print(arg, ARG_PRINT_TYPE, "");
-        } break;
         case ARG__COUNT: break;
     }
 } /*}}}*/
@@ -603,6 +614,7 @@ void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
     ASSERT_ARG(val);
     ArgXVal out = *val;
     switch(argx->id) {
+        case ARG_POS:
         case ARG_ENV:
         case ARG_STRING: {
             if(val->s && rstr_length(*val->s)) {
@@ -644,7 +656,10 @@ void argx_print(Arg *arg, ArgX *x, bool detailed) { /*{{{*/
         arg_handle_print(arg, ARG_PRINT_SHORT, F("%c%c", BOLD FG_WT_B), pfx, x->info.c);
     }
     /* print long form (should always be available) */
-    if(x->id == ARG_ENV) {
+    //printff("[%.*s] %s group %p", RSTR_F(x->info.opt), arglist_str(x->id), x->group);
+    if(x->group && x->group == &arg->pos) {
+        arg_handle_print(arg, ARG_PRINT_LONG, F("%.*s", IT), RSTR_F(x->info.opt));
+    } else if(x->id == ARG_ENV) {
         arg_handle_print(arg, ARG_PRINT_SHORT, F("%.*s", ARG_F_ENV), RSTR_F(x->info.opt));
     } else if(x->group && x->group->parent) {
         arg_handle_print(arg, ARG_PRINT_LONG, F("  %.*s", BOLD FG_WT_B), RSTR_F(x->info.opt));
@@ -714,7 +729,16 @@ void argx_group_print(Arg *arg, ArgXGroup *group) { /*{{{*/
     }
     if(rstr_length(group->desc)) {
         arg_handle_print(arg, ARG_PRINT_NONE, F("%.*s:", BOLD UL), RSTR_F(group->desc));
-        printf("\n");
+        arg_handle_print(arg, ARG_PRINT_NONE, "\n");
+    }
+    if(group == &arg->pos) {
+        arg_handle_print(arg, ARG_PRINT_SHORT, F("%s", BOLD), arg->parse.argv[0]);
+        for(size_t i = 0; i < vargx_length(group->vec); ++i) {
+            ArgX *x = vargx_get_at(&group->vec, i);
+            printf(" %.*s", RSTR_F(x->info.opt));
+            //argx_print(arg, x, false);
+        }
+        arg_handle_print(arg, ARG_PRINT_NONE, "\n");
     }
     for(size_t i = 0; i < vargx_length(group->vec); ++i) {
         ArgX *x = vargx_get_at(&group->vec, i);
@@ -805,6 +829,7 @@ repeat:
             goto repeat;
         }
         *argV = result;
+        //printff("GOT ARGUMENT %.*s", RSTR_F(*argV));
     } else {
         if(!parse->help.get) {
             THROW("no arguments left");
@@ -976,7 +1001,6 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     ArgX *argx = 0;
     parse->i = 1;
     int err = 0;
-    if(parse->argc < 2 && arg->base.show_help) arg_help(arg);
     /* prepare parsing */
     unsigned char pfx = arg->base.prefix;
     bool need_help = false;
@@ -1009,19 +1033,27 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
                 }
                 //ArgX *argx = arg->opt_short[
             }
-            /* in case of trying to get help, also search env */
-            if(parse->help.get && !parse->help.x && parse->i < parse->argc) {
-                arg_parse_getv(parse, &argV, &need_help);
-                ArgX *x = targx_get(&arg->env.lut, argV);
-                if(x) {
-                    arg->parse.help.x = x;
-                } else {
-                    arg_parse_getv_undo(parse);
-                }
-            }
+        } else if(parse->n_pos_parsed < vargx_length(arg->pos.vec)) {
+            /* check for positional */
+            arg_parse_getv_undo(parse);
+            ArgX *x = vargx_get_at(&arg->pos.vec, parse->n_pos_parsed);
+            TRYC(argx_parse(parse, x));
+            ++parse->n_pos_parsed;
         } else if(arg->base.rest) {
             /* no argument, push rest */
             TRYG(vrstr_push_back(arg->base.rest, &argV));
+        }
+        /* in case of trying to get help, also search pos and then env */
+        if(parse->help.get && !parse->help.x && parse->i < parse->argc) {
+            arg_parse_getv(parse, &argV, &need_help);
+            ArgX *x1 = targx_get(&arg->pos.lut, argV);
+            ArgX *x2 = targx_get(&arg->env.lut, argV);
+            ArgX *x = x1 ? x1 : x2;
+            if(x) {
+                arg->parse.help.x = x;
+            } else {
+                arg_parse_getv_undo(parse);
+            }
         }
     }
     /* gather environment variables */
@@ -1032,6 +1064,9 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         if(!cenv) continue;
         RStr env = RSTR_L(cenv);
         *x->val.s = env;
+    }
+    /* go over positional arguments */
+    for(size_t i = 0; i < vargx_length(arg->pos.vec); ++i) {
     }
     /* now go over the queue and do post processing */
     vargx_sort(&parse->queue);
@@ -1045,6 +1080,10 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
             if(*quit_early) break;
         }
     }
+    if(parse->n_pos_parsed < vargx_length(arg->pos.vec)) {
+        THROW("missing %zu positional arguments", vargx_length(arg->pos.vec) - parse->n_pos_parsed);
+    }
+    if(parse->argc < 2 && arg->base.show_help) arg_help(arg);
 clean:
     str_free(&temp_clean_env);
     vargx_free(&parse->queue);

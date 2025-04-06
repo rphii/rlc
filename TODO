@@ -8,5 +8,7 @@ arg.c
     option to set max width manually, enable/disable auto width
     check for spaces in long options
     auto-generate autocompletion for bash
+    if desc/etc prints a \n, reset also internally.
+    cannot set short arg to prefix
 
 
