@@ -446,14 +446,10 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
             if(arg->print.prev == ARG_PRINT_LONG) {
                 str_copy(&arg->print.line, &STR(" "));
                 arg_do_print(arg, false);
-                //arg->print.pad = arg->print.progress;
-                arg->print.pad = arg->print.bounds.opt + 2;
-		//printff("\nPADDING\n%*s%zu", arg->print.pad, "", arg->print.pad);
                 str_clear(&arg->print.line);
+                arg->print.pad = arg->print.bounds.opt + 2;
             }
             TRYG(str_extend_back(&arg->print.line, arg->print.buf));
-            //arg_do_print(arg, false);
-            //str_clear(&arg->print.line);
         } break;
         case ARG_PRINT_DESC: {
             if(arg->print.prev == ARG_PRINT_TYPE) {
@@ -482,7 +478,7 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
             if(arg->print.prev == ARG_PRINT_DESC) {
                 str_copy(&arg->print.line, &STR(" "));
                 arg_do_print(arg, false);
-                arg->print.pad = arg->print.progress;
+                arg->print.pad = arg->print.bounds.opt + 6; //arg->print.progress;
             }
             str_clear(&arg->print.line);
             TRYG(str_extend_back(&arg->print.line, arg->print.buf));
