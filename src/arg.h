@@ -33,7 +33,7 @@ void arg_init_rest(struct Arg *arg, VrStr *rest);
 
 void arg_free(struct Arg **arg);
 
-struct ArgXGroup *arg_pos(struct Arg *arg);
+//struct ArgXGroup *arg_pos(struct Arg *arg);
 struct ArgXGroup *arg_opt(struct Arg *arg);
 //struct ArgXGroup *arg_env(struct Arg *arg);
 
