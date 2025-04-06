@@ -6,12 +6,13 @@
 typedef enum {
     ARG_NONE,
     ARG_BOOL,
+    ARG_FLAG,
     ARG_INT,
     ARG_FLOAT,
     ARG_STRING,
     //ARG_EXOTIC,
     ARG_OPTION,
-    ARG_FLAG,
+    ARG_FLAGS,
     ARG_HELP,
     /* above */
     ARG__COUNT
@@ -21,12 +22,13 @@ const char *arglist_str(ArgList id) {
     switch(id) {
         case ARG_NONE: return "<none>";
         case ARG_BOOL: return "<bool>";
+        case ARG_FLAG: return "<flag>";
         case ARG_INT: return "<int>";
         case ARG_FLOAT: return "<double>";
         case ARG_STRING: return "<string>";
         case ARG_OPTION: return "<option>";
         case ARG_HELP: return "<help>";
-        case ARG_FLAG: return "<flag>";
+        case ARG_FLAGS: return "<flags>";
         //case ARG_EXOTIC: return "<exotic>";
         case ARG__COUNT: return "(internal:count)";
     }
@@ -303,6 +305,13 @@ void argx_bool(ArgX *x, bool *val, bool *ref) {
     x->val.b = val;
     x->ref.b = ref;
 }
+void argx_flag_set(ArgX *x, bool *val, bool *ref) {
+    ASSERT_ARG(x);
+    ASSERT_ARG(val);
+    x->id = ARG_FLAG;
+    x->val.b = val;
+    x->ref.b = ref;
+}
 void argx_none(ArgX *x) {
     ASSERT_ARG(x);
     x->id = ARG_NONE;
@@ -323,7 +332,7 @@ struct ArgXGroup *argx_flag(struct ArgX *x) {
     ArgXGroup *flags = wargx_new();
     flags->desc = x->info.opt;
     flags->parent = x;
-    x->id = ARG_FLAG;
+    x->id = ARG_FLAGS;
     x->o = flags;
     return flags;
 }
@@ -527,6 +536,7 @@ void argx_print_pre(Arg *arg, ArgX *argx) { /*{{{*/
     switch(argx->id) {
         case ARG_STRING:
         case ARG_INT:
+        case ARG_FLAG:
         case ARG_BOOL:
         case ARG_FLOAT: {
             arg_handle_print(arg, ARG_PRINT_TYPE, F("%s", ARG_TYPE_F), arglist_str(argx->id));
@@ -550,7 +560,7 @@ void argx_print_pre(Arg *arg, ArgX *argx) { /*{{{*/
                 arg_handle_print(arg, ARG_PRINT_TYPE, F(">", ARG_OPTION_F));
             }
         } break;
-        case ARG_FLAG: {
+        case ARG_FLAGS: {
             ArgXGroup *g = argx->o;
             if(vargx_length(g->vec)) {
                 arg_handle_print(arg, ARG_PRINT_TYPE, F("<", ARG_FLAG_F));
@@ -559,7 +569,7 @@ void argx_print_pre(Arg *arg, ArgX *argx) { /*{{{*/
                     ArgX *x = vargx_get_at(&g->vec, i);
                     ASSERT_ARG(x->group);
                     ASSERT_ARG(x->group->parent);
-                    ASSERT(x->id == ARG_BOOL, "the option [%.*s] in [--%.*s] should be set as a bool", RSTR_F(x->info.opt), RSTR_F(x->group->parent->info.opt));
+                    ASSERT(x->id == ARG_FLAG, "the option [%.*s] in [--%.*s] should be set as a %s", RSTR_F(x->info.opt), RSTR_F(x->group->parent->info.opt), arglist_str(ARG_FLAG));
                     if(*x->val.b) {
                         arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_FLAG_F UL), RSTR_F(x->info.opt));
                     } else {
@@ -594,6 +604,7 @@ void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
             if(!val->z) out.z = &zero;
             arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%zi", ARG_VAL_F), *out.z);
         } break;
+        case ARG_FLAG:
         case ARG_BOOL: {
             bool zero = 0;
             if(!val->b) out.b = &zero;
@@ -606,7 +617,7 @@ void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
         } break;
         case ARG_HELP:
         case ARG_OPTION:
-        case ARG_FLAG:
+        case ARG_FLAGS:
         case ARG_NONE: {
             arg_handle_print(arg, ARG_PRINT_VALUE, "");
         } break;
@@ -719,7 +730,7 @@ int arg_help(struct Arg *arg) { /*{{{*/
 
 void argx_free(ArgX *argx) {
     ASSERT_ARG(argx);
-    if(argx->id == ARG_OPTION || argx->id == ARG_FLAG) {
+    if(argx->id == ARG_OPTION || argx->id == ARG_FLAGS) {
         vargx_free(&argx->o->vec);
         targx_free(&argx->o->lut);
         free(argx->o);
@@ -829,6 +840,9 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
                 arg_parse_getv_undo(parse);
             }
         } break;
+        case ARG_FLAG: {
+            *argx->val.b = true;
+        } break;
         case ARG_INT: {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
             if(need_help) break;
@@ -851,17 +865,19 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
             TRYC(arg_parse_getopt(argx->o, &x, argV));
             TRYC(argx_parse(parse, x));
         } break;
-        case ARG_FLAG: {
+        case ARG_FLAGS: {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
             if(need_help) break;
             ASSERT(argx->o, ERR_NULLPTR);
             for(size_t i = 0; i < vargx_length(argx->o->vec); ++i) {
                 ArgX *x = vargx_get_at(&argx->o->vec, i);
                 *x->val.b = false;
+                printff("RESET %.*s", RSTR_F(x->info.opt));
             }
             for(RStr flag = {0}; flag.first < argV.last; flag = rstr_splice(argV, &flag, parse->base->flag_sep)) {
                 if(!flag.s) continue;
                 ArgX *x = 0;
+                printff("ENABLE %.*s", RSTR_F(flag));
                 TRYC(arg_parse_getopt(argx->o, &x, flag));
                 TRYC(argx_parse(parse, x));
             }
@@ -887,6 +903,7 @@ void arg_parse_setref_group(struct ArgXGroup *group);
 void arg_parse_setref_argx(struct ArgX *argx) {
     ASSERT_ARG(argx);
     switch(argx->id) {
+        case ARG_FLAG:
         case ARG_BOOL: {
             if(argx->ref.b) *argx->val.b = *argx->ref.b;
         } break;
@@ -903,7 +920,7 @@ void arg_parse_setref_argx(struct ArgX *argx) {
             if(argx->ref.z) *argx->val.z = *argx->ref.z;
             if(argx->o) arg_parse_setref_group(argx->o);
         } break;
-        case ARG_FLAG: {
+        case ARG_FLAGS: {
             if(argx->o) arg_parse_setref_group(argx->o);
         } break;
         case ARG_HELP:

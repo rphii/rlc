@@ -45,6 +45,7 @@ void argx_none(struct ArgX *x);
 struct ArgXGroup *argx_opt(struct ArgX *x, void *val, void *ref);
 struct ArgXGroup *argx_flag(struct ArgX *x);
 void argx_opt_enum(struct ArgX *x, int val);
+void argx_flag_set(struct ArgX *x, bool *val, bool *ref);
 void argx_func(struct ArgX *x, void *func, void *data, bool quit_early);
 void argx_help(struct ArgX *x, struct Arg *arg);
 
