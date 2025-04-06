@@ -584,7 +584,7 @@ void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
     switch(argx->id) {
         case ARG_STRING: {
             if(val->s && rstr_length(*val->s)) {
-                arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%.*s", FG_GN), RSTR_F(*val->s));
+                arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%.*s", ARG_VAL_F), RSTR_F(*val->s));
             } else {
                 arg_handle_print(arg, ARG_PRINT_VALUE, "");
             }
@@ -592,17 +592,17 @@ void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
         case ARG_INT: {
             ssize_t zero = 0;
             if(!val->z) out.z = &zero;
-            arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%zi", FG_GN), *out.z);
+            arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%zi", ARG_VAL_F), *out.z);
         } break;
         case ARG_BOOL: {
             bool zero = 0;
             if(!val->b) out.b = &zero;
-            arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%s", FG_GN), *out.b ? "true" : "false");
+            arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%s", ARG_VAL_F), *out.b ? "true" : "false");
         } break;
         case ARG_FLOAT: {
             double zero = 0;
             if(!val->f) out.f = &zero;
-            arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%f", FG_GN), *out.f);
+            arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%f", ARG_VAL_F), *out.f);
         } break;
         case ARG_HELP:
         case ARG_OPTION:
@@ -719,7 +719,7 @@ int arg_help(struct Arg *arg) { /*{{{*/
 
 void argx_free(ArgX *argx) {
     ASSERT_ARG(argx);
-    if(argx->id == ARG_OPTION) {
+    if(argx->id == ARG_OPTION || argx->id == ARG_FLAG) {
         vargx_free(&argx->o->vec);
         targx_free(&argx->o->lut);
         free(argx->o);
