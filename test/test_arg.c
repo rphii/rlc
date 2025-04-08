@@ -139,7 +139,7 @@ int main(const int argc, const char **argv) {
           argx_bool(x, &config.mode.b, &preset.mode.b);
           argx_opt_enum(x, CONFIG_MODE_BOOL);
 
-    argx_env(arg, RSTR("ARG_CONFIG_PATH"), RSTR("config path"), &config.config, &preset.config);
+    argx_env(arg, RSTR("ARG_CONFIG_PATH"), RSTR("config path"), &config.config, &preset.config, true);
 
     TRYC(arg_parse(arg, argc, argv, &quit_early));
     if(quit_early) goto clean;

@@ -79,6 +79,7 @@ typedef struct ArgX { /*{{{*/
         ArgXNumber min;
         ArgXNumber max;
         ArgXCallback callback;
+        bool hide_value;
     } attr;
     struct {
         const unsigned char c;
@@ -354,13 +355,14 @@ struct ArgX *argx_pos(struct Arg *arg, size_t index, RStr opt, RStr desc) {
     return x;
 }
 
-void argx_env(struct Arg *arg, RStr opt, RStr desc, RStr *val, RStr *ref) {
+void argx_env(struct Arg *arg, RStr opt, RStr desc, RStr *val, RStr *ref, bool hide_value) {
     ASSERT_ARG(arg);
     ASSERT_ARG(val);
     ArgX *x = argx_init(&arg->env, 0, 0, opt, desc);
     x->id = ARG_ENV;
     x->val.s = val;
     x->ref.s = ref;
+    x->attr.hide_value = hide_value;
 }
 
 /* }}} */
@@ -398,6 +400,10 @@ void argx_opt_enum(struct ArgX *x, int val) {
     }
     x->e = val;
     //printff("SET [%.*s] ENUM TO %i", RSTR_F(x->info.opt), val);
+}
+void argx_hide_value(struct ArgX *x, bool hide_value) {
+    ASSERT_ARG(x);
+    x->attr.hide_value = hide_value;
 }
 
 /* }}}*/
@@ -569,7 +575,8 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
             if(arg->print.prev == ARG_PRINT_DESC) {
                 str_copy(&arg->print.line, &STR(" "));
                 arg_do_print(arg, false);
-                arg->print.pad = arg->print.bounds.opt + 6; //arg->print.progress;
+                //arg->print.pad = arg->print.bounds.opt + 6; //arg->print.progress;
+                arg->print.pad = arg->print.bounds.desc;
             }
             str_clear(&arg->print.line);
             TRYG(str_extend_back(&arg->print.line, arg->print.buf));
@@ -649,6 +656,10 @@ void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
     ASSERT_ARG(argx);
     ASSERT_ARG(val);
     ArgXVal out = *val;
+    if(argx->attr.hide_value) {
+        arg_handle_print(arg, ARG_PRINT_VALUE, "");
+        return;
+    }
     switch(argx->id) {
         case ARG_ENV:
         case ARG_STRING: {
