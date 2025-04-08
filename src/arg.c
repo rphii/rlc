@@ -866,7 +866,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
     /* actually begin parsing */
     bool need_help = false;
     switch(argx->id) {
-        case ARG_BOOL: { printff("GET VALUE FOR BOOL");
+        case ARG_BOOL: { //printff("GET VALUE FOR BOOL");
             if(parse->i + 1 < parse->argc) {
                 TRYC(arg_parse_getv(parse, &argV, &need_help)); //printff("GOT VALUE [%.*s]", RSTR_F(argV));
                 if(need_help) break;
