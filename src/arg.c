@@ -442,20 +442,14 @@ void arg_do_print(Arg *arg, bool endline) {
         }
         size_t n = str_index_nof(*line, m);
 
-#if 1
         RStr line_print = str_rstr(STR_IE(*line, n));
         f0 = rstr_rfind_f(line_print, &fE);
-        //if(f0+fE < n) fmt = str_rstr(STR_IE(STR_I0(*line, f0), fE));
         printf("%.*s%.*s", RSTR_F(fmt), RSTR_F(line_print));
         if(f0 < n) fmt = str_rstr(STR_IE(STR_I0(*line, f0), fE));
-#else
-        RStr line_print = str_rstr(STR_IE(*line, n));
-        printf("%.*s", RSTR_F(line_print));
-#endif
 
         if(len_nof + pad + (repeat ? 4 : 2) + relevant_progress > arg->print.bounds.max) {
             printf(F("..", FG_BK_B) "\n");
-            arg->print.progress += n;
+            arg->print.progress = pad + (repeat ? 2 : 0);
             line->first += n;
         } else {
             if(endline) {
@@ -607,6 +601,7 @@ void argx_print_pre(Arg *arg, ArgX *argx) { /*{{{*/
         case ARG_NONE:
         case ARG__COUNT: break;
     }
+    arg_handle_print(arg, ARG_PRINT_TYPE, " ");
 } /*}}}*/
 
 void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
