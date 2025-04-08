@@ -75,7 +75,7 @@ int main(const int argc, const char **argv) {
     preset.flags.other = true;
     preset.flags.safe = true;
     preset.id = CONFIG_LMAO;
-    preset.config = RSTR("path/to/config");
+    preset.config = RSTR("path/to/config/that-is-very-long-and-unnecessary");
 
     arg_init(arg, RSTR("test_arg"), RSTR("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), RSTR("github: https://github.com/rphii"));
     //arg_init_width(arg, 40, 45);
@@ -83,7 +83,7 @@ int main(const int argc, const char **argv) {
     x=argx_init(arg_opt(arg), n_arg++, 'h', RSTR("help"), RSTR("print this help"));
       argx_help(x, arg);
     x=argx_init(arg_opt(arg), n_arg++, 0, RSTR("xyz"), RSTR("nothing"));
-    x=argx_init(arg_opt(arg), n_arg++, 'b', RSTR("bool"), RSTR("boolean value"));
+    x=argx_init(arg_opt(arg), n_arg++, 'b', RSTR("bool"), RSTR("boolean value and a long description that is"));
       argx_bool(x, &config.boolean, &preset.boolean);
     x=argx_init(arg_opt(arg), n_arg++, 'f', RSTR("double"), RSTR("double value"));
       argx_dbl(x, &config.number, &preset.number);
