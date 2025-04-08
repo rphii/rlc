@@ -404,8 +404,51 @@ void argx_opt_enum(struct ArgX *x, int val) {
 
 /* PRINTING FUNCTIONS {{{ */
 
-void arg_do_print(Arg *arg, bool endline) {
+void arg_do_print(Arg *arg, int endline) {
     ASSERT_ARG(arg);
+#if 1 /*{{{*/
+    int pad = arg->print.pad;
+    int pad0 = arg->print.progress > pad ? 0 : pad - arg->print.progress;
+    RStr content = str_rstr(arg->print.line);
+    RStr fmt = RSTR("");
+    bool repeat = false;
+    /* first padding */
+    printf("%*s", pad0, "");
+    arg->print.progress += pad0;
+    /* print line-wise */
+    while(rstr_length(content)) {
+        /* if we repeat, continue with .. */
+        int len_line_printable = rstr_length_nof(content);
+        /* start new line and pad correctly if we repeat */
+        if(repeat) {
+            //printf("\n%*s" F("..", FG_BK_B), pad, "");
+            //arg->print.progress = pad + 2;
+            printf("\n%*s", pad, "");
+            arg->print.progress = pad;
+        }
+        if(len_line_printable + arg->print.progress > arg->print.bounds.max) {
+            len_line_printable = arg->print.bounds.max - arg->print.progress;
+        }
+        int len_line_index = rstr_index_nof(content, len_line_printable);
+
+        RStr line_print = RSTR_IE(content, len_line_index);
+        size_t fE = 0;
+        size_t f0 = rstr_rfind_f(line_print, &fE);
+        printf("%.*s%.*s", RSTR_F(fmt), RSTR_F(line_print));
+        if(f0 < rstr_length(line_print)) fmt = str_rstr(STR_IE(STR_I0(line_print, f0), fE));
+        arg->print.progress += len_line_printable;
+
+        //printf("%.*s", RSTR_F(content));
+        //rstr_clear(&content);
+        content.first += len_line_index;
+        repeat = true;
+    }
+    for(int i = 0; i < endline; ++i) {
+        printf("\n");
+        arg->print.progress = 0;
+    }
+    str_clear(&arg->print.line);
+#else
     Str *line = &arg->print.line;
     size_t len_nof = str_length_nof(arg->print.line);
     size_t len = str_length(arg->print.line);
@@ -462,6 +505,7 @@ void arg_do_print(Arg *arg, bool endline) {
         len = str_length(*line);
         repeat = true;
     }
+#endif /*}}}*/
 }
 
 void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
@@ -666,7 +710,7 @@ void argx_print(Arg *arg, ArgX *x, bool detailed) { /*{{{*/
     bool is_detailed_option = false;
     if(detailed && x->id == ARG_OPTION && x->o) {
         is_detailed_option = true;
-        arg_handle_print(arg, ARG_PRINT_NONE, "\n\n");
+        arg_do_print(arg, 2);
         for(size_t i = 0; i < vargx_length(x->o->vec); ++i) {
             //arg_handle_print(arg, ARG_PRINT_NONE, "\n");
             ArgX *xx = vargx_get_at(&x->o->vec, i);
@@ -675,8 +719,8 @@ void argx_print(Arg *arg, ArgX *x, bool detailed) { /*{{{*/
     }
     /* print value */
     if(detailed) {
-        arg_handle_print(arg, ARG_PRINT_NONE, "\n");
-        if(!is_detailed_option) arg_handle_print(arg, ARG_PRINT_NONE, "\n");
+        arg_do_print(arg, 1);
+        if(!is_detailed_option) arg_do_print(arg, 1);
         arg_handle_print(arg, ARG_PRINT_SHORT, "current value");
     }
     if(detailed && x->id == ARG_OPTION && x->o) {
@@ -688,7 +732,7 @@ void argx_print(Arg *arg, ArgX *x, bool detailed) { /*{{{*/
             break;
         }
         if(!n) {
-            arg_handle_print(arg, ARG_PRINT_NONE, "\n");
+            arg_do_print(arg, 1);
         }
     } else {
         argx_print_post(arg, x, &x->val);
@@ -707,7 +751,8 @@ void argx_print_specific(Arg *arg, ArgParse *parse, ArgX *x) { /*{{{*/
         if(x->group->parent) {
             argx_print_specific(arg, parse, x->group->parent);
         } else {
-            arg_handle_print(arg, ARG_PRINT_NONE, F("%.*s:\n", BOLD UL), RSTR_F(x->group->desc));
+            arg_handle_print(arg, ARG_PRINT_NONE, F("%.*s:", BOLD UL), RSTR_F(x->group->desc));
+            arg_do_print(arg, 1);
         }
     }
     argx_print(arg, x, (x == parse->help.x));
@@ -722,7 +767,7 @@ void argx_group_print(Arg *arg, ArgXGroup *group) { /*{{{*/
     }
     if(rstr_length(group->desc)) {
         arg_handle_print(arg, ARG_PRINT_NONE, F("%.*s:", BOLD UL), RSTR_F(group->desc));
-        arg_handle_print(arg, ARG_PRINT_NONE, "\n");
+        arg_do_print(arg, 1);
     }
     if(group == &arg->pos) {
         arg_handle_print(arg, ARG_PRINT_SHORT, F("%s", BOLD), arg->parse.argv[0]);
@@ -731,7 +776,7 @@ void argx_group_print(Arg *arg, ArgXGroup *group) { /*{{{*/
             printf(" %.*s", RSTR_F(x->info.opt));
             //argx_print(arg, x, false);
         }
-        arg_handle_print(arg, ARG_PRINT_NONE, "\n");
+        arg_do_print(arg, 1);
     }
     for(size_t i = 0; i < vargx_length(group->vec); ++i) {
         ArgX *x = vargx_get_at(&group->vec, i);
