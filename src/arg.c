@@ -11,7 +11,6 @@ typedef enum {
     ARG_FLOAT,
     ARG_STRING,
     ARG_ENV,
-    ARG_POS,
     //ARG_EXOTIC,
     ARG_OPTION,
     ARG_FLAGS,
@@ -29,7 +28,6 @@ const char *arglist_str(ArgList id) {
         case ARG_FLOAT: return "<double>";
         case ARG_STRING: return "<string>";
         case ARG_ENV: return "<env>";
-        case ARG_POS: return "<pos>";
         case ARG_OPTION: return "<option>";
         case ARG_HELP: return "<help>";
         case ARG_FLAGS: return "<flags>";
@@ -596,7 +594,6 @@ void argx_print_pre(Arg *arg, ArgX *argx) { /*{{{*/
         case ARG_HELP: {
             arg_handle_print(arg, ARG_PRINT_TYPE, F("<arg>", ARG_TYPE_F));
         } break;
-        case ARG_POS:
         case ARG_ENV:
         case ARG_NONE:
         case ARG__COUNT: break;
@@ -609,7 +606,6 @@ void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
     ASSERT_ARG(val);
     ArgXVal out = *val;
     switch(argx->id) {
-        case ARG_POS:
         case ARG_ENV:
         case ARG_STRING: {
             if(val->s && rstr_length(*val->s)) {
@@ -870,14 +866,16 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
     /* actually begin parsing */
     bool need_help = false;
     switch(argx->id) {
-        case ARG_BOOL: { //printff("GET VALUE FOR BOOL");
-            if(parse->i < parse->argc) {
+        case ARG_BOOL: { printff("GET VALUE FOR BOOL");
+            if(parse->i + 1 < parse->argc) {
                 TRYC(arg_parse_getv(parse, &argV, &need_help)); //printff("GOT VALUE [%.*s]", RSTR_F(argV));
                 if(need_help) break;
-            }
-            if(rstr_as_bool(argV, argx->val.b, true)) {
+                if(rstr_as_bool(argV, argx->val.b, true)) {
+                    *argx->val.b = argx->ref.b ? !*argx->ref.b : true;
+                    arg_parse_getv_undo(parse);
+                }
+            } else {
                 *argx->val.b = argx->ref.b ? !*argx->ref.b : true;
-                arg_parse_getv_undo(parse);
             }
         } break;
         case ARG_FLAG: {
