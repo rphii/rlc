@@ -423,7 +423,7 @@ void arg_do_print(Arg *arg, int endline) {
         if(repeat) {
             //printf("\n%*s" F("..", FG_BK_B), pad, "");
             //arg->print.progress = pad + 2;
-            printf("\n%*s", pad, "");
+            printf(F("\n%*s", ""), pad, "");
             arg->print.progress = pad;
         }
         if(len_line_printable + arg->print.progress > arg->print.bounds.max) {
