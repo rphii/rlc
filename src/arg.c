@@ -852,6 +852,9 @@ void argx_free(ArgX *argx) {
         targx_free(&argx->o->lut);
         free(argx->o);
     }
+    if(argx->id == ARG_VECTOR) {
+        vrstr_free(argx->val.v);
+    }
     memset(argx, 0, sizeof(*argx));
 };
 
