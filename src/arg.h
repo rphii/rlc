@@ -30,7 +30,7 @@ void arg_init(struct Arg *arg, RStr program, RStr description, RStr epilog);
 void arg_init_width(struct Arg *arg, int width, int percent);
 void arg_init_show_help(struct Arg *arg, bool show_help);
 void arg_init_prefix(struct Arg *arg, unsigned char prefix);
-void arg_init_rest(struct Arg *arg, VrStr *rest);
+void arg_init_rest(struct Arg *arg, RStr description, VrStr *rest);
 
 void arg_free(struct Arg **arg);
 
