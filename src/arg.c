@@ -803,14 +803,14 @@ void argx_print_specific(Arg *arg, ArgParse *parse, ArgX *x) { /*{{{*/
 void argx_group_print(Arg *arg, ArgXGroup *group) { /*{{{*/
     ASSERT_ARG(arg);
     ASSERT_ARG(group);
-    if(!vargx_length(group->vec)) {
+    if(!vargx_length(group->vec) && !(group == &arg->pos)) {
         return;
     }
     if(rstr_length(group->desc)) {
         arg_handle_print(arg, ARG_PRINT_NONE, F("%.*s:", BOLD UL), RSTR_F(group->desc));
         arg_do_print(arg, 1);
     }
-    if(group == &arg->pos || rstr_length(arg->base.rest_desc)) {
+    if(group == &arg->pos) {
         arg_handle_print(arg, ARG_PRINT_SHORT, F("%s", BOLD), arg->parse.argv[0]);
         for(size_t i = 0; i < vargx_length(group->vec); ++i) {
             ArgX *x = vargx_get_at(&group->vec, i);
@@ -818,7 +818,7 @@ void argx_group_print(Arg *arg, ArgXGroup *group) { /*{{{*/
             //argx_print(arg, x, false);
         }
         if(rstr_length(arg->base.rest_desc)) {
-            arg_handle_print(arg, ARG_PRINT_SHORT, F(" [..%.*s..]", FG_MG), RSTR_F(arg->base.rest_desc));
+            arg_handle_print(arg, ARG_PRINT_SHORT, " " F("[..%.*s..]", FG_MG), RSTR_F(arg->base.rest_desc));
         }
         arg_do_print(arg, 1);
     }
