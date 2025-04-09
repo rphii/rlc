@@ -556,7 +556,7 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
         /* special cases */
         case ARG_PRINT_TYPE: {
             if(arg->print.prev == ARG_PRINT_LONG) {
-                str_copy(&arg->print.line, &STR(" "));
+                if(str_copy(&arg->print.line, &STR(" "))) ABORT(ERR_MALLOC);
                 arg_do_print(arg, false);
                 str_clear(&arg->print.line);
                 arg->print.pad = arg->print.bounds.opt + 2;
@@ -567,7 +567,7 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
             if(arg->print.prev == ARG_PRINT_TYPE) {
                 arg_do_print(arg, false);
                 if(arg->print.progress + 1 > arg->print.bounds.desc) {
-                    str_copy(&arg->print.line, &STR(""));
+                    if(str_copy(&arg->print.line, &STR(""))) ABORT(ERR_MALLOC);
                     arg_do_print(arg, true);
                     arg->print.pad = arg->print.bounds.opt + 4;
                 } else {
@@ -584,7 +584,7 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
         } break;
         case ARG_PRINT_VALUE: {
             if(arg->print.prev == ARG_PRINT_DESC) {
-                str_copy(&arg->print.line, &STR(" "));
+                if(str_copy(&arg->print.line, &STR(" "))) ABORT(ERR_MALLOC);
                 arg_do_print(arg, false);
                 arg->print.pad = arg->print.bounds.desc;
                 str_clear(&arg->print.line);
@@ -1137,7 +1137,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         }
         /* in case of trying to get help, also search pos and then env */
         if(parse->help.get && !parse->help.x && parse->i < parse->argc) {
-            arg_parse_getv(parse, &argV, &need_help);
+            (void)arg_parse_getv(parse, &argV, &need_help);
             ArgX *x1 = targx_get(&arg->pos.lut, argV);
             ArgX *x2 = targx_get(&arg->env.lut, argV);
             ArgX *x = x1 ? x1 : x2;
