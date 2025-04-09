@@ -25,6 +25,7 @@ typedef struct Config {
     double number;
     RStr config;
     RStr string;
+    VrStr strings;
     ConfigList id;
     ConfigList id2;
     ConfigList id3;
@@ -78,7 +79,8 @@ int main(const int argc, const char **argv) {
     preset.config = RSTR("path/to/config/that-is-very-long-and-unnecessary");
 
     arg_init(arg, RSTR("test_arg"), RSTR("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), RSTR("github: https://github.com/rphii"));
-    arg_init_width(arg, 40, 45);
+    //arg_init_width(arg, 40, 45);
+    //arg_init_width(arg, 0, 45);
 
     x=argx_init(arg_opt(arg), n_arg++, 'h', RSTR("help"), RSTR("print this help"));
       argx_help(x, arg);
@@ -139,7 +141,11 @@ int main(const int argc, const char **argv) {
           argx_bool(x, &config.mode.b, &preset.mode.b);
           argx_opt_enum(x, CONFIG_MODE_BOOL);
 
-    argx_env(arg, RSTR("ARG_CONFIG_PATH"), RSTR("config path"), &config.config, &preset.config, true);
+    x=argx_init(arg_opt(arg), n_arg++, 'I', RSTR("input"), RSTR("input files"));
+      argx_vstr(x, &config.strings, &preset.strings);
+      argx_type(x, RSTR("input-files"));
+
+    argx_env(arg, RSTR("ARG_CONFIG_PATH"), RSTR("config path"), &config.config, &preset.config, false);
 
     TRYC(arg_parse(arg, argc, argv, &quit_early));
     if(quit_early) goto clean;
