@@ -12,6 +12,7 @@
 #define ARG_TYPE_F      FG_CY
 #define ARG_OPTION_F    FG_BL
 #define ARG_FLAG_F      FG_YL
+#define ARG_F_SEP       FG_BK_B
 
 /* types of arguments
  *
@@ -44,10 +45,12 @@ void argx_int(struct ArgX *x, ssize_t *val, ssize_t *ref);
 void argx_dbl(struct ArgX *x, double *val, double *ref);
 void argx_bool(struct ArgX *x, bool *val, bool *ref);
 void argx_none(struct ArgX *x);
+void argx_vstr(struct ArgX *x, VrStr *val, VrStr *ref);
 struct ArgXGroup *argx_opt(struct ArgX *x, void *val, void *ref);
 struct ArgXGroup *argx_flag(struct ArgX *x);
 void argx_opt_enum(struct ArgX *x, int val);
 void argx_flag_set(struct ArgX *x, bool *val, bool *ref);
+void argx_type(struct ArgX *x, RStr type);
 void argx_func(struct ArgX *x, void *func, void *data, bool quit_early);
 void argx_help(struct ArgX *x, struct Arg *arg);
 void argx_hide_value(struct ArgX *x, bool hide_value);
