@@ -46,7 +46,8 @@ typedef struct ArgBase {
     unsigned char prefix;   // default: -
     unsigned char flag_sep; // default: ,
     bool show_help;         // display help if no arguments provided
-    VrStr *rest;
+    VrStr *rest_vec;
+    RStr rest_desc;
 } ArgBase;
 
 typedef union ArgXVal {
@@ -240,9 +241,10 @@ void arg_init_prefix(struct Arg *arg, unsigned char prefix) {
     arg->base.prefix = prefix;
 }
 
-void arg_init_rest(struct Arg *arg, VrStr *rest) {
+void arg_init_rest(struct Arg *arg, RStr description, VrStr *rest) {
     ASSERT_ARG(arg);
-    arg->base.rest = rest;
+    arg->base.rest_vec = rest;
+    arg->base.rest_desc = description;
 }
 
 
@@ -812,8 +814,11 @@ void argx_group_print(Arg *arg, ArgXGroup *group) { /*{{{*/
         arg_handle_print(arg, ARG_PRINT_SHORT, F("%s", BOLD), arg->parse.argv[0]);
         for(size_t i = 0; i < vargx_length(group->vec); ++i) {
             ArgX *x = vargx_get_at(&group->vec, i);
-            printf(" %.*s", RSTR_F(x->info.opt));
+            arg_handle_print(arg, ARG_PRINT_SHORT, " %.*s", RSTR_F(x->info.opt));
             //argx_print(arg, x, false);
+        }
+        if(rstr_length(arg->base.rest_desc)) {
+            arg_handle_print(arg, ARG_PRINT_SHORT, F(" [..%.*s..]", FG_MG), RSTR_F(arg->base.rest_desc));
         }
         arg_do_print(arg, 1);
     }
@@ -1131,9 +1136,9 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
             ArgX *x = vargx_get_at(&arg->pos.vec, parse->n_pos_parsed);
             TRYC(argx_parse(parse, x));
             ++parse->n_pos_parsed;
-        } else if(arg->base.rest) {
+        } else if(arg->base.rest_vec) {
             /* no argument, push rest */
-            TRYG(vrstr_push_back(arg->base.rest, &argV));
+            TRYG(vrstr_push_back(arg->base.rest_vec, &argV));
         }
         /* in case of trying to get help, also search pos and then env */
         if(parse->help.get && !parse->help.x && parse->i < parse->argc) {
@@ -1199,7 +1204,7 @@ void arg_free(struct Arg **parg) {
     argx_group_free(&arg->pos);
     str_free(&arg->print.line);
     str_free(&arg->print.buf);
-    if(arg->base.rest) vrstr_free(arg->base.rest);
+    if(arg->base.rest_vec) vrstr_free(arg->base.rest_vec);
     free(*parg);
     *parg = 0;
 }
