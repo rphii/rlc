@@ -810,7 +810,7 @@ void argx_group_print(Arg *arg, ArgXGroup *group) { /*{{{*/
         arg_handle_print(arg, ARG_PRINT_NONE, F("%.*s:", BOLD UL), RSTR_F(group->desc));
         arg_do_print(arg, 1);
     }
-    if(group == &arg->pos) {
+    if(group == &arg->pos || rstr_length(arg->base.rest_desc)) {
         arg_handle_print(arg, ARG_PRINT_SHORT, F("%s", BOLD), arg->parse.argv[0]);
         for(size_t i = 0; i < vargx_length(group->vec); ++i) {
             ArgX *x = vargx_get_at(&group->vec, i);
