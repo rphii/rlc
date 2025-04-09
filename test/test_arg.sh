@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-tcc -o test_arg.out test_arg.c ../src/arg.c \
+clang -o test_arg.out test_arg.c ../src/arg.c \
     ../src/str.c \
     -Og -fsanitize=address -rdynamic -ggdb3 \
 

@@ -1199,6 +1199,8 @@ void arg_free(struct Arg **parg) {
     argx_group_free(&arg->pos);
     str_free(&arg->print.line);
     str_free(&arg->print.buf);
+    if(arg->base.rest) vrstr_free(arg->base.rest);
     free(*parg);
+    *parg = 0;
 }
 
