@@ -1,4 +1,5 @@
 #include "../src/arg.h"
+#include "../src/file.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <sys/types.h>
@@ -71,6 +72,7 @@ int main(const int argc, const char **argv) {
     Config preset = {0};
     VrStr rest2 = {0};
     VrStr files = {0};
+    Str configuration = {0};
     struct Arg *arg = arg_new();
     struct ArgX *x;
     struct ArgXGroup *g;
@@ -81,6 +83,8 @@ int main(const int argc, const char **argv) {
     preset.flags.safe = true;
     preset.id = CONFIG_LMAO;
     preset.config = RSTR("path/to/config/that-is-very-long-and-unnecessary");
+
+    /* set up arguments {{{*/
 
     arg_init(arg, RSTR("test_arg"), RSTR("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), RSTR("github: https://github.com/rphii"));
     arg_init_rest(arg, RSTR("files"), &files);
@@ -154,11 +158,19 @@ int main(const int argc, const char **argv) {
       argx_type(x, RSTR("input-files"));
 
     argx_env(arg, RSTR("ARG_CONFIG_PATH"), RSTR("config path"), &config.config, &preset.config, false);
+    /*}}}*/
+
+    /* load config {{{ */
+    RStr filename = RSTR("test_arg.conf");
+    TRYC(file_str_read(filename, &configuration));
+    TRYC(arg_config(arg, str_rstr(configuration)));
+    /*}}}*/
 
     TRYC(arg_parse(arg, argc, argv, &quit_early));
     if(quit_early) goto clean;
 
-    /* print */
+    /* post arg parse {{{ */
+    printf("quit? %s\n", quit_early ? "yes" : "no");
     printf("INPUT-FILES:\n");
     for(size_t i = 0; i < vrstr_length(config.strings); ++i) {
         printf(" %.*s\n", RSTR_F(*vrstr_get_at(&config.strings, i)));
@@ -171,52 +183,7 @@ int main(const int argc, const char **argv) {
     for(size_t i = 0; i < vrstr_length(rest2); ++i) {
         printf(" %.*s\n", RSTR_F(*vrstr_get_at(&rest2, i)));
     }
-
-    //printff("ARG_CONFIG_PATH is = [%.*s]", RSTR_F(config.config));
-
-#if 0 /*{{{*/
-    //arg_init(arg);
-
-    ArgOpt *opt;
-    Config c = {0};
-    Config p = {0};
-
-    p.config = RSTR("path/to/config");
-    c.config = RSTR("path/to/config");
-    p.verbose = 123;
-    c.verbose = 100;
-    p.math = 9.87;
-    c.math = 1.23;
-    //p.boring = false;
-    //c.boring = false;
-
-    TRYC(main_arg(&arg, &c, &p, argc, argv));
-    //TRYC(arg_parse(&arg, 2, (const char *[]){argv[0], "-h"}));
-    TRYC(arg_parse(&arg, argc, argv));
-
-#if TEST_ALL
-    printf("\n");
-#if TEST_EMPTY_LONG
-    TEST(TEST_EMPTY_LONG);
-    if((opt = argopt_new(&arg, &arg.options, 0, RSTR(""), RSTR("")))) THROW("should not be able to create empty long option");
-#endif
-
-#if TEST_TWIN_LONG
-    TEST(TEST_TWIN_LONG);
-    if((opt = argopt_new(&arg, &arg.options, 0, RSTR("--help"), RSTR("")))) THROW("should not be able to create empty long option");
-#endif
-
-#if TEST_TWIN_SHORT
-    TEST(TEST_TWIN_SHORT);
-    if((opt = argopt_new(&arg, &arg.options, 'h', RSTR("--asdf"), RSTR("")))) THROW("should not be able to create empty long option");
-#endif
-
-
-
-    /* DONE; tests above */
-    printf(F("=== ALL TESTS PASSED ===", FG_GN_B BOLD) "\n");
-#endif
-#endif /*}}}*/
+    /*}}}*/
 
 clean:
     arg_free(&arg);
