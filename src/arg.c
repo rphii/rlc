@@ -3,6 +3,8 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+/* ENUMS, STRUCTS, VECTORS {{{ */
+
 typedef enum {
     ARG_NONE,
     ARG_BOOL,
@@ -128,6 +130,7 @@ typedef struct ArgParse {
     int argc;
     char **argv;
     bool force_done_parsing;
+    bool setref;
     size_t i;
     size_t n_pos_parsed;
     VArgX queue;
@@ -182,6 +185,11 @@ typedef struct Arg {
     ArgPrint print;
 } Arg;
 
+/*}}}*/
+
+/* ~~~ creation of arguments ~~~ */
+
+/* 0) SETTING UP {{{ */
 
 ATTR_NODISCARD struct Arg *arg_new(void) {
     Arg *result = 0;
@@ -200,9 +208,6 @@ ArgXGroup *arg_pos(Arg *arg) {
 ArgXGroup *arg_opt(Arg *arg) {
     return &arg->opt;
 }
-//ArgXGroup *arg_env(Arg *arg) {
-//    return &arg->env;
-//}
 
 void arg_init(struct Arg *arg, RStr program, RStr description, RStr epilog) {
     ASSERT_ARG(arg);
@@ -289,6 +294,8 @@ error:
     ABORT("critical error in " F("[%.*s]", BOLD) " -- aborting", RSTR_F(group->desc));
     return 0;
 }
+
+/*}}}*/
 
 /* 1) ASSIGN MAIN ID {{{ */
 
@@ -429,6 +436,8 @@ void argx_hide_value(struct ArgX *x, bool hide_value) {
 }
 
 /* }}}*/
+
+/* ~~~ implementing the argument parser to actually work ~~~ */
 
 /* PRINTING FUNCTIONS {{{ */
 
@@ -1017,6 +1026,7 @@ void arg_parse_setref_group(struct ArgXGroup *group) {
 
 void arg_parse_setref(struct Arg *arg) {
     ASSERT_ARG(arg);
+    //if(arg->parse.setref) return;
     /* first verify some things */
     /* finally assign */
     arg_parse_setref_group(&arg->opt);
@@ -1050,7 +1060,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         TRYC(arg_parse_getv(parse, &argV, &need_help));
         if(need_help) break;
         if(!rstr_length(argV)) continue;
-        printff(" [%.*s] %zu / %zu", RSTR_F(argV), parse->i, parse->argc);
+        //printff(" [%.*s] %zu / %zu", RSTR_F(argV), parse->i, parse->argc);
         if(!parse->force_done_parsing && rstr_length(argV) >= 1 && rstr_get_at(&argV, 0) == pfx) {
             /* regular checking for options */
             if(rstr_length(argV) >= 2 && rstr_get_at(&argV, 1) == pfx) {
@@ -1119,6 +1129,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     }
     if((parse->argc < 2 && arg->base.show_help)) {
         arg_help(arg);
+        *quit_early = true;
     } else if(!arg->parse.help.get && parse->n_pos_parsed < vargx_length(arg->pos.vec)) {
         THROW("missing %zu positional arguments", vargx_length(arg->pos.vec) - parse->n_pos_parsed);
     }
@@ -1134,6 +1145,121 @@ error:
     arg_help(arg);
 error_skip_help:
     ERR_CLEAN;
+}
+
+/*}}}*/
+
+/* CONFIG FUNCTIONS {{{ */
+
+ErrDecl arg_config(struct Arg *arg, RStr conf) {
+    ASSERT_ARG(arg);
+    arg_parse_setref(arg);
+    size_t line_nb = 1;
+    RStr line = {0}, opt = {0};
+    for(memset(&line, 0, sizeof(line)); line.first < conf.last; line = rstr_trim(rstr_splice(conf, &line, '\n')), ++line_nb) {
+        if(!line.s) continue;
+        if(!rstr_length(line)) continue;
+        if(rstr_get_front(&line) == '#') continue;
+        //printff("CONFIG:%.*s",RSTR_F(line));
+        ArgX *argx = 0;
+        for(memset(&opt, 0, sizeof(opt)); opt.first < line.last; opt = rstr_trim(rstr_splice(line, &opt, '='))) {
+            if(!opt.s) continue;
+            //printff(" OPT:%.*s",RSTR_F(opt));
+            if(!argx) {
+                TRYC(arg_parse_getopt(&arg->opt, &argx, opt));
+                if(argx->id == ARG_HELP) {
+                    THROW("cannot configure help");
+                } else if(argx->id == ARG_ENV) {
+                    THROW("cannot configure env");
+                } else if(argx->id == ARG_NONE) {
+                    THROW("cannot configure non-value option");
+                }
+            } else {
+                //printff("%.*s : %.*s", RSTR_F(argx->info.opt), RSTR_F(opt));
+                switch(argx->id) {
+                    case ARG_OPTION: {
+                        TRYC(arg_parse_getopt(argx->o, &argx, opt));
+                    } break;
+                    case ARG_BOOL: {
+                        bool *b = argx->ref.b ? argx->ref.b : argx->val.b;
+                        TRYC(rstr_as_bool(opt, b, true));
+                    } break;
+                    case ARG_INT: {
+                        ssize_t *z = argx->ref.z ? argx->ref.z : argx->val.z;
+                        TRYC(rstr_as_int(opt, z));
+                    } break;
+                    case ARG_FLOAT: {
+                        double *f = argx->ref.f ? argx->ref.f : argx->val.f;
+                        TRYC(rstr_as_double(opt, f));
+                    } break;
+                    case ARG_STRING: {
+                        RStr *s = argx->ref.s ? argx->ref.s : argx->val.s;
+                        *s = opt;
+                    } break;
+                    case ARG_FLAG: {
+                        bool *b = argx->ref.b ? argx->ref.b : argx->val.b;
+                        *b = true;
+                    } break;
+                    case ARG_NONE: {
+                        THROW("option cannot have a value");
+                    } break;
+                    case ARG_FLAGS: {
+                        ASSERT(argx->o, ERR_NULLPTR);
+                        for(size_t i = 0; i < vargx_length(argx->o->vec); ++i) {
+                            ArgX *x = vargx_get_at(&argx->o->vec, i);
+                            bool *b = x->ref.b ? x->ref.b : x->val.b;
+                            *b = false;
+                        }
+                        for(RStr flag = {0}; flag.first < opt.last; flag = rstr_splice(opt, &flag, arg->base.flag_sep)) {
+                            if(!flag.s) continue;
+                            ArgX *x = 0;
+                            TRYC(arg_parse_getopt(argx->o, &x, flag));
+                            bool *b = x->ref.b ? x->ref.b : x->val.b;
+                            *b = true;
+                        }
+                    } break;
+                    case ARG_VECTOR: {
+                        VrStr *v = argx->ref.v ? argx->ref.v : argx->val.v;
+                        TRYG(vrstr_push_back(v, &opt));
+                    } break;
+                    case ARG_HELP:
+                    case ARG_ENV: 
+                    case ARG__COUNT: ABORT(ERR_UNREACHABLE);
+                }
+                //printff(" GROUP %p", argx->group);
+                //printff(" PARENT %p", argx->group ? argx->group->parent : 0);
+                //printff(" ID %s", argx->group ? argx->group->parent ? arglist_str(argx->group->parent->id) : "" : 0);
+            }
+            /* check enum / option; TODO DRY */
+            if(argx->group && argx->group->parent && argx->group->parent->id == ARG_OPTION) {
+                if(argx->group->parent->ref.z) {
+                    *argx->group->parent->ref.z = argx->e;
+                } else if(argx->group->parent->val.z) {
+                    *argx->group->parent->val.z = argx->e;
+                }
+            }
+        }
+    }
+    return 0;
+error:
+    if(line.s) {
+        THROW_PRINT("error on " F("line %zu", BOLD FG_MG_B) ":\n", line_nb);
+        if(!opt.s) {
+            ERR_PRINTF("        %.*s:\n", RSTR_F(line));
+            ERR_PRINTF("        ^");
+        } else {
+            RStr pre = RSTR_LL(rstr_iter_begin(line), opt.first - line.first);
+            RStr at = opt;
+            RStr post = RSTR_LL(rstr_iter_at(&line, opt.last - line.first), line.last - opt.last);
+            ERR_PRINTF("        %.*s" F("%.*s", BOLD FG_RD_B) "%.*s\n", RSTR_F(pre), RSTR_F(at), RSTR_F(post));
+            ERR_PRINTF("        %*s", (int)(opt.first - line.first), "");
+            for(size_t i = 0; i < opt.last - opt.first; ++i) {
+                ERR_PRINTF(F("~", BOLD FG_RD_B));
+            }
+        }
+        ERR_PRINTF("\n");
+    }
+    return -1;
 }
 
 /*}}}*/

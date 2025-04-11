@@ -62,6 +62,9 @@ int arg_help(struct Arg *arg);
 #define ERR_arg_parse(...) "failed parsing arguments"
 ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, bool *quit_early);
 
+#define ERR_arg_config(...) "failed loading config"
+ErrDecl arg_config(struct Arg *arg, RStr conf);
+
 #define ARG_H
 #endif
 
