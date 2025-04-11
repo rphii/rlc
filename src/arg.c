@@ -1154,7 +1154,7 @@ error_skip_help:
 ErrDecl arg_config(struct Arg *arg, RStr conf) {
     ASSERT_ARG(arg);
     arg_parse_setref(arg);
-    size_t line_nb = 1;
+    size_t line_nb = 0;
     RStr line = {0}, opt = {0};
     for(memset(&line, 0, sizeof(line)); line.first < conf.last; line = rstr_trim(rstr_splice(conf, &line, '\n')), ++line_nb) {
         if(!line.s) continue;
@@ -1178,7 +1178,8 @@ ErrDecl arg_config(struct Arg *arg, RStr conf) {
                 //printff("%.*s : %.*s", RSTR_F(argx->info.opt), RSTR_F(opt));
                 switch(argx->id) {
                     case ARG_OPTION: {
-                        TRYC(arg_parse_getopt(argx->o, &argx, opt));
+                        ArgXGroup *group = argx->o;
+                        TRYC(arg_parse_getopt(group, &argx, opt));
                     } break;
                     case ARG_BOOL: {
                         bool *b = argx->ref.b ? argx->ref.b : argx->val.b;
