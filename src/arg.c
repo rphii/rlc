@@ -1176,10 +1176,10 @@ ErrDecl arg_config_load(struct Arg *arg) {
         if(!line.s) continue;
         if(!rstr_length(line)) continue;
         if(rstr_get_front(&line) == '#') continue;
-        printff("CONFIG:%.*s",RSTR_F(line));
+        //printff("CONFIG:%.*s",RSTR_F(line));
         for(memset(&opt, 0, sizeof(opt)); opt.first < line.last; opt = rstr_trim(rstr_splice(line, &opt, '='))) {
             if(!opt.s) continue;
-            printff(" OPT:%.*s",RSTR_F(opt));
+            //printff(" OPT:%.*s",RSTR_F(opt));
             if(!argx) {
                 TRYC(arg_parse_getopt(&arg->opt, &argx, opt));
                 if(argx->id == ARG_HELP) {
@@ -1190,7 +1190,7 @@ ErrDecl arg_config_load(struct Arg *arg) {
                     THROW("cannot configure non-value option");
                 }
             } else {
-                printff("%.*s : %.*s", RSTR_F(argx->info.opt), RSTR_F(opt));
+                //printff("%.*s : %.*s", RSTR_F(argx->info.opt), RSTR_F(opt));
                 switch(argx->id) {
                     case ARG_OPTION: {
                         ArgXGroup *group = argx->o;
@@ -1244,9 +1244,9 @@ ErrDecl arg_config_load(struct Arg *arg) {
                     case ARG_ENV: 
                     case ARG__COUNT: ABORT(ERR_UNREACHABLE);
                 }
-                printff(" GROUP %p", argx->group);
-                printff(" PARENT %p", argx->group ? argx->group->parent : 0);
-                printff(" ID %s", argx->group ? argx->group->parent ? arglist_str(argx->group->parent->id) : "" : 0);
+                //printff(" GROUP %p", argx->group);
+                //printff(" PARENT %p", argx->group ? argx->group->parent : 0);
+                //printff(" ID %s", argx->group ? argx->group->parent ? arglist_str(argx->group->parent->id) : "" : 0);
             }
             /* check enum / option; TODO DRY */
             if(argx->group && argx->group->parent && argx->group->parent->id == ARG_OPTION) {
