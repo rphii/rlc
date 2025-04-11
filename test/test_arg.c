@@ -17,6 +17,7 @@ typedef enum {
     CONFIG_MODE_FLOAT,
     CONFIG_MODE_STRING,
     CONFIG_MODE_BOOL,
+    CONFIG_MODE_STRINGS,
 } ConfigModeList;
 
 typedef struct Config {
@@ -35,6 +36,7 @@ typedef struct Config {
         RStr s;
         double f;
         bool b;
+        VrStr v;
     } mode;
     struct {
         bool safe;
@@ -67,6 +69,8 @@ int main(const int argc, const char **argv) {
     size_t n_arg = 0;
     Config config = {0};
     Config preset = {0};
+    VrStr rest2 = {0};
+    VrStr files = {0};
     struct Arg *arg = arg_new();
     struct ArgX *x;
     struct ArgXGroup *g;
@@ -79,7 +83,7 @@ int main(const int argc, const char **argv) {
     preset.config = RSTR("path/to/config/that-is-very-long-and-unnecessary");
 
     arg_init(arg, RSTR("test_arg"), RSTR("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), RSTR("github: https://github.com/rphii"));
-    arg_init_rest(arg, RSTR("files"), 0);
+    arg_init_rest(arg, RSTR("files"), &files);
     //arg_init_width(arg, 40, 45);
     //arg_init_width(arg, 0, 45);
 
@@ -122,25 +126,28 @@ int main(const int argc, const char **argv) {
         x=argx_init(g, n_arg++, 0, RSTR("other"), RSTR("enable other operation"));
           argx_flag_set(x, &config.flags.other, &preset.flags.other);
 
-    //x=argx_pos(arg, n_arg++, RSTR("mode"), RSTR("the main mode"));
-    //  g=argx_opt(x, &config.mode.id, &preset.mode.id);
-    //    x=argx_init(g, n_arg++, 0, RSTR("none"), RSTR("do nothing"));
-    //      argx_opt_enum(x, CONFIG_MODE_NONE);
-    //    x=argx_init(g, n_arg++, 0, RSTR("hello"), RSTR("print hello"));
-    //      argx_func(x, hello_world, &nfuck, true);
-    //      argx_opt_enum(x, CONFIG_MODE_HELLO);
-    //    x=argx_init(g, n_arg++, 0, RSTR("int"), RSTR("set int"));
-    //      argx_int(x, &config.mode.z, &preset.mode.z);
-    //      argx_opt_enum(x, CONFIG_MODE_INT);
-    //    x=argx_init(g, n_arg++, 0, RSTR("float"), RSTR("set float"));
-    //      argx_dbl(x, &config.mode.f, &preset.mode.f);
-    //      argx_opt_enum(x, CONFIG_MODE_FLOAT);
-    //    x=argx_init(g, n_arg++, 0, RSTR("string"), RSTR("set string"));
-    //      argx_str(x, &config.mode.s, &preset.mode.s);
-    //      argx_opt_enum(x, CONFIG_MODE_STRING);
-    //    x=argx_init(g, n_arg++, 0, RSTR("bool"), RSTR("set bool"));
-    //      argx_bool(x, &config.mode.b, &preset.mode.b);
-    //      argx_opt_enum(x, CONFIG_MODE_BOOL);
+    x=argx_pos(arg, n_arg++, RSTR("mode"), RSTR("the main mode"));
+      g=argx_opt(x, &config.mode.id, &preset.mode.id);
+        x=argx_init(g, n_arg++, 0, RSTR("none"), RSTR("do nothing"));
+          argx_opt_enum(x, CONFIG_MODE_NONE);
+        x=argx_init(g, n_arg++, 0, RSTR("hello"), RSTR("print hello"));
+          argx_func(x, hello_world, &nfuck, true);
+          argx_opt_enum(x, CONFIG_MODE_HELLO);
+        x=argx_init(g, n_arg++, 0, RSTR("int"), RSTR("set int"));
+          argx_int(x, &config.mode.z, &preset.mode.z);
+          argx_opt_enum(x, CONFIG_MODE_INT);
+        x=argx_init(g, n_arg++, 0, RSTR("float"), RSTR("set float"));
+          argx_dbl(x, &config.mode.f, &preset.mode.f);
+          argx_opt_enum(x, CONFIG_MODE_FLOAT);
+        x=argx_init(g, n_arg++, 0, RSTR("string"), RSTR("set string"));
+          argx_str(x, &config.mode.s, &preset.mode.s);
+          argx_opt_enum(x, CONFIG_MODE_STRING);
+        x=argx_init(g, n_arg++, 0, RSTR("bool"), RSTR("set bool"));
+          argx_bool(x, &config.mode.b, &preset.mode.b);
+          argx_opt_enum(x, CONFIG_MODE_BOOL);
+        x=argx_init(g, n_arg++, 0, RSTR("strings"), RSTR("set strings"));
+          argx_vstr(x, &rest2, 0);
+          argx_opt_enum(x, CONFIG_MODE_STRINGS);
 
     x=argx_init(arg_opt(arg), n_arg++, 'I', RSTR("input"), RSTR("input files"));
       argx_vstr(x, &config.strings, &preset.strings);
@@ -150,6 +157,20 @@ int main(const int argc, const char **argv) {
 
     TRYC(arg_parse(arg, argc, argv, &quit_early));
     if(quit_early) goto clean;
+
+    /* print */
+    printf("INPUT-FILES:\n");
+    for(size_t i = 0; i < vrstr_length(config.strings); ++i) {
+        printf(" %.*s\n", RSTR_F(*vrstr_get_at(&config.strings, i)));
+    }
+    printf("FILES:\n");
+    for(size_t i = 0; i < vrstr_length(files); ++i) {
+        printf(" %.*s\n", RSTR_F(*vrstr_get_at(&files, i)));
+    }
+    printf("STRINGS:\n");
+    for(size_t i = 0; i < vrstr_length(rest2); ++i) {
+        printf(" %.*s\n", RSTR_F(*vrstr_get_at(&rest2, i)));
+    }
 
     //printff("ARG_CONFIG_PATH is = [%.*s]", RSTR_F(config.config));
 

@@ -136,6 +136,11 @@ typedef struct ArgParse {
         bool get;
         ArgX *x;
     } help;
+    struct {
+        VrStr *vec;
+        RStr desc;
+        ArgXGroup *pos;
+    } rest;;
 } ArgParse;
 
 typedef enum {
@@ -246,7 +251,6 @@ void arg_init_rest(struct Arg *arg, RStr description, VrStr *rest) {
     arg->base.rest_vec = rest;
     arg->base.rest_desc = description;
 }
-
 
 #define ERR_argx_group_push(...) "failed adding argument x"
 ErrDecl argx_group_push(ArgXGroup *group, ArgX *in, ArgX **out) {
@@ -430,7 +434,6 @@ void argx_hide_value(struct ArgX *x, bool hide_value) {
 
 void arg_do_print(Arg *arg, int endline) {
     ASSERT_ARG(arg);
-#if 1 /*{{{*/
     int pad = arg->print.pad;
     int pad0 = arg->print.progress > pad ? 0 : pad - arg->print.progress;
     RStr content = str_rstr(arg->print.line);
@@ -471,64 +474,6 @@ void arg_do_print(Arg *arg, int endline) {
         arg->print.progress = 0;
     }
     str_clear(&arg->print.line);
-#else
-    Str *line = &arg->print.line;
-    size_t len_nof = str_length_nof(arg->print.line);
-    size_t len = str_length(arg->print.line);
-    RStr fmt = RSTR("");
-    size_t f0, fE;
-    bool repeat = false;
-    //printff("DO[%.*s] PROG[%zu] LEN[%zu] LEN_NOF[%zu] PAD[%zu]", STR_F(arg->print.line), arg->print.progress, len, len_nof, arg->print.pad);
-    int pad = arg->print.progress > arg->print.pad ? 0 : arg->print.pad - arg->print.progress;
-    if(!len) {
-        /* TODO: DRY */
-        if(endline) {
-            printf("\n");
-            arg->print.progress = 0;
-        }
-    }
-    while(len) {
-
-        size_t relevant_progress = (!repeat ? arg->print.progress : 0);
-        if(repeat) {
-            pad = arg->print.pad;
-            relevant_progress = 0;
-        }
-
-        printf("%*s", pad, "");
-        if(repeat) {
-            printf(F("..", FG_BK_B));
-        }
-
-        size_t m = len;
-        if(len_nof + pad + (repeat ? 4 : 2) + relevant_progress > arg->print.bounds.max) {
-            m = arg->print.bounds.max - relevant_progress - pad - (repeat ? 4 : 2);
-        }
-        size_t n = str_index_nof(*line, m);
-
-        RStr line_print = str_rstr(STR_IE(*line, n));
-        f0 = rstr_rfind_f(line_print, &fE);
-        printf("%.*s%.*s", RSTR_F(fmt), RSTR_F(line_print));
-        if(f0 < n) fmt = str_rstr(STR_IE(STR_I0(*line, f0), fE));
-
-        if(len_nof + pad + (repeat ? 4 : 2) + relevant_progress > arg->print.bounds.max) {
-            printf(F("..", FG_BK_B) "\n");
-            arg->print.progress = pad + (repeat ? 2 : 0);
-            line->first += n;
-        } else {
-            if(endline) {
-                printf("\n");
-                arg->print.progress = 0;
-            } else {
-                arg->print.progress += pad + str_length_nof(*line);
-            }
-            str_clear(line);
-        }
-        len_nof = str_length_nof(*line);
-        len = str_length(*line);
-        repeat = true;
-    }
-#endif /*}}}*/
 }
 
 void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
@@ -817,11 +762,11 @@ void argx_group_print(Arg *arg, ArgXGroup *group) { /*{{{*/
             arg_handle_print(arg, ARG_PRINT_SHORT, " %.*s", RSTR_F(x->info.opt));
             //argx_print(arg, x, false);
         }
-        if(rstr_length(arg->base.rest_desc)) {
-            arg_handle_print(arg, ARG_PRINT_SHORT, " " F("%.*s", BOLD FG_MG), RSTR_F(arg->base.rest_desc));
-        }
         if(vargx_length(arg->opt.vec)) {
             arg_handle_print(arg, ARG_PRINT_SHORT, " " F("[options]", BOLD FG_CY));
+        }
+        if(rstr_length(arg->base.rest_desc)) {
+            arg_handle_print(arg, ARG_PRINT_SHORT, " " F("%.*s", BOLD FG_MG), RSTR_F(arg->base.rest_desc));
         }
         arg_do_print(arg, 1);
     }
@@ -853,31 +798,7 @@ int arg_help(struct Arg *arg) { /*{{{*/
 
 /* }}} */
 
-void argx_free(ArgX *argx) {
-    ASSERT_ARG(argx);
-    if(argx->id == ARG_OPTION || argx->id == ARG_FLAGS) {
-        vargx_free(&argx->o->vec);
-        targx_free(&argx->o->lut);
-        free(argx->o);
-    }
-    if(argx->id == ARG_VECTOR) {
-        vrstr_free(argx->val.v);
-    }
-    memset(argx, 0, sizeof(*argx));
-};
-
-void argx_group_free(ArgXGroup *group) {
-    ASSERT_ARG(group);
-    targx_free(&group->lut);
-    vargx_free(&group->vec);
-    memset(group, 0, sizeof(*group));
-}
-
-#if 0
-bool arg_parse_done(ArgParse *parse) {
-    return !(parse->i < parse->argc);
-}
-#endif
+/* PARSING FUNCTIONS {{{ */
 
 #define ERR_arg_parse_getopt(group, ...) "failed getting option for " F("[%.*s]", BOLD), RSTR_F((group)->desc)
 ErrDecl arg_parse_getopt(ArgXGroup *group, ArgX **x, RStr opt) {
@@ -919,7 +840,8 @@ repeat:
         *argV = result;
         //printff("GOT ARGUMENT %.*s", RSTR_F(*argV));
     } else {
-        if(!parse->help.get) {
+        /*if(parse->force_done_parsing) {
+        } else */if(!parse->help.get) {
             THROW("no arguments left");
         } else {
             *need_help = true;
@@ -935,6 +857,16 @@ void arg_parse_getv_undo(ArgParse *parse) {
     ASSERT_ARG(parse->argv);
     ASSERT(parse->i, "nothing left to undo");
     --parse->i;
+}
+
+bool argx_parse_is_origin_from_pos(ArgParse *parse, ArgX *argx) {
+    ASSERT_ARG(parse);
+    ASSERT_ARG(parse->rest.pos);
+    ASSERT_ARG(argx);
+    if(!argx->group) return false;
+    if(argx->group == parse->rest.pos) return true;
+    if(!argx->group->parent) return false;
+    return argx_parse_is_origin_from_pos(parse, argx->group->parent);
 }
 
 #define ERR_argx_parse(parse, argx) "failed parsing argument " F("[%.*s]", BOLD FG_WT_B) " " F("%s", ARG_TYPE_F), RSTR_F(argx->info.opt), arglist_str(argx->id)
@@ -995,6 +927,10 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
             if(need_help) break;
             TRYG(vrstr_push_back(argx->val.v, &argV));
+            if(argx_parse_is_origin_from_pos(parse, argx)) {
+                parse->rest.vec = argx->val.v;
+                parse->rest.desc = argx->info.desc;
+            }
         } break;
         case ARG_OPTION: {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
@@ -1097,6 +1033,9 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     ArgParse *parse = &arg->parse;
     parse->argv = (char **)argv;
     parse->argc = argc;
+    parse->rest.vec = arg->base.rest_vec;
+    parse->rest.desc = arg->base.rest_desc;
+    parse->rest.pos = &arg->pos;
     Str temp_clean_env = {0};
     ArgX *argx = 0;
     parse->i = 1;
@@ -1111,13 +1050,11 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         TRYC(arg_parse_getv(parse, &argV, &need_help));
         if(need_help) break;
         if(!rstr_length(argV)) continue;
+        printff(" [%.*s] %zu / %zu", RSTR_F(argV), parse->i, parse->argc);
         if(!parse->force_done_parsing && rstr_length(argV) >= 1 && rstr_get_at(&argV, 0) == pfx) {
             /* regular checking for options */
             if(rstr_length(argV) >= 2 && rstr_get_at(&argV, 1) == pfx) {
-                if(rstr_length(argV) == 2) {
-                    parse->force_done_parsing = true;
-                    continue;
-                }
+                ASSERT(rstr_length(argV) > 2, ERR_UNREACHABLE);
                 RStr arg_query = RSTR_I0(argV, 2);
                 /* long option */
                 TRYC(arg_parse_getopt(&arg->opt, &argx, arg_query));
@@ -1139,9 +1076,9 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
             ArgX *x = vargx_get_at(&arg->pos.vec, parse->n_pos_parsed);
             TRYC(argx_parse(parse, x));
             ++parse->n_pos_parsed;
-        } else if(arg->base.rest_vec) {
+        } else if(parse->rest.vec) {
             /* no argument, push rest */
-            TRYG(vrstr_push_back(arg->base.rest_vec, &argV));
+            TRYG(vrstr_push_back(parse->rest.vec, &argV));
         }
         /* in case of trying to get help, also search pos and then env */
         if(parse->help.get && !parse->help.x && parse->i < parse->argc) {
@@ -1199,6 +1136,31 @@ error_skip_help:
     ERR_CLEAN;
 }
 
+/*}}}*/
+
+/* FREEING FUNCTIONS {{{ */
+
+void argx_free(ArgX *argx) {
+    ASSERT_ARG(argx);
+    if(argx->id == ARG_OPTION || argx->id == ARG_FLAGS) {
+        vargx_free(&argx->o->vec);
+        targx_free(&argx->o->lut);
+        free(argx->o);
+    }
+    if(argx->id == ARG_VECTOR) {
+        vrstr_free(argx->val.v);
+    }
+    memset(argx, 0, sizeof(*argx));
+};
+
+void argx_group_free(ArgXGroup *group) {
+    ASSERT_ARG(group);
+    targx_free(&group->lut);
+    vargx_free(&group->vec);
+    memset(group, 0, sizeof(*group));
+}
+
+
 void arg_free(struct Arg **parg) {
     ASSERT_ARG(parg);
     Arg *arg = *parg;
@@ -1211,4 +1173,6 @@ void arg_free(struct Arg **parg) {
     free(*parg);
     *parg = 0;
 }
+
+/*}}}*/
 
