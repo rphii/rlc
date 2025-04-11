@@ -840,8 +840,8 @@ repeat:
         *argV = result;
         //printff("GOT ARGUMENT %.*s", RSTR_F(*argV));
     } else {
-        /*if(parse->force_done_parsing) {
-        } else */if(!parse->help.get) {
+        if(parse->force_done_parsing) {
+        } else if(!parse->help.get) {
             THROW("no arguments left");
         } else {
             *need_help = true;
