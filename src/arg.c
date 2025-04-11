@@ -914,9 +914,9 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
     /* actually begin parsing */
     bool need_help = false;
     switch(argx->id) {
-        case ARG_BOOL: { printff("GET VALUE FOR BOOL");
+        case ARG_BOOL: { //printff("GET VALUE FOR BOOL");
             if(parse->i < parse->argc) {
-                TRYC(arg_parse_getv(parse, &argV, &need_help)); printff("GOT VALUE [%.*s]", RSTR_F(argV));
+                TRYC(arg_parse_getv(parse, &argV, &need_help)); //printff("GOT VALUE [%.*s]", RSTR_F(argV));
                 if(need_help) break;
                 if(rstr_as_bool(argV, argx->val.b, true)) {
                     *argx->val.b = true;
