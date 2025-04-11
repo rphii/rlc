@@ -709,22 +709,24 @@ IMPL_STR_AS_DOUBLE(rstr, RStr, RSTR_F);
     int A##_as_bool(const N str, bool *out, bool expand_pool) { \
         ASSERT_ARG(out); \
         RStr in = A##_rstr(str); \
-        RStr val_true[3] = { \
+        RStr val_true[4] = { \
             RSTR("true"), \
             RSTR("yes"), \
+            RSTR("y"), \
             RSTR("enable"), \
         }; \
-        RStr val_false[3] = { \
+        RStr val_false[4] = { \
             RSTR("false"), \
             RSTR("no"), \
+            RSTR("n"), \
             RSTR("disable"), \
         }; \
         bool result = false; \
-        for(size_t i = 0; i < 3; ++i) { \
+        for(size_t i = 0; i < 4; ++i) { \
             if(i && !expand_pool) return -1; \
             if(!rstr_cmp(val_true[i], in)) { result = true; break; } \
             if(!rstr_cmp(val_false[i], in)) { result = false; break; } \
-            if(i + 1 >= 3 && expand_pool) return -1; \
+            if(i + 1 >= 4 && expand_pool) return -1; \
         } \
         *out = result; \
         return 0; \

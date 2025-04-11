@@ -914,16 +914,16 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
     /* actually begin parsing */
     bool need_help = false;
     switch(argx->id) {
-        case ARG_BOOL: { //printff("GET VALUE FOR BOOL");
-            if(parse->i + 1 < parse->argc) {
-                TRYC(arg_parse_getv(parse, &argV, &need_help)); //printff("GOT VALUE [%.*s]", RSTR_F(argV));
+        case ARG_BOOL: { printff("GET VALUE FOR BOOL");
+            if(parse->i < parse->argc) {
+                TRYC(arg_parse_getv(parse, &argV, &need_help)); printff("GOT VALUE [%.*s]", RSTR_F(argV));
                 if(need_help) break;
                 if(rstr_as_bool(argV, argx->val.b, true)) {
-                    *argx->val.b = argx->ref.b ? !*argx->ref.b : true;
+                    *argx->val.b = true;
                     arg_parse_getv_undo(parse);
                 }
             } else {
-                *argx->val.b = argx->ref.b ? !*argx->ref.b : true;
+                *argx->val.b = true;
             }
         } break;
         case ARG_FLAG: {
@@ -976,7 +976,6 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
             }
         } break;
         case ARG_HELP: {
-            parse->help.x = 0;
             parse->help.get = true;
         } break;
         case ARG_ENV: ABORT(ERR_UNREACHABLE);
@@ -1126,7 +1125,13 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         RStr env = RSTR_L(cenv);
         *x->val.s = env;
     }
-    if(config_status) goto error_skip_help;
+    if(config_status) {
+        if(parse->help.get) {
+            printf("\n");
+        } else {
+            goto error_skip_help;
+        }
+    }
     /* now go over the queue and do post processing */
     vargx_sort(&parse->queue);
     for(size_t i = 0; i < vargx_length(parse->queue); ++i) {
