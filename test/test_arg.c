@@ -163,7 +163,7 @@ int main(const int argc, const char **argv) {
     /* load config {{{ */
     RStr filename = RSTR("test_arg.conf");
     TRYC(file_str_read(filename, &configuration));
-    TRYC(arg_config(arg, str_rstr(configuration)));
+    arg_config(arg, str_rstr(configuration));
     /*}}}*/
 
     TRYC(arg_parse(arg, argc, argv, &quit_early));
