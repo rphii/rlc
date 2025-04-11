@@ -1068,7 +1068,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     bool need_help = false;
     /* start parsing */
     /* check optional arguments */
-    (void)(arg_config_load(arg));
+    int config_status = arg_config_load(arg);
     while(parse->i < parse->argc) {
         RStr argV = RSTR("");
         TRYC(arg_parse_getv(parse, &argV, &need_help));
@@ -1126,6 +1126,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         RStr env = RSTR_L(cenv);
         *x->val.s = env;
     }
+    if(config_status) goto error_skip_help;
     /* now go over the queue and do post processing */
     vargx_sort(&parse->queue);
     for(size_t i = 0; i < vargx_length(parse->queue); ++i) {
@@ -1262,7 +1263,7 @@ ErrDecl arg_config_load(struct Arg *arg) {
     return 0;
 error:
     if(line.s) {
-        THROW_PRINT("error on " F("line %zu", BOLD FG_MG_B) ":\n", line_nb);
+        THROW_PRINT("config error on " F("line %zu", BOLD FG_MG_B) ":\n", line_nb);
         if(!opt.s) {
             ERR_PRINTF("        %.*s:\n", RSTR_F(line));
             ERR_PRINTF("        ^");
@@ -1281,6 +1282,9 @@ error:
     if(argx) {
         arg->parse.help.get = true;
         arg->parse.help.x = argx;
+        arg_help(arg);
+        arg->parse.help.get = false;
+        arg->parse.help.x = 0;
     }
     return -1;
 }
