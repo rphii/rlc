@@ -130,7 +130,6 @@ typedef struct ArgParse {
     int argc;
     char **argv;
     bool force_done_parsing;
-    bool setref;
     size_t i;
     size_t n_pos_parsed;
     VArgX queue;
@@ -144,6 +143,7 @@ typedef struct ArgParse {
         RStr desc;
         ArgXGroup *pos;
     } rest;;
+    RStr config;
 } ArgParse;
 
 typedef enum {
@@ -184,6 +184,13 @@ typedef struct Arg {
     ArgParse parse;
     ArgPrint print;
 } Arg;
+
+/*}}}*/
+
+/* FUNCTION PROTOTYPES {{{ */
+
+#define ERR_arg_config_load(...) "failed loading config"
+ErrDecl arg_config_load(struct Arg *arg);
 
 /*}}}*/
 
@@ -805,6 +812,11 @@ int arg_help(struct Arg *arg) { /*{{{*/
     return 0;
 } /*}}}*/
 
+void arg_config(struct Arg *arg, RStr conf) {
+    ASSERT_ARG(arg);
+    arg->parse.config = conf;
+}
+
 /* }}} */
 
 /* PARSING FUNCTIONS {{{ */
@@ -964,6 +976,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
             }
         } break;
         case ARG_HELP: {
+            parse->help.x = 0;
             parse->help.get = true;
         } break;
         case ARG_ENV: ABORT(ERR_UNREACHABLE);
@@ -1054,6 +1067,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     unsigned char pfx = arg->base.prefix;
     bool need_help = false;
     /* start parsing */
+    (void)(arg_config_load(arg));
     /* check optional arguments */
     while(parse->i < parse->argc) {
         RStr argV = RSTR("");
@@ -1151,17 +1165,18 @@ error_skip_help:
 
 /* CONFIG FUNCTIONS {{{ */
 
-ErrDecl arg_config(struct Arg *arg, RStr conf) {
+ErrDecl arg_config_load(struct Arg *arg) {
     ASSERT_ARG(arg);
-    arg_parse_setref(arg);
     size_t line_nb = 0;
-    RStr line = {0}, opt = {0};
+    RStr line = {0}, opt = {0}, conf = arg->parse.config;
+    if(!rstr_length(conf)) return 0;
+    ArgX *argx = 0;
     for(memset(&line, 0, sizeof(line)); line.first < conf.last; line = rstr_trim(rstr_splice(conf, &line, '\n')), ++line_nb) {
         if(!line.s) continue;
         if(!rstr_length(line)) continue;
         if(rstr_get_front(&line) == '#') continue;
         //printff("CONFIG:%.*s",RSTR_F(line));
-        ArgX *argx = 0;
+        argx = 0;
         for(memset(&opt, 0, sizeof(opt)); opt.first < line.last; opt = rstr_trim(rstr_splice(line, &opt, '='))) {
             if(!opt.s) continue;
             //printff(" OPT:%.*s",RSTR_F(opt));
@@ -1259,6 +1274,10 @@ error:
             }
         }
         ERR_PRINTF("\n");
+    }
+    if(argx) {
+        arg->parse.help.get = true;
+        arg->parse.help.x = argx;
     }
     return -1;
 }
