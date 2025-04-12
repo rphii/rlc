@@ -1206,6 +1206,7 @@ int arg_config_error(struct Arg *arg, RStr line, size_t line_nb, RStr opt, ArgX 
 
 ErrDecl arg_config_load(struct Arg *arg) {
     ASSERT_ARG(arg);
+    int err = 0;
     size_t line_nb = 0;
     RStr line = {0}, opt = {0}, conf = arg->parse.config;
     if(!rstr_length(conf)) return 0;
@@ -1299,10 +1300,11 @@ ErrDecl arg_config_load(struct Arg *arg) {
 parse_continue: ; /* semicolon to remove warning */
     }
     arg_parse_setref(arg);
-    return 0;
+    return err;
 error:
+    err = -1;
     if(arg_config_error(arg, line, line_nb, opt, argx)) goto parse_continue;
-    return -1;
+    return err;
 }
 
 /*}}}*/
