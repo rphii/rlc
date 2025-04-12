@@ -677,7 +677,8 @@ void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
         } break;
         case ARG_HELP:
         case ARG_OPTION:
-        case ARG_FLAGS:
+        case ARG_FLAGS: {
+        } break;
         case ARG_NONE: {
             arg_handle_print(arg, ARG_PRINT_VALUE, "");
         } break;
@@ -1171,6 +1172,38 @@ error_skip_help:
 
 /* CONFIG FUNCTIONS {{{ */
 
+int arg_config_error(struct Arg *arg, RStr line, size_t line_nb, RStr opt, ArgX *argx) {
+    ASSERT_ARG(arg);
+    int done = 0;
+    if(line.s) {
+        THROW_PRINT("config error on " F("line %zu", BOLD FG_MG_B) ":\n", line_nb);
+        if(!opt.s) {
+            ERR_PRINTF("        %.*s:\n", RSTR_F(line));
+            ERR_PRINTF("        ^");
+        } else {
+            RStr pre = RSTR_LL(rstr_iter_begin(line), opt.first - line.first);
+            RStr at = opt;
+            RStr post = RSTR_LL(rstr_iter_at(&line, opt.last - line.first), line.last - opt.last);
+            ERR_PRINTF("        %.*s" F("%.*s", BOLD FG_RD_B) "%.*s\n", RSTR_F(pre), RSTR_F(at), RSTR_F(post));
+            ERR_PRINTF("        %*s", (int)(opt.first - line.first), "");
+            for(size_t i = 0; i < opt.last - opt.first; ++i) {
+                ERR_PRINTF(F("~", BOLD FG_RD_B));
+            }
+        }
+        ERR_PRINTF("\n");
+        ++done;
+    }
+    if(argx) {
+        arg->parse.help.get = true;
+        arg->parse.help.x = argx;
+        arg_help(arg);
+        arg->parse.help.get = false;
+        arg->parse.help.x = 0;
+        ++done;
+    }
+    return done;
+}
+
 ErrDecl arg_config_load(struct Arg *arg) {
     ASSERT_ARG(arg);
     size_t line_nb = 0;
@@ -1263,34 +1296,12 @@ ErrDecl arg_config_load(struct Arg *arg) {
                 }
             }
         }
+parse_continue: ; /* semicolon to remove warning */
     }
     arg_parse_setref(arg);
     return 0;
 error:
-    if(line.s) {
-        THROW_PRINT("config error on " F("line %zu", BOLD FG_MG_B) ":\n", line_nb);
-        if(!opt.s) {
-            ERR_PRINTF("        %.*s:\n", RSTR_F(line));
-            ERR_PRINTF("        ^");
-        } else {
-            RStr pre = RSTR_LL(rstr_iter_begin(line), opt.first - line.first);
-            RStr at = opt;
-            RStr post = RSTR_LL(rstr_iter_at(&line, opt.last - line.first), line.last - opt.last);
-            ERR_PRINTF("        %.*s" F("%.*s", BOLD FG_RD_B) "%.*s\n", RSTR_F(pre), RSTR_F(at), RSTR_F(post));
-            ERR_PRINTF("        %*s", (int)(opt.first - line.first), "");
-            for(size_t i = 0; i < opt.last - opt.first; ++i) {
-                ERR_PRINTF(F("~", BOLD FG_RD_B));
-            }
-        }
-        ERR_PRINTF("\n");
-    }
-    if(argx) {
-        arg->parse.help.get = true;
-        arg->parse.help.x = argx;
-        arg_help(arg);
-        arg->parse.help.get = false;
-        arg->parse.help.x = 0;
-    }
+    if(arg_config_error(arg, line, line_nb, opt, argx)) goto parse_continue;
     return -1;
 }
 
