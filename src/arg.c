@@ -1088,7 +1088,6 @@ void arg_parse_setref_group(struct ArgXGroup *group) {
 
 void arg_parse_setref(struct Arg *arg) {
     ASSERT_ARG(arg);
-    return;
     /* first verify some things */
     /* finally assign */
     arg_parse_setref_group(&arg->opt);
