@@ -1040,33 +1040,26 @@ void arg_parse_setref_argx(struct ArgX *argx) {
         case ARG_FLAG:
         case ARG_BOOL: {
             if(argx->ref.b) *argx->val.b = *argx->ref.b;
-            else *argx->val.b = false;
         } break;
         case ARG_SSZ: {
             if(argx->ref.z) *argx->val.z = *argx->ref.z;
-            else *argx->val.z = 0;
         } break;
         case ARG_INT: {
             if(argx->ref.i) *argx->val.i = *argx->ref.i;
-            else *argx->val.i = 0;
         } break;
         case ARG_FLOAT: {
             if(argx->ref.f) *argx->val.f = *argx->ref.f;
-            else *argx->val.f = 0;
         } break;
         case ARG_ENV:
         case ARG_STRING: {
             //printff("SETTING STR %.*s=%.*s", RSTR_F(argx->info.opt), RSTR_F(*argx->ref.s));
             if(argx->ref.s) *argx->val.s = *argx->ref.s;
-            else *argx->val.s = RSTR("");
         } break;
         case ARG_VECTOR: {
             if(argx->ref.v) *argx->val.v = *argx->ref.v;
-            else memset(argx->val.v, 0, sizeof(*argx->val.v));
         } break;
         case ARG_OPTION: {
             if(argx->ref.i) *argx->val.i = *argx->ref.i;
-            else *argx->val.i = 0;
             if(argx->o) arg_parse_setref_group(argx->o);
         } break;
         case ARG_FLAGS: {
@@ -1349,7 +1342,7 @@ ErrDecl arg_config_load(struct Arg *arg) {
             if(argx->group && argx->group->parent && argx->group->parent->id == ARG_OPTION) {
                 if(argx->group->parent->ref.i) {
                     *argx->group->parent->ref.i = argx->e;
-                } else if(argx->group->parent->val.z) {
+                } else if(argx->group->parent->val.i) {
                     *argx->group->parent->val.i = argx->e;
                 }
             }
