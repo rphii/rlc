@@ -41,12 +41,13 @@ void argx_env(struct Arg *arg, RStr opt, RStr desc, RStr *val, RStr *ref, bool h
 struct ArgX *argx_init(struct ArgXGroup *group, size_t index, const unsigned char c, const RStr optX, const RStr descX);
 
 void argx_str(struct ArgX *x, RStr *val, RStr *ref);
-void argx_int(struct ArgX *x, ssize_t *val, ssize_t *ref);
+void argx_ssz(struct ArgX *x, ssize_t *val, ssize_t *ref);
+void argx_int(struct ArgX *x, int *val, int *ref);
 void argx_dbl(struct ArgX *x, double *val, double *ref);
 void argx_bool(struct ArgX *x, bool *val, bool *ref);
 void argx_none(struct ArgX *x);
 void argx_vstr(struct ArgX *x, VrStr *val, VrStr *ref);
-struct ArgXGroup *argx_opt(struct ArgX *x, void *val, void *ref);
+struct ArgXGroup *argx_opt(struct ArgX *x, int *val, int *ref);
 struct ArgXGroup *argx_flag(struct ArgX *x);
 void argx_opt_enum(struct ArgX *x, int val);
 void argx_flag_set(struct ArgX *x, bool *val, bool *ref);

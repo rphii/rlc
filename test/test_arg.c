@@ -64,6 +64,12 @@ int hello_world(int *n) {
     return 0;
 }
 
+#include <sys/ioctl.h>
+#include <poll.h> // int poll(struct pollfd *fds, nfds_t nfds, int timeout);
+
+#include <errno.h>
+#include <unistd.h>
+
 int main(const int argc, const char **argv) {
 
     int err = 0;
@@ -166,8 +172,23 @@ int main(const int argc, const char **argv) {
     arg_config(arg, str_rstr(configuration));
     /*}}}*/
 
+#if 0
+    sleep(1);
+    Str input = {0};
+    int n = 0;
+    while (ioctl(0, FIONREAD, &n) ? 0 : n > 0) {
+    //while(true) {
+        str_clear(&input);
+        str_get_str(&input);
+        if(!str_length(input)) continue;
+        printff(F(">>> %.*s", BG_YL_B FG_BK), STR_F(input));
+    }
+    return 0;
+#endif
+
     TRYC(arg_parse(arg, argc, argv, &quit_early));
     if(quit_early) goto clean;
+
 
     /* post arg parse {{{ */
     printf("quit? %s\n", quit_early ? "yes" : "no");
