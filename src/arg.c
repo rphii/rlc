@@ -29,7 +29,7 @@ const char *arglist_str(ArgList id) {
         case ARG_BOOL: return "<bool>";
         case ARG_FLAG: return "<flag>";
         case ARG_INT: return "<int>";
-        case ARG_SSZ: return "<ssz>";
+        case ARG_SSZ: return "<int>";
         case ARG_FLOAT: return "<double>";
         case ARG_STRING: return "<string>";
         case ARG_ENV: return "<env>";
