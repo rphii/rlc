@@ -814,7 +814,7 @@ void argx_group_print(Arg *arg, ArgXGroup *group) { /*{{{*/
             arg_handle_print(arg, ARG_PRINT_SHORT, " " F("[options]", BOLD FG_CY));
         }
         if(rstr_length(arg->base.rest_desc)) {
-            arg_handle_print(arg, ARG_PRINT_SHORT, " " F("%.*s", BOLD FG_MG), RSTR_F(arg->base.rest_desc));
+            arg_handle_print(arg, ARG_PRINT_SHORT, " " F("%.*s", BOLD FG_MG_B), RSTR_F(arg->base.rest_desc));
         }
         arg_do_print(arg, 1);
     }
