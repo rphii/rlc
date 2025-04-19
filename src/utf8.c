@@ -29,7 +29,7 @@ ErrImpl cstr_to_u8_point(U8Str in, U8Point *point)
     else if((*in & 0xE0) == 0xC0) point->bytes = 2;
     else if((*in & 0xF0) == 0xE0) point->bytes = 3;
     else if((*in & 0xF8) == 0xF0) point->bytes = 4;
-    else THROW("unknown utf-8 pattern");
+    else THROW("unknown utf-8 pattern [%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x]", (unsigned char )in[0], (unsigned char )in[1], (unsigned char )in[2], (unsigned char )in[3], (unsigned char )in[4], (unsigned char )in[5], (unsigned char )in[6], (unsigned char )in[7]);
     // magical mask shifting
     int shift = (point->bytes - 1) * 6;
     int mask = 0x7F;
