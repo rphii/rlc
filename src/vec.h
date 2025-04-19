@@ -208,6 +208,7 @@ typedef enum {
 
 #define VEC_INCLUDE_ERR(N, A, T, M) \
     /* error strings for certain fail cases */ \
+    char *ERR_##A##_reserve(void *x, ...); \
     char *ERR_##A##_push_back(void *x, ...); \
     char *ERR_##A##_extend_back(void *x, ...); \
     char *ERR_r##A##_extend_back(void *x, ...); \
