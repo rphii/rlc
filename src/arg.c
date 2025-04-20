@@ -824,6 +824,15 @@ void argx_group_print(Arg *arg, ArgXGroup *group) { /*{{{*/
     }
 } /*}}}*/
 
+void arg_help_set(struct Arg *arg, struct ArgX *x) {
+    ASSERT_ARG(arg);
+    ASSERT_ARG(x);
+    if(!arg->parse.help.get) {
+        arg->parse.help.get = true;
+        arg->parse.help.x = x;
+    }
+}
+
 int arg_help(struct Arg *arg) { /*{{{*/
     ASSERT_ARG(arg);
     if(arg->parse.help.x && arg->parse.help.get) {
@@ -850,6 +859,24 @@ void arg_config(struct Arg *arg, RStr conf) {
 }
 
 /* }}} */
+
+#if 0
+bool arg_group_info_opt(struct ArgXGroup *g, void *x, RStr *found) {
+    if(!g) return false;
+    if(!x) return false;
+    ASSERT_ARG(found);
+    for(TArgXKV **kv = targx_iter_all(&g->lut, 0);
+            kv;
+            kv = targx_iter_all(&g->lut, kv)) {
+        if((*kv)->val->
+    }
+}
+
+RStr arg_info_opt(struct Arg *arg, void *x) {
+    if(!x) return RSTR("");
+    for(arg->parse
+}
+#endif
 
 /* PARSING FUNCTIONS {{{ */
 

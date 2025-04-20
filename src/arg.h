@@ -58,8 +58,14 @@ void argx_hide_value(struct ArgX *x, bool hide_value);
 
 struct ArgX *argx_new(struct TArgX *group, const unsigned char c, const RStr opt, const RStr desc);
 
+void arg_help_set(struct Arg *arg, struct ArgX *x);
 int arg_help(struct Arg *arg);
 void arg_config(struct Arg *arg, RStr conf);
+
+
+#if 0
+RStr arg_info_opt(struct Arg *arg, void *x);
+#endif
 
 #define ERR_arg_parse(...) "failed parsing arguments"
 ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, bool *quit_early);
