@@ -69,6 +69,7 @@ typedef struct ArgXCallback {
     ArgFunction func;
     void *data;
     bool quit_early;
+    size_t priority;
 } ArgXCallback;
 
 typedef union ArgXNumber {
@@ -96,7 +97,6 @@ typedef struct ArgX { /*{{{*/
         const unsigned char c;
         const RStr opt;
         const RStr desc;
-        const size_t index;
     } info;
 
 } ArgX; /*}}}*/
@@ -111,7 +111,7 @@ LUT_IMPLEMENT(TArgX, targx, RStr, BY_VAL, struct ArgX, BY_REF, rstr_hash, rstr_c
 int argx_cmp_index(ArgX *a, ArgX *b) {
     ASSERT_ARG(a);
     ASSERT_ARG(b);
-    return a->info.index - b->info.index;
+    return a->attr.callback.priority - b->attr.callback.priority;
 }
 
 #include "vec.h"
@@ -289,13 +289,13 @@ error:
     return -1;
 }
 
-struct ArgX *argx_init(struct ArgXGroup *group, size_t index, const unsigned char c, const RStr optX, const RStr descX) {
+struct ArgX *argx_init(struct ArgXGroup *group, const unsigned char c, const RStr optX, const RStr descX) {
     ASSERT_ARG(group);
     RStr opt = rstr_trim(optX);
     RStr desc = rstr_trim(descX);
     if(!rstr_length(opt)) ABORT("cannot add an empty long-opt argument");
     ArgX x = {
-        .info = {c, opt, desc, index},
+        .info = {c, opt, desc},
         .group = group,
     };
     ArgX *argx = 0;
@@ -402,16 +402,16 @@ void argx_help(struct ArgX *x, struct Arg *arg) {
     x->attr.callback.quit_early = true;
 }
 
-struct ArgX *argx_pos(struct Arg *arg, size_t index, RStr opt, RStr desc) {
+struct ArgX *argx_pos(struct Arg *arg, RStr opt, RStr desc) {
     ASSERT_ARG(arg);
-    ArgX *x = argx_init(&arg->pos, index, 0, opt, desc);
+    ArgX *x = argx_init(&arg->pos, 0, opt, desc);
     return x;
 }
 
 void argx_env(struct Arg *arg, RStr opt, RStr desc, RStr *val, RStr *ref, bool hide_value) {
     ASSERT_ARG(arg);
     ASSERT_ARG(val);
-    ArgX *x = argx_init(&arg->env, 0, 0, opt, desc);
+    ArgX *x = argx_init(&arg->env, 0, opt, desc);
     x->id = ARG_ENV;
     x->val.s = val;
     x->ref.s = ref;
@@ -443,9 +443,10 @@ void argx_dbl_mm(ArgX *x, double min, double max) {
     x->attr.max.f = max;
 }
 
-void argx_func(struct ArgX *x, void *func, void *data, bool quit_early) {
+void argx_func(struct ArgX *x, size_t priority, void *func, void *data, bool quit_early) {
     ASSERT_ARG(x);
     ASSERT_ARG(func);
+    x->attr.callback.priority = priority;
     x->attr.callback.func = func;
     x->attr.callback.data = data;
     x->attr.callback.quit_early = quit_early;
@@ -1051,7 +1052,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx, bool *quit_early) {
         case ARG_NONE: break;
     }
     /* TODO DRY */
-    if(argx && argx->attr.callback.func && !argx->info.index) {
+    if(argx && argx->attr.callback.func && !argx->attr.callback.priority) {
         if(argx->attr.callback.func(argx->attr.callback.data)) {
             THROW_PRINT("failed executing function for " F("[%.*s]", BOLD) "\n", RSTR_F(argx->info.opt));
             goto error_skip_help;
@@ -1218,7 +1219,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     vargx_sort(&parse->queue);
     for(size_t i = 0; i < vargx_length(parse->queue); ++i) {
         ArgX *x = vargx_get_at(&parse->queue, i);
-        if(!x->info.index) continue;
+        if(!x->attr.callback.priority) continue;
         //printff("CHECK QUEUE [%.*s]", RSTR_F(x->info.opt));
         if(x && x->attr.callback.func) {
             if(x->attr.callback.func(x->attr.callback.data)) {
