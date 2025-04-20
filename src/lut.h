@@ -321,7 +321,10 @@
             if(FK != 0) LUT_TYPE_FREE(FK, (*item)->key, TK, MK); \
             if(FV != 0) LUT_TYPE_FREE(FV, (*item)->val, TV, MV); \
             if(LUT_IS_BY_REF(MV) && LUT_REF(MV) val != 0) { \
-                memset(*item, 0, sizeof(**item)); \
+                memset(LUT_REF(MV)(*item)->val, 0, sizeof(*LUT_REF(MV)(*item)->val)); \
+            } \
+            if(LUT_IS_BY_REF(MK) && LUT_REF(MK) key != 0) { \
+                memset(LUT_REF(MK)(*item)->key, 0, sizeof(*LUT_REF(MK)(*item)->key)); \
             } \
             --lut->used; \
         } else { \
