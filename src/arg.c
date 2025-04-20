@@ -949,8 +949,8 @@ bool argx_parse_is_origin_from_pos(ArgParse *parse, ArgX *argx) {
     return argx_parse_is_origin_from_pos(parse, argx->group->parent);
 }
 
-#define ERR_argx_parse(parse, argx) "failed parsing argument " F("[%.*s]", BOLD FG_WT_B) " " F("%s", ARG_TYPE_F), RSTR_F(argx->info.opt), arglist_str(argx->id)
-ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
+#define ERR_argx_parse(parse, argx, ...) "failed parsing argument " F("[%.*s]", BOLD FG_WT_B) " " F("%s", ARG_TYPE_F), RSTR_F(argx->info.opt), arglist_str(argx->id)
+ErrDecl argx_parse(ArgParse *parse, ArgX *argx, bool *quit_early) {
     ASSERT_ARG(parse);
     ASSERT_ARG(argx);
     //printff("PARSE [%.*s]", RSTR_F(argx->info.opt));
@@ -1025,7 +1025,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
             if(need_help) break;
             ArgX *x = 0;
             TRYC(arg_parse_getopt(argx->o, &x, argV));
-            TRYC(argx_parse(parse, x));
+            TRYC(argx_parse(parse, x, quit_early));
         } break;
         case ARG_FLAGS: {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
@@ -1039,7 +1039,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
                 if(!flag.s) continue;
                 ArgX *x = 0;
                 TRYC(arg_parse_getopt(argx->o, &x, flag));
-                TRYC(argx_parse(parse, x));
+                TRYC(argx_parse(parse, x, quit_early));
             }
         } break;
         case ARG_HELP: {
@@ -1050,12 +1050,22 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx) {
         case ARG__COUNT:
         case ARG_NONE: break;
     }
+    /* TODO DRY */
+    if(argx && argx->attr.callback.func && !argx->info.index) {
+        if(argx->attr.callback.func(argx->attr.callback.data)) {
+            THROW_PRINT("failed executing function for " F("[%.*s]", BOLD) "\n", RSTR_F(argx->info.opt));
+            goto error_skip_help;
+        }
+        *quit_early = argx->attr.callback.quit_early;
+        //if(*quit_early) break;
+    }
     return 0;
 error:
     if(!parse->help.get) {
         parse->help.get = true;
         parse->help.x = argx;
     }
+error_skip_help:
     return -1;
 }
 
@@ -1140,6 +1150,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         RStr argV = RSTR("");
         TRYC(arg_parse_getv(parse, &argV, &need_help));
         if(need_help) break;
+        if(*quit_early) goto quit_early;
         if(!rstr_length(argV)) continue;
         //printff(" [%.*s] %zu / %zu", RSTR_F(argV), parse->i, parse->argc);
         if(!parse->force_done_parsing && rstr_length(argV) >= 1 && rstr_get_at(&argV, 0) == pfx) {
@@ -1149,14 +1160,14 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
                 RStr arg_query = RSTR_I0(argV, 2);
                 /* long option */
                 TRYC(arg_parse_getopt(&arg->opt, &argx, arg_query));
-                TRYC(argx_parse(parse, argx));
+                TRYC(argx_parse(parse, argx, quit_early));
             } else {
                 RStr arg_queries = RSTR_I0(argV, 1);
                 /* short option */
                 for(size_t i = 0; i < rstr_length(arg_queries); ++i) {
                     const unsigned char query = rstr_get_at(&arg_queries, i);
                     TRYC(arg_parse_getopt_short(arg, &argx, query));
-                    TRYC(argx_parse(parse, argx));
+                    TRYC(argx_parse(parse, argx, quit_early));
                     //printff("SHORT OPTION! %.*s", RSTR_F(arg_queries));
                 }
                 //ArgX *argx = arg->opt_short[
@@ -1165,7 +1176,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
             /* check for positional */
             arg_parse_getv_undo(parse);
             ArgX *x = vargx_get_at(&arg->pos.vec, parse->n_pos_parsed);
-            TRYC(argx_parse(parse, x));
+            TRYC(argx_parse(parse, x, quit_early));
             ++parse->n_pos_parsed;
         } else if(parse->rest.vec) {
             /* no argument, push rest */
@@ -1207,18 +1218,19 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     vargx_sort(&parse->queue);
     for(size_t i = 0; i < vargx_length(parse->queue); ++i) {
         ArgX *x = vargx_get_at(&parse->queue, i);
+        if(!x->info.index) continue;
         //printff("CHECK QUEUE [%.*s]", RSTR_F(x->info.opt));
         if(x && x->attr.callback.func) {
-            //printff("CALLBACK!");
             if(x->attr.callback.func(x->attr.callback.data)) {
                 THROW_PRINT("failed executing function for " F("[%.*s]", BOLD) "\n", RSTR_F(x->info.opt));
                 goto error_skip_help;
             }
             *quit_early = x->attr.callback.quit_early;
-            if(*quit_early) break;
+            if(*quit_early) goto quit_early;
         }
     }
 #endif
+quit_early:
     if((parse->argc < 2 && arg->base.show_help)) {
         arg_help(arg);
         *quit_early = true;
