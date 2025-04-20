@@ -107,9 +107,9 @@ int main(const int argc, const char **argv) {
     x=argx_init(arg_opt(arg), n_arg++, 's', RSTR("string"), RSTR("string value"));
       argx_str(x, &config.string, &preset.string);
     x=argx_init(arg_opt(arg), n_arg++, 'i', RSTR("integer"), RSTR("integer value"));
-      argx_int(x, &config.whole, &preset.whole);
+      argx_int(x, (int *)&config.whole, (int *)&preset.whole);
     x=argx_init(arg_opt(arg), n_arg++, 'o', RSTR("option"), RSTR("select one option"));
-      g=argx_opt(x, &config.id, &preset.id);
+      g=argx_opt(x, (int *)&config.id, (int *)&preset.id);
         x=argx_init(g, n_arg++, 0, RSTR("none"), RSTR("do nothing"));
           argx_opt_enum(x, CONFIG_NONE);
         x=argx_init(g, n_arg++, 0, RSTR("print"), RSTR("print stuff"));
@@ -118,7 +118,7 @@ int main(const int argc, const char **argv) {
           argx_opt_enum(x, CONFIG_BROWSER);
         x=argx_init(g, n_arg++, 0, RSTR("lmao"), RSTR("what the fuck"));
           argx_opt_enum(x, CONFIG_LMAO);
-          argx_int(x, &nfuck, 0);
+          argx_ssz(x, &nfuck, 0);
           argx_func(x, hello_world, &nfuck, false);
         x=argx_init(g, n_arg++, 0, RSTR("test"), RSTR("what the fuck"));
           argx_opt_enum(x, 6);
@@ -137,14 +137,14 @@ int main(const int argc, const char **argv) {
           argx_flag_set(x, &config.flags.other, &preset.flags.other);
 
     x=argx_pos(arg, n_arg++, RSTR("mode"), RSTR("the main mode"));
-      g=argx_opt(x, &config.mode.id, &preset.mode.id);
+      g=argx_opt(x, (int *)&config.mode.id, (int *)&preset.mode.id);
         x=argx_init(g, n_arg++, 0, RSTR("none"), RSTR("do nothing"));
           argx_opt_enum(x, CONFIG_MODE_NONE);
         x=argx_init(g, n_arg++, 0, RSTR("hello"), RSTR("print hello"));
           argx_func(x, hello_world, &nfuck, true);
           argx_opt_enum(x, CONFIG_MODE_HELLO);
         x=argx_init(g, n_arg++, 0, RSTR("int"), RSTR("set int"));
-          argx_int(x, &config.mode.z, &preset.mode.z);
+          argx_ssz(x, &config.mode.z, &preset.mode.z);
           argx_opt_enum(x, CONFIG_MODE_INT);
         x=argx_init(g, n_arg++, 0, RSTR("float"), RSTR("set float"));
           argx_dbl(x, &config.mode.f, &preset.mode.f);
@@ -207,6 +207,7 @@ int main(const int argc, const char **argv) {
     /*}}}*/
 
 clean:
+    str_free(&configuration);
     arg_free(&arg);
     return err;
 
