@@ -208,6 +208,7 @@ typedef enum {
 
 #define VEC_INCLUDE_ERR(N, A, T, M) \
     /* error strings for certain fail cases */ \
+    char *ERR_##A##_resize(void *x, ...); \
     char *ERR_##A##_reserve(void *x, ...); \
     char *ERR_##A##_push_back(void *x, ...); \
     char *ERR_##A##_extend_back(void *x, ...); \
@@ -301,7 +302,8 @@ typedef enum {
 
 #define VEC_IMPLEMENT_ERR(N, A, T, M) \
     /* error strings for certain fail cases */ \
-    char *ERR_##A##_reserve(void *x, ...) { return "failed reserving capacity to vector"; } \
+    char *ERR_##A##_resize(void *x, ...) { return "failed resizing vector"; } \
+    char *ERR_##A##_reserve(void *x, ...) { return "failed reserving memory for vector"; } \
     char *ERR_##A##_push_back(void *x, ...) { return "failed pushing back item to vector"; } \
     char *ERR_r##A##_extend_back(void *x, ...) { return "failed pushing back item to vector"; } \
     char *ERR_##A##_extend_back(void *x, ...) { return "failed pushing back item to vector"; } \
