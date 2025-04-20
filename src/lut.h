@@ -135,7 +135,7 @@
             if(intend_to_set && (*item)->hash == LUT_EMPTY) break; \
             if((*item)->hash == hash) { \
                 if(C != 0) { if(!LUT_TYPE_CMP(C, (*item)->key, key, TK, MK)) return item; } \
-                else { if(!memcmp(item, LUT_REF(MK)key, sizeof(*LUT_REF(MK)key))) return item; } \
+                else { if(!memcmp(LUT_REF(MK)(*item)->key, LUT_REF(MK)key, sizeof(*LUT_REF(MK)key))) return item; } \
             } \
             perturb >>= 5; \
             i = mask & (i * 5 + perturb + 1); \
