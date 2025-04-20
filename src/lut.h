@@ -316,6 +316,7 @@
         } \
         size_t hash = H(key); \
         N##KV **item = A##_static_get_item(lut, key, hash, true); \
+        printff("GOT ITEM %p", *item); \
         if(*item) /* after *item is ??? */ { \
             /* free old key */ \
             if(FK != 0) LUT_TYPE_FREE(FK, (*item)->key, TK, MK); \
@@ -323,6 +324,7 @@
             if(LUT_IS_BY_REF(MV) && LUT_REF(MV) val != 0) { \
                 memset(*item, 0, sizeof(**item)); \
             } \
+            --lut->used; \
         } else { \
             size_t req = sizeof(**item); \
             /*if(LUT_IS_BY_REF(MK))*/ { \
