@@ -18,6 +18,7 @@ Collection of rphii's C-libraries all in one place.
 - [`str.h`](src/str.h) String functions
 - [`utf8.h`](src/utf8.h) UTF8-helper functions
 - [`file.h`](src/file.h) File functions
+- [`arg.h`](src/arg.h) Argument parser
 
 ## Compilation, installation
 
