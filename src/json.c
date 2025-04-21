@@ -119,8 +119,12 @@ inline JsonResult json_parse_number(RStr *in) {
     }
     /* fraction */
     r = json_parse_ch(in, '.');
-    while(r.match) {
+    if(r.match) {
         r = json_parse_any(in, "0123456789");
+        if(!r.match) return r;
+        while(r.match) {
+            r = json_parse_any(in, "0123456789");
+        }
     }
     /* exponent */
     r = json_parse_any(in, "eE");
@@ -141,8 +145,7 @@ inline JsonResult json_parse_array(RStr *in) {
     JsonResult r = json_parse_ch(in, '[');
     if(r.end || !r.match) return r;
     json_parse_ws(in);
-    for(bool loop = false;; loop = true) {
-        r = json_parse_ch(in, ']');
+    for(bool loop = false;; loop = true) { r = json_parse_ch(in, ']');
         if(r.end || r.match) break;
         if(loop) {
             r = json_parse_ch(in, ',');
@@ -257,10 +260,45 @@ JsonResult json_parse(RStr *in) {
 
 #include <rphii/file.h>
 
+void test(bool expect, const char *s) {
+    RStr in = RSTR_L(s);
+    JsonResult r = json_parse(&in);
+    if(expect == r.match) {
+        printff(F("ok  %s", FG_GN_B) ": %s", r.match?"pass":"fail", s);
+    } else if(expect && !r.match) {
+        printff(F("exp.pass", FG_YL) ": %s", s);
+    } else if(!expect && r.match) {
+        printff(F("exp.fail", FG_YL_B) ": %s", s);
+    }
+}
+
 int main(void) {
 
+    test(false, "");
+    test(false, "[\"\":1]");
+    test(false, "[\"x\"");
+    test(false, "[\"x");
+    test(false, "[x");
+    test(false, "[x\"");
+    test(true, "[]");
+    test(true, "[[] ]");
+    test(true, "{}");
+    test(true, "{}");
+    test(false, "[-2.]");
+    test(false, "[0.e1]");
+    test(false, "[0.e1]");
+    test(false, "[2.e+3]");
+    test(false, "[2.e-3]");
+    test(false, "[2.e3]");
+    test(false, "[0.3e+]");
+    test(false, "[0E+]");
+    test(false, "[0e+]");
+    test(false, "[1.0e+]");
+    test(false, "[1.0e-]");
+    test(false, "[9.e+]");
+    test(true, "[\"7F\"]");
+
 #if 0 /*{{{*/
-    RStr in;
     JsonResult r;
     printff("             : end,match,front");
 
@@ -418,6 +456,7 @@ int main(void) {
     printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
 #endif /*}}}*/
 
+#if 0
     VrStr files = {0};
     Str content = {0};
     TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail1.json")));
@@ -472,6 +511,7 @@ int main(void) {
 error:
     vrstr_free(&files);
     str_free(&content);
+#endif
     return 0;
 }
 
