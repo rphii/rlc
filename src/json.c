@@ -28,6 +28,12 @@ typedef struct JsonResult {
 
 typedef void *(*JsonCallback)(void *x, JsonList id, RStr val);
 
+typedef struct JsonParse {
+    RStr in;
+    JsonCallback func;
+    void *data;
+} JsonParse;
+
 JsonResult json_parse_prep(RStr *in);
 JsonResult json_parse_ch(RStr *in, char c);
 JsonResult json_parse_any(RStr *in, char *s);
@@ -195,6 +201,7 @@ inline JsonResult json_parse_value(RStr *in) {
     ASSERT_ARG(in);
     json_parse_ws(in);
     JsonResult r = json_parse_prep(in);
+    /* if id == none go here, else continue with 2nd pass */
     switch(r.front) {
         case '[': r = json_parse_array(in); break;
         case '{': r = json_parse_object(in); break;
@@ -272,6 +279,23 @@ void test(bool expect, const char *s) {
     }
 }
 
+void test_file(bool expect, const char *f) {
+    Str content = {0};
+    RStr file = RSTR_L(f);
+    TRYC(file_str_read(file, &content));
+    RStr parse = str_rstr(content);
+    JsonResult r = json_parse(&parse);
+    if(expect == r.match) {
+        printff(F("ok  %s", FG_GN_B) ": %s", r.match?"pass":"fail", f);
+    } else if(expect && !r.match) {
+        printff(F("exp.pass", FG_YL) ": %s", f);
+    } else if(!expect && r.match) {
+        printff(F("exp.fail", FG_YL_B) ": %s", f);
+    }
+error:;
+    str_free(&content);
+}
+
 int main(void) {
 
     test(false, "");
@@ -298,220 +322,43 @@ int main(void) {
     test(false, "[9.e+]");
     test(true, "[\"7F\"]");
 
-#if 0 /*{{{*/
-    JsonResult r;
-    printff("             : end,match,front");
+    test_file(false, "../test/test-json/fail1.json");
+    test_file(false, "../test/test-json/fail2.json");
+    test_file(false, "../test/test-json/fail3.json");
+    test_file(false, "../test/test-json/fail4.json");
+    test_file(false, "../test/test-json/fail5.json");
+    test_file(false, "../test/test-json/fail6.json");
+    test_file(false, "../test/test-json/fail7.json");
+    test_file(false, "../test/test-json/fail8.json");
+    test_file(false, "../test/test-json/fail9.json");
+    test_file(false, "../test/test-json/fail10.json");
+    test_file(false, "../test/test-json/fail11.json");
+    test_file(false, "../test/test-json/fail12.json");
+    test_file(false, "../test/test-json/fail13.json");
+    test_file(false, "../test/test-json/fail14.json");
+    test_file(false, "../test/test-json/fail15.json");
+    test_file(false, "../test/test-json/fail16.json");
+    test_file(false, "../test/test-json/fail17.json");
+    test_file(false, "../test/test-json/fail18.json");
+    test_file(false, "../test/test-json/fail19.json");
+    test_file(false, "../test/test-json/fail20.json");
+    test_file(false, "../test/test-json/fail21.json");
+    test_file(false, "../test/test-json/fail22.json");
+    test_file(false, "../test/test-json/fail23.json");
+    test_file(false, "../test/test-json/fail24.json");
+    test_file(false, "../test/test-json/fail25.json");
+    test_file(false, "../test/test-json/fail26.json");
+    test_file(false, "../test/test-json/fail27.json");
+    test_file(false, "../test/test-json/fail28.json");
+    test_file(false, "../test/test-json/fail29.json");
+    test_file(false, "../test/test-json/fail30.json");
+    test_file(false, "../test/test-json/fail31.json");
+    test_file(false, "../test/test-json/fail32.json");
+    test_file(false, "../test/test-json/fail33.json");
+    test_file(true, "../test/test-json/pass1.json");
+    test_file(true, "../test/test-json/pass2.json");
+    test_file(true, "../test/test-json/pass3.json");
 
-    in = RSTR("");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_string(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR(" ");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_string(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("\"");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_string(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("\"\"");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_string(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("\"abc\"");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_string(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("\"\\\"\\\\\\/\\b\\f\\n\\r\\t\\u1234\"");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_string(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("\"\\uEFGH\"");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_string(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("\"\\");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_string(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("\"\\   ");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_string(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("\"\\\\u");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_string(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("\"\\\\u      ");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_string(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    printff("\nNUMBERS");
-
-    in = RSTR("-");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_number(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("-0");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_number(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("0");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_number(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("-1");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_number(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("123456789");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_number(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("0123");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_number(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("0.123");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_number(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("-1.234");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_number(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("-9.87e+65");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_number(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("-1.23e-45");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_number(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-
-    printff("\nCONST");
-
-    in = RSTR("true");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_const(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("false");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_const(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("null");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_const(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-
-    printff("\nOBJECT");
-
-    in = RSTR("{");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_object(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("}");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_object(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("{}");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_object(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("{asdf:asdf}");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_object(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-
-    in = RSTR("{\"key\":\"value\"}");
-    printff("parse [%.*s]", RSTR_F(in));
-    r = json_parse_object(&in);
-    printff("      [%.*s] : %u,%s,%u", RSTR_F(in), r.end, r.match ? "OK":"FAIL", r.front);
-#endif /*}}}*/
-
-#if 0
-    VrStr files = {0};
-    Str content = {0};
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail1.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail10.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail11.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail12.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail13.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail14.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail15.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail16.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail17.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail18.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail19.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail2.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail20.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail21.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail22.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail23.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail24.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail25.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail26.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail27.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail28.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail29.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail3.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail30.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail31.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail32.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail33.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail4.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail5.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail6.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail7.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail8.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/fail9.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/pass1.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/pass2.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/pass3.json")));
-    TRYG(vrstr_push_back(&files, &RSTR("../test/test-json/pass4.json")));
-
-    for(size_t i = 0; i < vrstr_length(files); ++i) {
-        str_clear(&content);
-        RStr *file = vrstr_get_at(&files, i);
-        printff("check : %.*s", RSTR_F(*file));
-        TRYC(file_str_read(*file, &content));
-        RStr parse = str_rstr(content);
-        JsonResult r = json_parse(&parse);
-        printff("  %u,%s,%u", r.end, r.match ? "OK":"FAIL", r.front);
-        //printff("\n>>>>>>>>>>>>>>>\n%.*s\n<<<<<<<<<<<<<<<<<\n%u,%s,%u", RSTR_F(parse), r.end, r.match ? "OK":"FAIL", r.front);
-    }
-
-error:
-    vrstr_free(&files);
-    str_free(&content);
-#endif
     return 0;
 }
 
