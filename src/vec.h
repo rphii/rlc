@@ -121,6 +121,9 @@ typedef enum {
  * M = mode - either BY_VAL or BY_REF
  */
 
+#define VEC_INCL(...) VEC_INCLUDE(__VA_ARGS__)
+#define VEC_IMPL(...) VEC_IMPLEMENT(__VA_ARGS__)
+
 #define VEC_INCLUDE(N, A, T, M, MODULE, ...) \
     VEC_INCLUDE_##MODULE(N, A, T, M, ##__VA_ARGS__)
 
