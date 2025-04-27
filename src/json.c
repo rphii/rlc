@@ -23,7 +23,7 @@ typedef enum {
 typedef struct JsonResult {
     bool match;
     bool end;
-    char front;
+    unsigned char front;
 } JsonResult;
 
 typedef void *(*JsonCallback)(void *x, JsonList id, RStr val);
