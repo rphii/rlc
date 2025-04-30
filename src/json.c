@@ -10,26 +10,8 @@
  *   if I only interface with the result (and not directly the vec)
  * */
 
-typedef enum {
-    JSON_NONE,
-    JSON_OBJ,
-    JSON_ARR,
-    JSON_VAL,
-    JSON_STR,
-    JSON_DBL,
-    JSON_INT,
-} JsonList;
-
-typedef struct JsonResult {
-    bool match;
-    bool end;
-    unsigned char front;
-} JsonResult;
-
-typedef void *(*JsonCallback)(void *x, JsonList id, RStr val);
-
 typedef struct JsonParse {
-    RStr in;
+    RStr *in;
     JsonCallback func;
     void *data;
 } JsonParse;
@@ -39,12 +21,12 @@ JsonResult json_parse_ch(RStr *in, char c);
 JsonResult json_parse_any(RStr *in, char *s);
 JsonResult json_parse_ws(RStr *in);
 
-JsonResult json_parse_string(RStr *in);
-JsonResult json_parse_value(RStr *in);
-JsonResult json_parse_number(RStr *in);
-JsonResult json_parse_object(RStr *in);
-JsonResult json_parse_array(RStr *in);
-JsonResult json_parse_const(RStr *in);
+JsonResult json_parse_string(JsonParse *p);
+JsonResult json_parse_value(JsonParse *p);
+JsonResult json_parse_number(JsonParse *p);
+JsonResult json_parse_object(JsonParse *p);
+JsonResult json_parse_array(JsonParse *p);
+JsonResult json_parse_const(JsonParse *p);
 
 inline JsonResult json_parse_prep(RStr *in) {
     ASSERT_ARG(in);
@@ -82,8 +64,9 @@ inline JsonResult json_parse_ws(RStr *in) {
     return r;
 }
 
-inline JsonResult json_parse_string(RStr *in) {
-    ASSERT_ARG(in);
+inline JsonResult json_parse_string(JsonParse *p) {
+    ASSERT_ARG(p);
+    RStr *in = p->in;
     JsonResult r = json_parse_ch(in, '"');
     if(r.end || !r.match) return r;
     for(;;) {
@@ -111,8 +94,9 @@ inline JsonResult json_parse_string(RStr *in) {
     return r;
 }
 
-inline JsonResult json_parse_number(RStr *in) {
-    ASSERT_ARG(in);
+inline JsonResult json_parse_number(JsonParse *p) {
+    ASSERT_ARG(p);
+    RStr *in = p->in;
     JsonResult r = json_parse_ch(in, '-');
     if(r.end) return r;
     r = json_parse_any(in, "0123456789");
@@ -146,8 +130,9 @@ inline JsonResult json_parse_number(RStr *in) {
     return (JsonResult){ .match = true };
 }
 
-inline JsonResult json_parse_array(RStr *in) {
-    ASSERT_ARG(in);
+inline JsonResult json_parse_array(JsonParse *p) {
+    ASSERT_ARG(p);
+    RStr *in = p->in;
     JsonResult r = json_parse_ch(in, '[');
     if(r.end || !r.match) return r;
     json_parse_ws(in);
@@ -157,15 +142,16 @@ inline JsonResult json_parse_array(RStr *in) {
             r = json_parse_ch(in, ',');
             if(!r.match) break;
         }
-        r = json_parse_value(in);
+        r = json_parse_value(p);
         if(loop && !r.match) return r;
         if(!r.match) break;
     }
     return r;
 }
 
-inline JsonResult json_parse_const(RStr *in) {
-    ASSERT_ARG(in);
+inline JsonResult json_parse_const(JsonParse *p) {
+    ASSERT_ARG(p);
+    RStr *in = p->in;
     JsonResult r = json_parse_any(in, "tfn");
     if(r.end || !r.match) return r;
     switch(r.front) {
@@ -197,30 +183,32 @@ inline JsonResult json_parse_const(RStr *in) {
     return r;
 }
 
-inline JsonResult json_parse_value(RStr *in) {
-    ASSERT_ARG(in);
+inline JsonResult json_parse_value(JsonParse *p) {
+    ASSERT_ARG(p);
+    RStr *in = p->in;
     json_parse_ws(in);
     JsonResult r = json_parse_prep(in);
     /* if id == none go here, else continue with 2nd pass */
     switch(r.front) {
-        case '[': r = json_parse_array(in); break;
-        case '{': r = json_parse_object(in); break;
-        case '"': r = json_parse_string(in); break;
+        case '[': r = json_parse_array(p); break;
+        case '{': r = json_parse_object(p); break;
+        case '"': r = json_parse_string(p); break;
         case 't': /* fall */
         case 'f': /* fall */
-        case 'n': r = json_parse_const(in); break;
+        case 'n': r = json_parse_const(p); break;
         case '0': case '1': case '2': case '3':
         case '4': case '5': case '6': case '7':
         case '8': case '9': case '-': /* fall */
-                  r = json_parse_number(in); break;
+                  r = json_parse_number(p); break;
         default: r = (JsonResult){0};
     }
     json_parse_ws(in);
     return r;
 }
 
-inline JsonResult json_parse_object(RStr *in) {
-    ASSERT_ARG(in);
+inline JsonResult json_parse_object(JsonParse *p) {
+    ASSERT_ARG(p);
+    RStr *in = p->in;
     JsonResult r = json_parse_ch(in, '{');
     if(r.end || !r.match) return r;
     bool loop = false;
@@ -230,13 +218,13 @@ inline JsonResult json_parse_object(RStr *in) {
             if(!r.match) break;
         }
         json_parse_ws(in);
-        r = json_parse_string(in);
+        r = json_parse_string(p);
         if(!loop && !r.match) break;
         if(r.end || !r.match) return r;
         json_parse_ws(in);
         r = json_parse_ch(in, ':');
         if(r.end || !r.match) return r;
-        r = json_parse_value(in);
+        r = json_parse_value(p);
         if(r.end || !r.match) return r;
         loop = true;
     }
@@ -244,13 +232,23 @@ inline JsonResult json_parse_object(RStr *in) {
     return r;
 }
 
-JsonResult json_parse(RStr *in) {
+JsonResult json_verify(RStr *in) {
+    ASSERT_ARG(in);
+    JsonResult r = json_parse(in, 0, 0);
+    return r;
+}
+
+JsonResult json_parse(RStr *in, JsonCallback func, void *data) {
     ASSERT_ARG(in);
     RStr src = *in;
+    JsonParse p = {0};
+    p.in = in;
+    p.func = func;
+    p.data = data;
     json_parse_ws(in);
-    JsonResult r = json_parse_object(in);
+    JsonResult r = json_parse_object(&p);
     if(!r.match) {
-        r = json_parse_array(in);
+        r = json_parse_array(&p);
     }
     json_parse_ws(in);
     if(rstr_length(*in)) r.match = false;
@@ -265,11 +263,11 @@ JsonResult json_parse(RStr *in) {
     return r;
 }
 
-#include <rphii/file.h>
+#include "file.h"
 
 void test(bool expect, const char *s) {
     RStr in = RSTR_L(s);
-    JsonResult r = json_parse(&in);
+    JsonResult r = json_verify(&in);
     if(expect == r.match) {
         printff(F("ok  %s", FG_GN_B) ": %s", r.match?"pass":"fail", s);
     } else if(expect && !r.match) {
@@ -284,7 +282,7 @@ void test_file(bool expect, const char *f) {
     RStr file = RSTR_L(f);
     TRYC(file_str_read(file, &content));
     RStr parse = str_rstr(content);
-    JsonResult r = json_parse(&parse);
+    JsonResult r = json_verify(&parse);
     if(expect == r.match) {
         printff(F("ok  %s", FG_GN_B) ": %s", r.match?"pass":"fail", f);
     } else if(expect && !r.match) {
