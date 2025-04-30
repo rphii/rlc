@@ -1,6 +1,5 @@
 #include "json.h"
 
-#include "str.h"
 #include <err.h>
 #include <stdlib.h>
 
@@ -12,8 +11,7 @@
 
 typedef struct JsonParse {
     RStr *in;
-    JsonCallback func;
-    void *data;
+    JsonCallback call;
 } JsonParse;
 
 JsonResult json_parse_prep(RStr *in);
@@ -21,12 +19,16 @@ JsonResult json_parse_ch(RStr *in, char c);
 JsonResult json_parse_any(RStr *in, char *s);
 JsonResult json_parse_ws(RStr *in);
 
-JsonResult json_parse_string(JsonParse *p);
-JsonResult json_parse_value(JsonParse *p);
-JsonResult json_parse_number(JsonParse *p);
-JsonResult json_parse_object(JsonParse *p);
-JsonResult json_parse_array(JsonParse *p);
-JsonResult json_parse_const(JsonParse *p);
+JsonResult json_parse_string(JsonParse p);
+JsonResult json_parse_value(JsonParse p);
+JsonResult json_parse_number(JsonParse p);
+JsonResult json_parse_object(JsonParse p);
+JsonResult json_parse_array(JsonParse p);
+JsonResult json_parse_const(JsonParse p);
+
+inline int json_parse_callback(JsonParse *p) {
+    return 0;
+}
 
 inline JsonResult json_parse_prep(RStr *in) {
     ASSERT_ARG(in);
@@ -64,9 +66,9 @@ inline JsonResult json_parse_ws(RStr *in) {
     return r;
 }
 
-inline JsonResult json_parse_string(JsonParse *p) {
-    ASSERT_ARG(p);
-    RStr *in = p->in;
+inline JsonResult json_parse_string(JsonParse p) {
+    RStr *in = p.in;
+    RStr src = *in;
     JsonResult r = json_parse_ch(in, '"');
     if(r.end || !r.match) return r;
     for(;;) {
@@ -94,9 +96,8 @@ inline JsonResult json_parse_string(JsonParse *p) {
     return r;
 }
 
-inline JsonResult json_parse_number(JsonParse *p) {
-    ASSERT_ARG(p);
-    RStr *in = p->in;
+inline JsonResult json_parse_number(JsonParse p) {
+    RStr *in = p.in;
     JsonResult r = json_parse_ch(in, '-');
     if(r.end) return r;
     r = json_parse_any(in, "0123456789");
@@ -130,9 +131,8 @@ inline JsonResult json_parse_number(JsonParse *p) {
     return (JsonResult){ .match = true };
 }
 
-inline JsonResult json_parse_array(JsonParse *p) {
-    ASSERT_ARG(p);
-    RStr *in = p->in;
+inline JsonResult json_parse_array(JsonParse p) {
+    RStr *in = p.in;
     JsonResult r = json_parse_ch(in, '[');
     if(r.end || !r.match) return r;
     json_parse_ws(in);
@@ -149,9 +149,8 @@ inline JsonResult json_parse_array(JsonParse *p) {
     return r;
 }
 
-inline JsonResult json_parse_const(JsonParse *p) {
-    ASSERT_ARG(p);
-    RStr *in = p->in;
+inline JsonResult json_parse_const(JsonParse p) {
+    RStr *in = p.in;
     JsonResult r = json_parse_any(in, "tfn");
     if(r.end || !r.match) return r;
     switch(r.front) {
@@ -183,9 +182,8 @@ inline JsonResult json_parse_const(JsonParse *p) {
     return r;
 }
 
-inline JsonResult json_parse_value(JsonParse *p) {
-    ASSERT_ARG(p);
-    RStr *in = p->in;
+inline JsonResult json_parse_value(JsonParse p) {
+    RStr *in = p.in;
     json_parse_ws(in);
     JsonResult r = json_parse_prep(in);
     /* if id == none go here, else continue with 2nd pass */
@@ -206,9 +204,8 @@ inline JsonResult json_parse_value(JsonParse *p) {
     return r;
 }
 
-inline JsonResult json_parse_object(JsonParse *p) {
-    ASSERT_ARG(p);
-    RStr *in = p->in;
+inline JsonResult json_parse_object(JsonParse p) {
+    RStr *in = p.in;
     JsonResult r = json_parse_ch(in, '{');
     if(r.end || !r.match) return r;
     bool loop = false;
@@ -238,17 +235,17 @@ JsonResult json_verify(RStr *in) {
     return r;
 }
 
-JsonResult json_parse(RStr *in, JsonCallback func, void *data) {
+JsonResult json_parse(RStr *in, JsonFunc func, void *data) {
     ASSERT_ARG(in);
     RStr src = *in;
     JsonParse p = {0};
     p.in = in;
-    p.func = func;
-    p.data = data;
+    p.call.func = func;
+    p.call.data = data;
     json_parse_ws(in);
-    JsonResult r = json_parse_object(&p);
+    JsonResult r = json_parse_object(p);
     if(!r.match) {
-        r = json_parse_array(&p);
+        r = json_parse_array(p);
     }
     json_parse_ws(in);
     if(rstr_length(*in)) r.match = false;

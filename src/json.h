@@ -19,10 +19,17 @@ typedef struct JsonResult {
     char front;
 } JsonResult;
 
-typedef void *(*JsonCallback)(void *x, JsonList id, RStr val);
+typedef struct JsonCallback JsonCallback;
+
+typedef int (*JsonFunc)(JsonCallback *call, JsonList id, RStr val);
+
+typedef struct JsonCallback {
+    JsonFunc func;
+    void *data;
+} JsonCallback;
 
 JsonResult json_verify(RStr *in);
-JsonResult json_parse(RStr *in, JsonCallback func, void *data);
+JsonResult json_parse(RStr *in, JsonFunc func, void *data);
 
 #define JSON_H
 #endif
