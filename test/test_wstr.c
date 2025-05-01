@@ -9,6 +9,7 @@ struct termios term;
 
 int get_pos(int *x, int *y) {
 
+    fflush(stdout);
     char buf[30]={0};
     int ret, i, pow;
     char ch;
@@ -72,10 +73,8 @@ int main(void) {
         if(wstr_wlength(w) == (size_t)-1) continue;
         int x1, y1, x2, y2;
         printf("0x%04zx:", i);
-        fflush(stdout);
         get_pos(&x1, &y1);
         wprintf(L"%.*ls", WSTR_F(w));
-        fflush(stdout);
         get_pos(&x2, &y2);
         printf("=%zu", wstr_wlength(w));
         bool check = false;
