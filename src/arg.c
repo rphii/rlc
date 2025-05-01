@@ -399,6 +399,7 @@ void argx_help(struct ArgX *x, struct Arg *arg) {
     x->id = ARG_HELP;
     x->attr.callback.func = (ArgFunction)arg_help;
     x->attr.callback.data = arg;
+    x->attr.callback.priority = 1;
     x->attr.callback.quit_early = true;
 }
 
