@@ -400,6 +400,7 @@ void argx_help(struct ArgX *x, struct Arg *arg) {
     x->attr.callback.func = (ArgFunction)arg_help;
     x->attr.callback.data = arg;
     x->attr.callback.quit_early = true;
+    x->attr.callback.priority = 1;
 }
 
 struct ArgX *argx_pos(struct Arg *arg, RStr opt, RStr desc) {
