@@ -7,7 +7,7 @@
 int main(void) {
     Str2 a = {0};
     Str2 b = str2("HOME path: ");
-    Str2 c = str2(" \r HOME path!  \t ");
+    Str2 c = str2(" \v HOME path!  \t ");
     //str2_l(getenv("HOME"));
     str2_fmt(&a, "HOME path: ");
     str2_extend(&b, str2_l(getenv("HOME")));
@@ -15,6 +15,7 @@ int main(void) {
     printff("b: %zu[%.*s]", str2_len(b), STR2_F(b));
     printff("c: %zu[%.*s]", str2_len(c), STR2_F(c));
     str2_fmt(&a, "%s", getenv("HOME"));
+    printff("a: %zu[%.*s]", str2_len(a), STR2_F(a));
     printff("%zu[%.*s]", str2_len(a), STR2_F(a));
     printff("first %c@%zu:%zu", '/', str2_find_ch(a, '/'), str2_len(a));
     printff("last %c@%zu:%zu", '/', str2_rfind_ch(a, '/'), str2_len(a));
@@ -54,6 +55,8 @@ int main(void) {
     printff("%.*s -> nodir [%.*s]%zu", STR2_F(pathtest), STR2_F(x), str2_len(x));
     x = str2_get_basename(pathtest);
     printff("%.*s -> basen [%.*s]%zu", STR2_F(pathtest), STR2_F(x), str2_len(x));
+    x = str2_ensure_dir(pathtest);
+    printff("%.*s -> ensur [%.*s]%zu", STR2_F(pathtest), STR2_F(x), str2_len(x));
     pathtest = str2("/etc/path.dir/filename.txt");
     x = str2_get_ext(pathtest);
     printff("%.*s -> ext   [%.*s]%zu", STR2_F(pathtest), STR2_F(x), str2_len(x));
@@ -65,6 +68,8 @@ int main(void) {
     printff("%.*s -> nodir [%.*s]%zu", STR2_F(pathtest), STR2_F(x), str2_len(x));
     x = str2_get_basename(pathtest);
     printff("%.*s -> basen [%.*s]%zu", STR2_F(pathtest), STR2_F(x), str2_len(x));
+    x = str2_ensure_dir(pathtest);
+    printff("%.*s -> ensur [%.*s]%zu", STR2_F(pathtest), STR2_F(x), str2_len(x));
     pathtest = str2("/etc/path.dir/filename.txt/");
     x = str2_get_ext(pathtest);
     printff("%.*s -> ext   [%.*s]%zu", STR2_F(pathtest), STR2_F(x), str2_len(x));
@@ -76,12 +81,37 @@ int main(void) {
     printff("%.*s -> nodir [%.*s]%zu", STR2_F(pathtest), STR2_F(x), str2_len(x));
     x = str2_get_basename(pathtest);
     printff("%.*s -> basen [%.*s]%zu", STR2_F(pathtest), STR2_F(x), str2_len(x));
+    x = str2_ensure_dir(pathtest);
+    printff("%.*s -> ensur [%.*s]%zu", STR2_F(pathtest), STR2_F(x), str2_len(x));
 
+    Str2 f = {0};
+    str2_push(&f, '<');
+    str2_push(&f, 'x');
+    str2_push(&f, 'y');
+    str2_push(&f, '>');
+    str2_push(&f, 'z');
+    printff("push [%.*s]", STR2_F(f));
+    printff("pair [%.*s]", STR2_F(str2_iE(f, str2_pair_ch(f, '>'))));
+    str2_extend(&f, str2(",abc,,def,ghi,,"));
+    printff("splice input [%.*s]%zu", STR2_F(f), str2_len(f));
+    for(Str2 splice = {0}; str2_splice(f, &splice, ','); ) {
+        printff("splice:[%.*s]", STR2_F(splice));
+    }
+    str2_extend(&f, str2("xyz,ikj"));
+    printff("splice input [%.*s]%zu", STR2_F(f), str2_len(f));
+    for(Str2 splice = {0}; str2_splice(f, &splice, ','); ) {
+        if(!splice.str) continue;
+        printff("splice:[%.*s]", STR2_F(splice));
+    }
+
+    //str2_freeall(a, b, c, d, e);
+    str2_free(&a);
     str2_free(&a);
     str2_free(&b);
     str2_free(&c);
     str2_free(&d);
     str2_free(&e);
+    str2_free(&f);
     return 0;
 }
 
