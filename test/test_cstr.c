@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "../src/err.h"
 #include <stdint.h>
+#include <math.h>
 
 int main(void) {
     Str2 a = {0};
@@ -140,6 +141,38 @@ int main(void) {
     str2_fmt_fgbga(&colors, str2("alpha-respecting"), COLOR_RGBA(0xFF,0x1F,0x1F,0x7F), COLOR_RGBA(0x00,0x1F,0xFF,0x7F), true, false, false);
     printff("[%.*s]%zu", STR2_F(colors), str2_len(colors));
     str2_clear(&colors);
+
+    Color color = {0};
+#if 0
+    float flt;
+    printf("red:");
+    str2_clear(&colors);
+    str2_input(&colors);
+    try(str2_as_float(colors, &flt));
+    color.r = (uint8_t)roundf(flt*255.0f);
+    printf("green:");
+    str2_clear(&colors);
+    str2_input(&colors);
+    try(str2_as_float(colors, &flt));
+    color.g = (uint8_t)roundf(flt*255.0f);
+    printf("blue:");
+    str2_clear(&colors);
+    str2_input(&colors);
+    try(str2_as_float(colors, &flt));
+    color.b = (uint8_t)roundf(flt*255.0f);
+    str2_clear(&colors);
+    str2_fmt_fgbg(&colors, str2("final color!"), COLOR_RGB_NEGATIVE(color), color, true, false, false);
+    printff("[%.*s]%zu", STR2_F(colors), str2_len(colors));
+#endif
+
+    printf("#rrggbb:");
+    str2_clear(&colors);
+    str2_input(&colors);
+    try(str2_as_color(colors, &color));
+    str2_clear(&colors);
+    str2_fmt_fgbg(&colors, str2("final color!"), COLOR_RGB_NEGATIVE(color), color, true, false, false);
+    printff("[%.*s]%zu", STR2_F(colors), str2_len(colors));
+
 
     //str2_freeall(a, b, c, d, e);
     str2_free(&colors);
