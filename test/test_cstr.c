@@ -165,6 +165,7 @@ int main(void) {
     printff("[%.*s]%zu", STR2_F(colors), str2_len(colors));
 #endif
 
+#if 0
     printf("#rrggbb:");
     str2_clear(&colors);
     str2_input(&colors);
@@ -172,6 +173,16 @@ int main(void) {
     str2_clear(&colors);
     str2_fmt_fgbg(&colors, str2("final color!"), COLOR_RGB_NEGATIVE(color), color, true, false, false);
     printff("[%.*s]%zu", STR2_F(colors), str2_len(colors));
+#endif
+
+    str2_clear(&colors);
+    for(size_t i = 0; i < 0x1000000; ++i) {
+        if(!((i+1)%0x1000)) printf("\r%zx (%.1f%%)",i, 100.0f*(double)i/(double)0x1000000);
+        if(!((i)%0x100)) str2_push(&colors, '\n');
+        color.rgba = i;
+        str2_fmt_fgbg(&colors, str2(" "), COLOR_NONE, color, false, false, false);
+    }
+    printff("\n[\n%.*s\n]%zu", STR2_F(colors), str2_len(colors));
 
 
     //str2_freeall(a, b, c, d, e);
