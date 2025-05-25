@@ -135,10 +135,10 @@
 #define TRYC_P(print_err, function)             TRY_P(print_err, function, ERR_##function)
 #define TRYG_P(print_err, function)             TRY_P(print_err, function, "%s", ERR_##function)     // try; err is generic-string
 
-#define try(stmt)                               do { if (stmnt) { \
-        THROW_PRINT("\n%s:%u:%s error\n", __FILE__, __LINE__, __func__); \
+#define try(stmt)                               do { if (stmt) { \
+        THROW_PRINT("error"); \
         exit(1); \
-    } while(0)
+    }} while(0)
 
 #define ERR_H
 #endif

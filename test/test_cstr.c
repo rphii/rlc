@@ -168,7 +168,7 @@ int main(void) {
     printf("#rrggbb:");
     str2_clear(&colors);
     str2_input(&colors);
-    try(str2_as_color(colors, &color));
+    try(str2_as_color(str2_trim(colors), &color));
     str2_clear(&colors);
     str2_fmt_fgbg(&colors, str2("final color!"), COLOR_RGB_NEGATIVE(color), color, true, false, false);
     printff("[%.*s]%zu", STR2_F(colors), str2_len(colors));
