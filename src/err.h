@@ -81,7 +81,8 @@
     } while(0)
 
 #define ABORT(fmt, ...)      do { \
-    ERR_PRINTF(F("[ABORT]", BOLD FG_BK BG_RD_B) " " F("%s:%d:%s (end of trace)", FG_WT_B) " " fmt "\n" , __FILE__, __LINE__, __func__, ##__VA_ARGS__); exit(-1); } while(0)
+        ERR_PRINTF(F("[ABORT]", BOLD FG_BK BG_RD_B) " " F("%s:%d:%s (end of trace)", FG_WT_B) " " fmt "\n" , __FILE__, __LINE__, __func__, ##__VA_ARGS__); exit(-1); \
+    } while(0)
 
 #define INFO(fmt, ...)       do { \
         ERR_PRINTF(F("[INFO]", BOLD FG_YL_B) " " F("%s:%d:%s", FG_WT_B) " " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__); \
@@ -133,6 +134,11 @@
 #define TRY_P(print_err, stmt, fmt, ...)        do { if (stmt) { THROW_P(print_err, fmt, ##__VA_ARGS__); } } while(0)
 #define TRYC_P(print_err, function)             TRY_P(print_err, function, ERR_##function)
 #define TRYG_P(print_err, function)             TRY_P(print_err, function, "%s", ERR_##function)     // try; err is generic-string
+
+#define try(stmt)                               do { if (stmnt) { \
+        THROW_PRINT("\n%s:%u:%s error\n", __FILE__, __LINE__, __func__); \
+        exit(1); \
+    } while(0)
 
 #define ERR_H
 #endif

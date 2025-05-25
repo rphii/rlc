@@ -77,6 +77,8 @@ void map_clear(void *map) {
     Map *l = map_base(map);
     size_t cap = map_width_cap(l->width);
     for(size_t i = 0; i < cap; ++i) {
+        l->data[i].key = 0;
+        l->data[i].val = 0;
         l->data[i].hash = LUT_EMPTY;
     }
     l->used = 0;
@@ -106,8 +108,8 @@ void mapmeta_free(Map *map, MapMeta *item) {
     map_assert_arg(map);
     map_assert_arg(item);
     /* wow, this is cursed XD */
-    if(item->key && map->key.f) map->key.f((uintptr_t *) * (uintptr_t *)item->key);
-    if(item->val && map->val.f) map->val.f((uintptr_t *) * (uintptr_t *)item->val);
+    if(item->key && map->key.f) map->key.f(item->key);
+    if(item->val && map->val.f) map->val.f(item->val);
     mapmeta_deactivate(map, item);
 }
 
@@ -122,8 +124,8 @@ static MapMeta *_map_get_item(Map *map, void *key, size_t hash, bool intend_to_s
         if(intend_to_set && item->hash == LUT_EMPTY) break;
         if(item->hash == hash) {
             void *meta_key = mapmeta_key(item);
-            uintptr_t meta_key_real = *(uintptr_t *)meta_key;
-            if(!map->key.cmp((uintptr_t *)meta_key_real, key)) {
+            //uintptr_t meta_key_real = *(uintptr_t *)meta_key;
+            if(!map->key.cmp(meta_key, key)) {
                 return item;
             }
         }
@@ -227,7 +229,7 @@ void *_map_set(void *map MAP_DEBUG_DEFS, size_t size_val, void *key) {
     mapmeta_activate(l, item, size_val);
     item->hash = hash;
     void *meta_key = mapmeta_key(item);
-    memcpy(meta_key, &key, l->key.size);
+    memcpy(meta_key, key, l->key.size);
     void *meta_val = mapmeta_val(item);
     return meta_val;
 }

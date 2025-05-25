@@ -46,14 +46,12 @@ void map_clear(void *map);
 #define map_config_key(map, key_type, key_cmp, key_hash, key_free)  _map_config_key(&map MAP_DEBUG_INFO, sizeof(key_type), key_cmp, key_hash, key_free)
 #define map_config_val(map, val_free)                               _map_config_val(&map MAP_DEBUG_INFO, val_free)
 
-#define map_set(map, key, val)  (*(typeof(map))(_map_set(&map MAP_DEBUG_INFO, sizeof(*map), (void *)(uintptr_t)key)) = val)
-#define map_get(map, key)       (typeof(map))(_map_get(map, (void *)(uintptr_t)key))
-#define map_del(map, key)       (_map_del(map, (void *)(uintptr_t)key))
+#define map_set(map, key, val)  (*(typeof(map))(_map_set(&map MAP_DEBUG_INFO, sizeof(*map), (void *)key)) = val)
+#define map_get(map, key)       (typeof(map))(_map_get(map, (void *)key))
+#define map_del(map, key)       (_map_del(map, (void *)key))
 #define map_free(map)           _map_free(&map)
 
-#define map_it_all(map, out_type, out_key, out_val)   \
-        out_type out_key; \
-        typeof(* map) out_val; \
+#define map_it_all(map, out_key, out_val)   \
         for(MapMeta *it = _map_it_next(map, 0); \
             it, \
                 it ? ((out_key = *(typeof(out_key) *)it->key)) || true : 0, \
