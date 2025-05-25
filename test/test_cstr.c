@@ -104,7 +104,45 @@ int main(void) {
         printff("splice:[%.*s]", STR2_F(splice));
     }
 
+    Str2 colors = {0};
+    str2_fmt_fgbg(&colors, str2("bold"), (Color){0}, (Color){0}, true, false, false);
+    printff("[%.*s]%zu", STR2_F(colors), str2_len(colors));
+    str2_clear(&colors);
+    str2_fmt_fgbg(&colors, str2("italic"), (Color){0}, (Color){0}, false, false, true);
+    printff("[%.*s]%zu", STR2_F(colors), str2_len(colors));
+    str2_clear(&colors);
+    str2_fmt_fgbg(&colors, str2("underline"), (Color){0}, (Color){0}, false, true, false);
+    printff("[%.*s]%zu", STR2_F(colors), str2_len(colors));
+    str2_clear(&colors);
+    str2_fmt_fgbg(&colors, str2("vanilla"), (Color){0}, (Color){0}, false, false, false);
+    str2_push(&colors, ' ');
+    str2_fmt_fgbg(&colors, str2("bold"), (Color){0}, (Color){0}, true, false, false);
+    str2_push(&colors, ' ');
+    str2_fmt_fgbg(&colors, str2("italic"), (Color){0}, (Color){0}, false, true, false);
+    str2_push(&colors, ' ');
+    str2_fmt_fgbg(&colors, str2("underline"), (Color){0}, (Color){0}, false, false, true);
+    str2_push(&colors, ' ');
+    str2_fmt_fgbg(&colors, str2("bold+italic"), (Color){0}, (Color){0}, true, true, false);
+    str2_push(&colors, ' ');
+    str2_fmt_fgbg(&colors, str2("bold+underline"), (Color){0}, (Color){0}, true, false, true);
+    str2_push(&colors, ' ');
+    str2_fmt_fgbg(&colors, str2("italic+underline"), (Color){0}, (Color){0}, false, true, true);
+    str2_push(&colors, ' ');
+    str2_fmt_fgbg(&colors, str2("bold+italic+underline"), (Color){0}, (Color){0}, true, true, true);
+    str2_push(&colors, ' ');
+    printff("[%.*s]%zu", STR2_F(colors), str2_len(colors));
+    str2_clear(&colors);
+    str2_fmt_fgbg(&colors, str2("red"), COLOR_RED, COLOR_NONE, true, false, false);
+    str2_fmt_fgbg(&colors, str2("navy-yellow"), COLOR_NAVY, COLOR_YELLOW, true, false, false);
+    printff("[%.*s]%zu", STR2_F(colors), str2_len(colors));
+    str2_clear(&colors);
+    str2_fmt_fgbg(&colors, str2("alpha-non-respecting"), COLOR_RGBA(0xFF,0x1F,0x1F,0x7F), COLOR_RGBA(0x00,0x1F,0xFF,0x7F), true, false, false);
+    str2_fmt_fgbga(&colors, str2("alpha-respecting"), COLOR_RGBA(0xFF,0x1F,0x1F,0x7F), COLOR_RGBA(0x00,0x1F,0xFF,0x7F), true, false, false);
+    printff("[%.*s]%zu", STR2_F(colors), str2_len(colors));
+    str2_clear(&colors);
+
     //str2_freeall(a, b, c, d, e);
+    str2_free(&colors);
     str2_free(&a);
     str2_free(&a);
     str2_free(&b);
