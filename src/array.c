@@ -90,12 +90,13 @@ void *_array_addr(const void *array ARRAY_DEBUG_DEFS, size_t size, size_t index)
     return (void *)array + size * index;
 }
 
-void *_array_push(void *array ARRAY_DEBUG_DEFS, size_t size) {
+void _array_push(void *array ARRAY_DEBUG_DEFS, size_t size, void *val) {
     void **p = array; Array *v = *p ? array_base(*p) : 0;
     *p = _array_grow2(*p ARRAY_DEBUG_ARGS, size, v ? v->length + 1 : 1);
     v = array_base(*p);
     size_t index = v->length++;
-    return (void *)&v->data + size * index;
+    memcpy(v->data + size * index, &val, size);
+    //return (void *)&v->data + size * index;
 }
 
 void *_array_pop(void *array ARRAY_DEBUG_DEFS, size_t size) {

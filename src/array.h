@@ -27,7 +27,7 @@
 #define array_grow(array, capacity)     _array_grow(&array ARRAY_DEBUG_INFO, sizeof(*array), capacity)
 #define array_resize(array, length)     _array_resize(&array ARRAY_DEBUG_INFO, sizeof(*array), length)
 #define array_copy(array)               _array_copy(array ARRAY_DEBUG_INFO, sizeof(*array))
-#define array_push(array, item)         (*(typeof(array))_array_push(&array ARRAY_DEBUG_INFO, sizeof(*array)) = item)
+#define array_push(array, item)         _array_push(&array ARRAY_DEBUG_INFO, sizeof(*array), (uintptr_t *)item)
 #define array_pop(array, item)          *(typeof(array))_array_pop(array ARRAY_DEBUG_INFO, sizeof(*array))
 #define array_at(array, index)          *(typeof(array))_array_addr(array ARRAY_DEBUG_INFO, sizeof(*array), index)
 #define array_it(array, index)          (typeof(array))_array_addr(array ARRAY_DEBUG_INFO, sizeof(*array), index)
@@ -43,7 +43,7 @@
 void _array_grow(void *array ARRAY_DEBUG_DEFS, size_t size, size_t capacity);
 void _array_resize(void *array ARRAY_DEBUG_DEFS, size_t size, size_t length);
 void *_array_copy(void *array ARRAY_DEBUG_DEFS, size_t size);
-void *_array_push(void *array ARRAY_DEBUG_DEFS, size_t size);
+void _array_push(void *array ARRAY_DEBUG_DEFS, size_t size, void *val);
 void *_array_pop(void *array ARRAY_DEBUG_DEFS, size_t size);
 void *_array_addr(const void *array ARRAY_DEBUG_DEFS, size_t size, size_t index);
 size_t _array_len(const void *array);

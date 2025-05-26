@@ -6,9 +6,14 @@
 #include <math.h>
 
 int main(void) {
+
+    printff("bit heap %zx", STR2_BIT_HEAP);
+    printff("bit dyn  %zx", STR2_BIT_DYNAMIC);
+    printff("bit mask %zx", STR2_BIT_MASK);
+
     Str2 a = {0};
-    Str2 b = str2("HOME path: ");
-    Str2 c = str2(" \v HOME path!  \t ");
+    Str2 b = str2_dyn(str2("HOME path: "));
+    Str2 c = str2_dyn(str2(" \v HOME path!  \t "));
     //str2_l(getenv("HOME"));
     str2_fmt(&a, "HOME path: ");
     str2_extend(&b, str2_l(getenv("HOME")));
@@ -131,7 +136,9 @@ int main(void) {
     str2_push(&colors, ' ');
     str2_fmt_fgbg(&colors, str2("bold+italic+underline"), (Color){0}, (Color){0}, true, true, true);
     str2_push(&colors, ' ');
-    printff("[%.*s]%zu", STR2_F(colors), str2_len(colors));
+    str2_fmt_fgbg(&colors, str2("vanilla"), (Color){0}, (Color){0}, false, false, false);
+    printff("[%.*s]%zu: fmt %zu..%zu", STR2_F(colors), str2_len(colors), str2_find_f(colors, 0), str2_rfind_f(colors, 0));
+    printff("counts - e:%zu, i:%zu, ei:%zu, len nof %zu", str2_count_ch(colors, 'e'), str2_count_ch(colors, 'i'), str2_count_any(colors, str2("ei")), str2_len_nof(colors));
     str2_clear(&colors);
     str2_fmt_fgbg(&colors, str2("red"), COLOR_RED, COLOR_NONE, true, false, false);
     str2_fmt_fgbg(&colors, str2("navy-yellow"), COLOR_NAVY, COLOR_YELLOW, true, false, false);
@@ -175,6 +182,7 @@ int main(void) {
     printff("[%.*s]%zu", STR2_F(colors), str2_len(colors));
 #endif
 
+#if 0
     str2_clear(&colors);
     for(size_t i = 0; i < 0x1000000; ++i) {
         if(!((i+1)%0x1000)) printf("\r%zx (%.1f%%)",i, 100.0f*(double)i/(double)0x1000000);
@@ -183,6 +191,7 @@ int main(void) {
         str2_fmt_fgbg(&colors, str2(" "), COLOR_NONE, color, false, false, false);
     }
     printff("\n[\n%.*s\n]%zu", STR2_F(colors), str2_len(colors));
+#endif
 
 
     //str2_freeall(a, b, c, d, e);

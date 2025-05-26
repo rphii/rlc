@@ -210,7 +210,7 @@ void _map_config_val(void *map MAP_DEBUG_DEFS, MapFree val_free) {
     l->val.f = val_free;
 }
 
-void *_map_set(void *map MAP_DEBUG_DEFS, size_t size_val, void *key) {
+void *_map_set(void *map MAP_DEBUG_DEFS, size_t size_val, void *key, size_t size_key, void *val) {
     map_assert_arg(map);
     void **p = map;
     map_must_exist(*p);
@@ -231,15 +231,16 @@ void *_map_set(void *map MAP_DEBUG_DEFS, size_t size_val, void *key) {
     void *meta_key = mapmeta_key(item);
     memcpy(meta_key, key, l->key.size);
     void *meta_val = mapmeta_val(item);
+    memcpy(meta_val, val, size_val);
     return meta_val;
 }
 
-void *_map_once(void *map MAP_DEBUG_DEFS, size_t size_val, void *key) {
+void *_map_once(void *map MAP_DEBUG_DEFS, size_t size_val, void *key, size_t size_key, void *val) {
     map_assert_arg(map);
     if(_map_get(map, key)) {
-        map_error("key already exists");
+        return 0;
     }
-    return _map_set(map MAP_DEBUG_ARGS, size_val, key);
+    return _map_set(map MAP_DEBUG_ARGS, size_val, key, size_key, val);
 }
 
 MapMeta *_map_it_next(void *map, MapMeta *prev) {
