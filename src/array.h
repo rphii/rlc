@@ -27,7 +27,7 @@
 #define array_grow(array, capacity)     _array_grow(&array ARRAY_DEBUG_INFO, sizeof(*array), capacity)
 #define array_resize(array, length)     _array_resize(&array ARRAY_DEBUG_INFO, sizeof(*array), length)
 #define array_copy(array)               _array_copy(array ARRAY_DEBUG_INFO, sizeof(*array))
-#define array_push(array, item)         _array_push(&array ARRAY_DEBUG_INFO, sizeof(*array), (uintptr_t *)item)
+#define array_push(array, item)         _array_push(&array ARRAY_DEBUG_INFO, sizeof(*array), item)
 #define array_pop(array, item)          *(typeof(array))_array_pop(array ARRAY_DEBUG_INFO, sizeof(*array))
 #define array_at(array, index)          *(typeof(array))_array_addr(array ARRAY_DEBUG_INFO, sizeof(*array), index)
 #define array_it(array, index)          (typeof(array))_array_addr(array ARRAY_DEBUG_INFO, sizeof(*array), index)

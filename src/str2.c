@@ -8,7 +8,7 @@
 #include <ctype.h>
 #include <math.h>
 
-static void str2_resize(Str2 *str, size_t len) {
+void str2_resize(Str2 *str, size_t len) {
     ASSERT_ARG(str);
     if(!str2_is_dynamic(*str)) ABORT("attempting to resize constant string");
     char *result = str2_is_heap(*str) ? str->str : 0;
@@ -18,7 +18,13 @@ static void str2_resize(Str2 *str, size_t len) {
     }
     str->str = result;
     str->str[len] = 0;
-    str->len = len | STR2_BIT_HEAP | STR2_BIT_DYNAMIC;
+    str->len = len;
+    str->is_dynamic = true;
+    str->is_heap = true;
+}
+
+void str2_zero(Str2 *str) {
+    memset(str, 0, sizeof(*str));
 }
 
 #define STR2_HASH_PRECOMP(str)  if(str->hash_src == __func__) return str->hash_val
@@ -31,7 +37,8 @@ static void str2_resize(Str2 *str, size_t len) {
     } while(0)
 
 Str2 str2_dyn(Str2C str) { /*{{{*/
-    str.len |= STR2_BIT_DYNAMIC;
+    str.is_dynamic = true;
+    //str.len |= STR2_BIT_DYNAMIC;
     return str;
 } /*}}}*/
 
@@ -191,8 +198,9 @@ void str2_as_cstr(Str2 str, char *out, size_t len) { /*{{{*/
     ASSERT_ARG(len);
     size_t l = str2_len(str);
     size_t n = l < len - 1 ? l : len - 1;
+    printff("copying n: %zu [%s] %p -> %p", n, str.str, str.str, out);
     memcpy(out, str.str, n);
-    str.str[n] = 0;
+    out[n] = 0;
 } /*}}}*/
 
 int str2_as_bool(Str2 str, bool *out) { /*{{{*/
@@ -298,27 +306,27 @@ int str2_as_color(Str2 str, Color *out) { /*{{{*/
 } /*}}}*/
 
 bool str2_is_heap(Str2 str) { /*{{{*/
-    return str.len & STR2_BIT_HEAP;
+    return str.is_heap;
 } /*}}}*/
 
-bool str2_is_dynamic(Str2 str) {
+bool str2_is_dynamic(Str2 str) { /*{{{*/
     //printf("probing for dyn [%.*s] %p len %zx", STR2_F(str), str.str, str.len);
-    if(!str.str || (str.len & STR2_BIT_DYNAMIC)) {
+    if(!str.str || str.is_dynamic) {
         //printff(F(" YES", FG_GN));
         return true;
     }
     //printff(F(" NO", FG_RD));
     return false;
-}
+} /*}}}*/
 
 size_t str2_len(Str2 str) { /*{{{*/
 #if !defined(NDEBUG) && 0
     if(str2_is_heap(str)) {
         //printff("str.len %zu, array_len %zu", x.len & ~STR2_BIT_HEAP, array_len(x.str));
-        ASSERT((str.len & ~STR2_BIT_HEAP) + 1 == array_len(str.str), "length of dynamic array has to be +1 of actual");
+        ASSERT(str.is_heap ? (str.len + 1 == array_len(str.str)) : 1, "length of dynamic array has to be +1 of actual");
     }
 #endif
-    return str.len & ~STR2_BIT_MASK;
+    return str.len; // & ~STR2_BIT_MASK;
 } /*}}}*/
 
 size_t str2_len_nof(Str2 str) { /*{{{*/
@@ -554,7 +562,7 @@ size_t str2_rfind_nws(Str2 str) { /*{{{*/
     return str2_len(str);
 } /*}}}*/
 
-size_t str2_rfind_any(Str2 str, Str2 any) {
+size_t str2_rfind_any(Str2 str, Str2 any) { /*{{{*/
     size_t len = str2_len(str);
     size_t len2 = str2_len(any);
     for(size_t i = len; i > 0; --i) {
@@ -564,9 +572,9 @@ size_t str2_rfind_any(Str2 str, Str2 any) {
         }
     }
     return len;
-}
+} /*}}}*/
 
-size_t str2_rfind_nany(Str2 str, Str2 any) {
+size_t str2_rfind_nany(Str2 str, Str2 any) { /*{{{*/
     size_t len = str2_len(str);
     size_t len2 = str2_len(any);
     for(size_t i = len; i > 0; --i) {
@@ -576,8 +584,7 @@ size_t str2_rfind_nany(Str2 str, Str2 any) {
         }
     }
     return len;
-}
-
+} /*}}}*/
 
 size_t str2_rfind_substr(Str2 str, Str2 substr, bool ignorecase) { /*{{{*/
     /* basic checks */
@@ -660,25 +667,25 @@ size_t str2_count_overlap(Str2 a, Str2 b, bool ignorecase) { /*{{{*/
     return overlap;
 } /*}}}*/
 
-size_t str2_count_ch(Str2 str, char c) {
+size_t str2_count_ch(Str2 str, char c) { /*{{{*/
     size_t result = 0;
     size_t len = str2_len(str);
     for(size_t i = 0; i < len; ++i) {
         if(str.str[i] == c) ++result;
     }
     return result;
-}
+} /*}}}*/
 
-size_t str2_count_nch(Str2 str, char c) {
+size_t str2_count_nch(Str2 str, char c) { /*{{{*/
     size_t result = 0;
     size_t len = str2_len(str);
     for(size_t i = 0; i < len; ++i) {
         if(str.str[i] != c) ++result;
     }
     return result;
-}
+} /*}}}*/
 
-size_t str2_count_any(Str2 str, Str2 any) {
+size_t str2_count_any(Str2 str, Str2 any) { /*{{{*/
     size_t result = 0;
     size_t len = str2_len(str);
     size_t len2 = str2_len(any);
@@ -686,9 +693,9 @@ size_t str2_count_any(Str2 str, Str2 any) {
         if(memchr(any.str, str.str[i], len2)) ++result;
     }
     return result;
-}
+} /*}}}*/
 
-size_t str2_count_nany(Str2 str, Str2 any) {
+size_t str2_count_nany(Str2 str, Str2 any) { /*{{{*/
     size_t result = 0;
     size_t len = str2_len(str);
     size_t len2 = str2_len(any);
@@ -696,11 +703,11 @@ size_t str2_count_nany(Str2 str, Str2 any) {
         if(!memchr(any.str, str.str[i], len2)) ++result;
     }
     return result;
-}
+} /*}}}*/
 
 void str2_clear(Str2 *str) { /*{{{*/
     ASSERT_ARG(str);
-    str->len &= STR2_BIT_HEAP | STR2_BIT_DYNAMIC;
+    str->len = 0;
     STR2_HASH_CLEAR(str);
 } /*}}}*/
 

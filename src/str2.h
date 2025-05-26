@@ -2,20 +2,26 @@
 
 #include "array.h"
 #include "err.h"
+#include "vec.h"
 #include "color.h"
 #include <stdarg.h>
 
 #define STR2_F(s)           (int)s.len, s.str
-#define STR2_BIT_HEAP       (~(SIZE_MAX >> 1))
-#define STR2_BIT_DYNAMIC    (~(SIZE_MAX >> 2) & (SIZE_MAX >> 1))
-#define STR2_BIT_MASK       (~(SIZE_MAX >> 2))
+//#define STR2_BIT_HEAP       (~(SIZE_MAX >> 1))
+//#define STR2_BIT_DYNAMIC    (~(SIZE_MAX >> 2) & (SIZE_MAX >> 1))
+//#define STR2_BIT_MASK       (~(SIZE_MAX >> 2))
 
 typedef struct Str2 {
     char *str;
-    size_t len;
+    struct {
+        size_t len      : -2+8*sizeof(size_t);
+        bool is_dynamic : +1;
+        bool is_heap    : +1;
+    };
     size_t hash_val;
     void *hash_src;
-} Str2, Str2C;
+} Str2, Str2C, *VStr2;
+
 
 #if 0
 #define IMPL_STR_POP_BACK_CHAR(A, N) /**/ \
@@ -99,6 +105,8 @@ void str2_input(Str2 *str);
 Str2 str2_copy(Str2 str);
 void str2_push(Str2 *str, char c);
 void str2_extend(Str2 *str, Str2 extend);
+void str2_resize(Str2 *str, size_t len);
+void str2_zero(Str2 *str);
 
 size_t str2_writefunc(void *ptr, size_t size, size_t nmemb, Str2 *str);
 
