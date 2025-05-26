@@ -7,9 +7,11 @@
 
 int main(void) {
 
-    printff("bit heap %zx", STR2_BIT_HEAP);
-    printff("bit dyn  %zx", STR2_BIT_DYNAMIC);
-    printff("bit mask %zx", STR2_BIT_MASK);
+    //printff("bit heap %zx", STR2_BIT_HEAP);
+    //printff("bit dyn  %zx", STR2_BIT_DYNAMIC);
+    //printff("bit mask %zx", STR2_BIT_MASK);
+    printff("sizeof Str2 %zu", sizeof(Str2));
+    //return 0;
 
     Str2 a = {0};
     Str2 b = str2_dyn(str2("HOME path: "));
