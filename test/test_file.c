@@ -1,6 +1,8 @@
 #include "../src/file.h"
 
 int do_work(Str2 file, void *p) {
+    //str2_extend((Str2 *)p, file);
+    //str2_push((Str2 *)p, '\n');
     printff("%.*s", STR2_F(file));
     return 0;
 }
@@ -20,15 +22,18 @@ int main(void) {
     }
     array_clear(subdirs);
 
-    try(file_exec(str2("/home/rphii///"), &subdirs, true, do_work, 0));
+    Str2 out = {0};
+    try(file_exec(str2(".."), &subdirs, true, true, do_work, &out));
     while(array_len(subdirs)) {
         Str2 subdir = array_pop(subdirs);
-        try(file_exec(subdir, &subdirs, true, do_work, 0));
+        try(file_exec(subdir, &subdirs, true, true, do_work, &out));
         str2_free(&subdir);
     }
+    printf("%.*s", STR2_F(out));
     
     array_free(subdirs);
     str2_free(&content);
+    str2_free(&out);
     return 0;
 }
 

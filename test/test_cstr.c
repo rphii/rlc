@@ -91,6 +91,15 @@ int main(void) {
     printff("%.*s -> basen [%.*s]%zu", STR2_F(pathtest), STR2_F(x), str2_len(x));
     x = str2_ensure_dir(pathtest);
     printff("%.*s -> ensur [%.*s]%zu", STR2_F(pathtest), STR2_F(x), str2_len(x));
+    pathtest = str2("/some/path////");
+    x = str2_ensure_dir(pathtest);
+    printff("%.*s -> ensur [%.*s]%zu", STR2_F(pathtest), STR2_F(x), str2_len(x));
+    pathtest = str2("/////");
+    x = str2_ensure_dir(pathtest);
+    printff("%.*s -> ensur [%.*s]%zu", STR2_F(pathtest), STR2_F(x), str2_len(x));
+    pathtest = str2("/");
+    x = str2_ensure_dir(pathtest);
+    printff("%.*s -> ensur [%.*s]%zu", STR2_F(pathtest), STR2_F(x), str2_len(x));
 
     Str2 f = {0};
     str2_push(&f, '<');

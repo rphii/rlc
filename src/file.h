@@ -21,7 +21,7 @@ typedef enum {
 typedef int (*FileFunc)(Str2 filename, void *);
 
 #define ERR_file_exec(dirname, subdirs, rec, exec, args) "an error occured executing function on files '%.*s'", RSTR_F(dirname)
-ErrDecl file_exec(Str2 path, VStr2 *subdirs, bool recursive, FileFunc exec, void *args);
+ErrDecl file_exec(Str2 path, VStr2 *subdirs, bool recursive, bool hidden, FileFunc exec, void *args);
 
 #define FILE_PATH_MAX   4096
 
