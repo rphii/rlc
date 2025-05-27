@@ -17,6 +17,8 @@ static inline void *_array_grow2(void *array ARRAY_DEBUG_DEFS, size_t size, size
     } while(0)
 
 typedef struct Array {
+    ArrayFree f;
+    size_t size;
     size_t length;
     size_t capacity;
     void *data;
@@ -90,13 +92,12 @@ void *_array_addr(const void *array ARRAY_DEBUG_DEFS, size_t size, size_t index)
     return (void *)array + size * index;
 }
 
-void _array_push(void *array ARRAY_DEBUG_DEFS, size_t size, void *val) {
+void *_array_push(void *array ARRAY_DEBUG_DEFS, size_t size) {
     void **p = array; Array *v = *p ? array_base(*p) : 0;
     *p = _array_grow2(*p ARRAY_DEBUG_ARGS, size, v ? v->length + 1 : 1);
     v = array_base(*p);
     size_t index = v->length++;
-    memcpy(v->data + size * index, &val, size);
-    //return (void *)&v->data + size * index;
+    return (void *)&v->data + size * index;
 }
 
 void *_array_pop(void *array ARRAY_DEBUG_DEFS, size_t size) {
@@ -111,13 +112,37 @@ void *_array_pop(void *array ARRAY_DEBUG_DEFS, size_t size) {
     return array + size * index;
 }
 
+void _array_free_index(Array *v, size_t index) {
+    array_assert_arg(v->size);
+    void *val = (void *)&v->data + v->size * index;
+    if(!val) return;
+    v->f(val);
+}
+
 void _array_free(void *array) {
     array_assert_arg(array);
     void **p = array;
     if(!*p) return;
     Array *v = array_base(*p);
+    if(v->f) {
+        //for(size_t index = 0; index < v->capacity; ++index) {
+        for(size_t index = 0; index < v->length; ++index) {
+            _array_free_index(v, index);
+        }
+    }
     free(v);
     *p = 0;
+}
+
+void _array_free_set(void *array ARRAY_DEBUG_DEFS, size_t size, ArrayFree f) {
+    array_assert_arg(array);
+    void **p = array;
+    if(!*p) {
+        *p = array_init(ARRAY_DEBUG_ARG);
+    }
+    Array *v = array_base(*p);
+    v->f = f;
+    v->size = size;
 }
 
 size_t _array_len(const void *array) {
@@ -135,5 +160,11 @@ size_t _array_cap(const void *array) {
 void _array_clear(void *array) {
     if(!array) return;
     Array *v = array_base(array);
+    if(v->f) {
+        for(size_t index = 0; index < v->length; ++index) {
+            _array_free_index(v, index);
+        }
+    }
     v->length = 0;
 }
+

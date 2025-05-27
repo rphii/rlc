@@ -198,7 +198,7 @@ void str2_as_cstr(Str2 str, char *out, size_t len) { /*{{{*/
     ASSERT_ARG(len);
     size_t l = str2_len(str);
     size_t n = l < len - 1 ? l : len - 1;
-    printff("copying n: %zu [%s] %p -> %p", n, str.str, str.str, out);
+    //printff("copying n: %zu [%s] %p -> %p", n, str.str, str.str, out);
     memcpy(out, str.str, n);
     out[n] = 0;
 } /*}}}*/
@@ -713,6 +713,7 @@ void str2_clear(Str2 *str) { /*{{{*/
 
 void str2_free(Str2 *str) { /*{{{*/
     if(!str) return;
+    //printf("free %p [%.*s]\n", str, STR2_F(*str));
     if(str2_is_heap(*str)) {
         array_free(str->str);
     }

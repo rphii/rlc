@@ -6,7 +6,7 @@
 #include "color.h"
 #include <stdarg.h>
 
-#define STR2_F(s)           (int)s.len, s.str
+#define STR2_F(s)           (int)(s).len, (s).str
 //#define STR2_BIT_HEAP       (~(SIZE_MAX >> 1))
 //#define STR2_BIT_DYNAMIC    (~(SIZE_MAX >> 2) & (SIZE_MAX >> 1))
 //#define STR2_BIT_MASK       (~(SIZE_MAX >> 2))

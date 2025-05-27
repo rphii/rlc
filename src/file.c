@@ -164,7 +164,7 @@ error: ERR_CLEAN;
 #include <sys/stat.h>
 #include <sys/types.h>
 
-ErrDecl file_exec(Str2 path, VStr2 subdirs, bool recursive, FileFunc exec, void *args) {
+ErrDecl file_exec(Str2 path, VStr2 *subdirs, bool recursive, FileFunc exec, void *args) {
     ASSERT_ARG(subdirs);
     ASSERT_ARG(exec);
     int err = 0;
@@ -172,6 +172,7 @@ ErrDecl file_exec(Str2 path, VStr2 subdirs, bool recursive, FileFunc exec, void 
     Str2 subdir = {0};
     //printf("FILENAME: %.*s\n", STR_F(path));
     FileTypeList type = file_get_type(path);
+    array_free_set(*subdirs, Str2, (ArrayFree)str2_free);
     if(type == FILE_TYPE_DIR) {
         if(!recursive) {
             THROW("will not go over '%.*s' (enable recursion to do so)", STR2_F(path));
@@ -189,14 +190,14 @@ ErrDecl file_exec(Str2 path, VStr2 subdirs, bool recursive, FileFunc exec, void 
         while ((dp = readdir(dir)) != NULL) {
             if(dp->d_name[0] == '.') continue; // TODO add an argument for this
             if(!str2_cmp(str2_l(dp->d_name), str2(".")) || !str2_cmp(str2_l(dp->d_name), str2(".."))) continue;
-            size_t len2 = snprintf(filename, FILE_PATH_MAX, "%.*s/%s", (int)len, cdir, dp->d_name);
+            Str2 cdir2 = str2_ll(cdir, len);
+            size_t len2 = snprintf(filename, FILE_PATH_MAX, "%.*s/%s", STR2_F(str2_ensure_dir(cdir2)), dp->d_name);
             if(len2 != strlen(filename)) THROW("should probably have len2!");
-            //--len;
             Str2 filename2 = str2_ll(filename, len2);
             FileTypeList type2 = file_get_type(filename2);
             if(type2 == FILE_TYPE_DIR) {
                 str2_fmt(&subdir, "%.*s", STR2_F(filename2));
-                array_push(subdirs, &subdir);
+                array_push(*subdirs, subdir);
                 str2_zero(&subdir);
             } else if(type2 == FILE_TYPE_FILE) {
                 TRY(exec(filename2, args), "an error occured while executing the function");
@@ -228,13 +229,14 @@ ErrDecl file_dir_read(Str2 dirname, VStr2 *files) {
         //goto clean;
         THROW("can't open directory '%.*s'", (int)len, dirname.str);
     }
+    array_free_set(*files, Str2, (ArrayFree)str2_free);
     while ((dp = readdir(dir)) != NULL) {
         Str2 filename = {0};
         if(dp->d_name[0] == '.') continue; // TODO add an argument for this
         if(!str2_cmp(str2_l(dp->d_name), str2(".")) || !str2_cmp(str2_l(dp->d_name), str2(".."))) continue;
         str2_fmt(&filename, "%.*s/%s", (int)len, dirname.str, dp->d_name);
         //printf("FILE: %.*s\n", STR_F(&filename));
-        array_push(files, &filename);
+        array_push(*files, filename);
     }
 clean:
     if(dir) closedir(dir);
