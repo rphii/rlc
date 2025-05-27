@@ -256,6 +256,17 @@ int str2_as_size(Str2 str, size_t *out, int base) { /*{{{*/
     return 0;
 } /*}}}*/
 
+int str2_as_ssize(Str2 str, ssize_t *out, int base) { /*{{{*/
+    if(!str2_len(str)) return -1;
+    char *endptr;
+    char temp[32] = {0};
+    str2_as_cstr(str, temp, 32);
+    size_t result = strtoll(temp, &endptr, base);
+    if(endptr - temp != str2_len(str)) return -1;
+    if(out) *out = result;
+    return 0;
+} /*}}}*/
+
 int str2_as_float(Str2 str, float *out) { /*{{{*/
     char *endptr;
     char temp[32] = {0};
@@ -411,6 +422,19 @@ size_t str2_len_nof(Str2 str) { /*{{{*/
         len -= (bool)(m);
     }
     return len;
+} /*}}}*/
+
+size_t str2_dhash(Str2 str) { /*{{{*/
+    //STR2_HASH_PRECOMP(str);
+    size_t hash = 5381;
+    size_t i = 0;
+    while(i < str2_len(str)) {
+        unsigned char c = str.str[i++];
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+    }
+    //printff("calculated new hash: %zx [%s]", hash, str->str);
+    //STR2_HASH_SET(str, hash);
+    return hash;
 } /*}}}*/
 
 size_t str2_hash(Str2 *str) { /*{{{*/
@@ -741,6 +765,28 @@ size_t str2_splice(Str2 to_splice, Str2 *prev, char sep) { /*{{{*/
     return result.str - to_splice.str - len;
 } /*}}}*/
 
+size_t str2_index_nof(Str2 str, size_t index) {
+    size_t len_nof = 0;
+    size_t n = 0, m = 0;
+    Str2 snip = str;
+    Str2 pat = str2("\033[");
+    for(;;) {
+        snip = str2_i0(snip, m);
+        n = str2_find_substr(snip, pat, false);
+        if(len_nof + n > index) {
+            return (index - len_nof);
+        }
+        if(n >= str2_len(snip)) break;
+        len_nof += n;
+        snip = str2_i0(snip, n + str2_len(pat));
+        m = str2_find_ch(snip, 'm');
+        /*len -= (m + pat.last);*/
+        if(m++ >= str2_len(snip)) break;
+        /*len -= (bool)(m);*/
+    }
+    return str2_len(str);
+}
+
 char str2_at(Str2 str, size_t i) { /*{{{*/
     ASSERT(i < str2_len(str), "out of bounds: %zu @ [0..%zu)", i, str2_len(str));
     return str.str[i];
@@ -958,3 +1004,8 @@ size_t str2_writefunc(void *ptr, size_t size, size_t nmemb, Str2 *str) { /*{{{*/
     str2_fmt(str, "%.*s", size * nmemb, ptr);
     return size * nmemb;
 } /*}}}*/
+
+void vstr2_free_set(VStr2 *vstr) {
+    ASSERT_ARG(vstr);
+    array_free_set(*vstr, Str2, (ArrayFree)str2_free);
+}

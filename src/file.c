@@ -173,7 +173,7 @@ ErrDecl file_exec(Str2 path, VStr2 *subdirs, bool recursive, bool hidden, FileFu
     Str2 dotdot = str2("..");
     //printf("FILENAME: %.*s\n", STR_F(path));
     FileTypeList type = file_get_type(path);
-    array_free_set(*subdirs, Str2, (ArrayFree)str2_free);
+    vstr2_free_set(subdirs);
     Str2 filename = {0};
     if(type == FILE_TYPE_DIR) {
         if(!recursive) {
@@ -231,7 +231,7 @@ ErrDecl file_dir_read(Str2 dirname, VStr2 *files) {
         //goto clean;
         THROW("can't open directory '%.*s'", (int)len, dirname.str);
     }
-    array_free_set(*files, Str2, (ArrayFree)str2_free);
+    vstr2_free_set(files);
     while ((dp = readdir(dir)) != NULL) {
         Str2 filename = {0};
         if(dp->d_name[0] == '.') continue; // TODO add an argument for this

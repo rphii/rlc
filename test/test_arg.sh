@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
-tcc -o test_arg.out test_arg.c ../src/arg.c \
-    ../src/str.c ../src/file.c \
-    -Og -rdynamic -ggdb3 \
+gcc -o test_arg.out test_arg.c ../src/arg.c \
+    ../src/str2.c ../src/file.c ../src/array.c -lm \
+    -Og -rdynamic -ggdb3 -fsanitize=address \
 
     #-lrphiic
     #-O3 -flto -march=native -mfpmath=sse \

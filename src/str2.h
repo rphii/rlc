@@ -20,7 +20,7 @@ typedef struct Str2 {
     };
     size_t hash_val;
     void *hash_src;
-} Str2, Str2C, *VStr2;
+} Str2, Str2C, *VStr2, *VStr2C;
 
 
 #if 0
@@ -50,10 +50,14 @@ Str2C str2_get_dir(Str2 str);
 Str2C str2_get_nodir(Str2 str);
 Str2C str2_get_basename(Str2 str);
 void str2_as_cstr(Str2 str, char *out, size_t len);
+#define ERR_str2_as_bool(...)  "failed converting string to bool"
 int str2_as_bool(Str2 str, bool *out);
 int str2_as_int(Str2 str, int *out, int base);
 int str2_as_size(Str2 str, size_t *out, int base);
+#define ERR_str2_as_ssize(...)  "failed converting string to ssize_t"
+int str2_as_ssize(Str2 str, ssize_t *out, int base);
 int str2_as_float(Str2 str, float *out);
+#define ERR_str2_as_double(...)  "failed converting string to double"
 int str2_as_double(Str2 str, double *out);
 int str2_as_color(Str2 str, Color *out);
 
@@ -61,6 +65,7 @@ bool str2_is_heap(Str2 str);
 bool str2_is_dynamic(Str2 str);
 size_t str2_len(Str2 str);
 size_t str2_len_nof(Str2 str);
+size_t str2_dhash(Str2 str);
 size_t str2_hash(Str2 *str);
 size_t str2_hash_ci(Str2 *str);
 int str2_cmp(Str2 a, Str2 b);
@@ -90,6 +95,7 @@ size_t str2_rfind_nany(Str2 str, Str2 any);
 size_t str2_rfind_substr(Str2 str, Str2 substr, bool ignorecase);
 size_t str2_pair_ch(Str2 str, char c1); /* c0 <== str.str[0] */
 size_t str2_splice(Str2 to_splice, Str2 *prev, char sep);
+size_t str2_index_nof(Str2 str, size_t index);
 
 char str2_at(Str2 str, size_t i);
 char *str2_it(Str2 str, size_t i);
@@ -113,6 +119,8 @@ void str2_resize(Str2 *str, size_t len);
 void str2_zero(Str2 *str);
 
 size_t str2_writefunc(void *ptr, size_t size, size_t nmemb, Str2 *str);
+
+void vstr2_free_set(VStr2 *vstr);
 
 #if 0
 #define str2_freeall(...) do { \
