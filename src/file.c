@@ -164,44 +164,46 @@ error: ERR_CLEAN;
 #include <sys/stat.h>
 #include <sys/types.h>
 
-ErrDecl file_exec(Str2 path, VStr2 *subdirs, bool recursive, FileFunc exec, void *args) {
+ErrDecl file_exec(Str2 path, VStr2 *subdirs, bool recursive, bool hidden, FileFunc exec, void *args) {
     ASSERT_ARG(subdirs);
     ASSERT_ARG(exec);
     int err = 0;
     DIR *dir = 0;
-    Str2 subdir = {0};
+    Str2 dot = str2(".");
+    Str2 dotdot = str2("..");
     //printf("FILENAME: %.*s\n", STR_F(path));
     FileTypeList type = file_get_type(path);
     array_free_set(*subdirs, Str2, (ArrayFree)str2_free);
+    Str2 filename = {0};
     if(type == FILE_TYPE_DIR) {
         if(!recursive) {
             THROW("will not go over '%.*s' (enable recursion to do so)", STR2_F(path));
         }
-        size_t len = str2_rfind_nch(path, PLATFORM_CH_SUBDIR);
-        if(len < str2_len(path) && str2_at(path, len) != PLATFORM_CH_SUBDIR) ++len;
         struct dirent *dp = 0;
+        Str2 direns = str2_ensure_dir(path);
         char cdir[FILE_PATH_MAX];
-        str2_as_cstr(path, cdir, FILE_PATH_MAX);
+        str2_as_cstr(direns, cdir, FILE_PATH_MAX);
         if((dir = opendir(cdir)) == NULL) {
             goto clean;
-            THROW("can't open directory '%.*s'", (int)len, cdir);
+            THROW("can't open directory '%.*s'", STR2_F(direns));
         }
-        char filename[FILE_PATH_MAX] = {0};
-        while ((dp = readdir(dir)) != NULL) {
-            if(dp->d_name[0] == '.') continue; // TODO add an argument for this
-            if(!str2_cmp(str2_l(dp->d_name), str2(".")) || !str2_cmp(str2_l(dp->d_name), str2(".."))) continue;
-            Str2 cdir2 = str2_ll(cdir, len);
-            size_t len2 = snprintf(filename, FILE_PATH_MAX, "%.*s/%s", STR2_F(str2_ensure_dir(cdir2)), dp->d_name);
-            if(len2 != strlen(filename)) THROW("should probably have len2!");
-            Str2 filename2 = str2_ll(filename, len2);
-            FileTypeList type2 = file_get_type(filename2);
+        while((dp = readdir(dir)) != NULL) {
+            Str2 dname = str2_l(dp->d_name);
+            if(!str2_hcmp(&dname, &dot)) continue;
+            if(!str2_hcmp(&dname, &dotdot)) continue;
+            if(!hidden && !str2_cmp0(dname, dot)) continue;
+            str2_extend(&filename, direns);
+            if(str2_len(direns) > 1) str2_push(&filename, PLATFORM_CH_SUBDIR);
+            str2_extend(&filename, dname);
+            FileTypeList type2 = file_get_type(filename);
             if(type2 == FILE_TYPE_DIR) {
-                str2_fmt(&subdir, "%.*s", STR2_F(filename2));
-                array_push(*subdirs, subdir);
-                str2_zero(&subdir);
+                array_push(*subdirs, filename);
+                str2_zero(&filename);
             } else if(type2 == FILE_TYPE_FILE) {
-                TRY(exec(filename2, args), "an error occured while executing the function");
+                TRY(exec(filename, args), "an error occured while executing the function");
+                str2_clear(&filename);
             } else {
+                str2_clear(&filename);
                 //info(INFO_skipping_nofile_nodir, "skipping '%.*s' since no regular file nor directory", STR_F(*path));
             }
         }
@@ -213,7 +215,7 @@ ErrDecl file_exec(Str2 path, VStr2 *subdirs, bool recursive, FileFunc exec, void
         //info(INFO_skipping_nofile_nodir, "skipping '%.*s' since no regular file nor directory", STR_F(*path));
     }
 clean:
-    str2_free(&subdir);
+    str2_free(&filename);
     if(dir) closedir(dir);
     return err;
 error: ERR_CLEAN;

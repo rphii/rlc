@@ -100,12 +100,17 @@ Str2 str2_trimr(Str2 str) { /*{{{*/
 } /*}}}*/
 
 Str2 str2_ensure_dir(Str2 str) { /*{{{*/
+    // !!! str = str2_trim(str);
     size_t len = str2_len(str);
     Str2 result = str2_ll(str.str, len);
-    if(len) {
-        if(str2_at(result, str2_len(result) - 1) == PLATFORM_CH_SUBDIR) {
-            --result.len;
-        }
+    if(len > 1) {
+        size_t nch = str2_rfind_nch(str, PLATFORM_CH_SUBDIR);
+        if(!nch && len) ++nch;
+        else if(nch < len && str2_at(str, nch) != PLATFORM_CH_SUBDIR) ++nch;
+        result.len = nch;
+        //if(str2_at(result, str2_len(result) - 1) == PLATFORM_CH_SUBDIR) {
+        //    --result.len;
+        //}
     }
     return result;
 } /*}}}*/
@@ -382,6 +387,23 @@ int str2_cmp(Str2 a, Str2 b) { /*{{{*/
     return result;
 } /*}}}*/
 
+int str2_cmp0(Str2 a, Str2 b) {
+    size_t la = str2_len(a); 
+    size_t lb = str2_len(b);
+    if(la < lb) return -1;
+    //printff("CMP0 [%.*s][%.*s]", lb, a.str, lb, b.str);getchar();
+    int result = memcmp(a.str, b.str, lb);
+    return result;
+}
+
+int str2_cmpE(Str2 a, Str2 b) {
+    size_t la = str2_len(a); 
+    size_t lb = str2_len(b);
+    if(la < lb) return -1;
+    int result = memcmp(a.str + la - lb, b.str, lb);
+    return result;
+}
+
 int str2_cmp_ci(Str2 a, Str2 b) { /*{{{*/
     size_t la = str2_len(a); 
     size_t lb = str2_len(b);
@@ -545,7 +567,7 @@ size_t str2_rfind_nch(Str2 str, char c) { /*{{{*/
     for(size_t i = str2_len(str); i > 0; --i) {
         if(str.str[i - 1] != c) return i - 1;
     }
-    return str2_len(str);
+    return 0;
 } /*}}}*/
 
 size_t str2_rfind_ws(Str2 str) { /*{{{*/

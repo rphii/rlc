@@ -64,6 +64,8 @@ size_t str2_len_nof(Str2 str);
 size_t str2_hash(Str2 *str);
 size_t str2_hash_ci(Str2 *str);
 int str2_cmp(Str2 a, Str2 b);
+int str2_cmp0(Str2 a, Str2 b);
+int str2_cmpE(Str2 a, Str2 b);
 int str2_cmp_ci(Str2 a, Str2 b);
 int str2_hcmp(Str2 *a, Str2 *b);
 int str2_hcmp_ci(Str2 *a, Str2 *b);
