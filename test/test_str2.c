@@ -229,7 +229,6 @@ int main(void) {
         printff("%.*s", STR2_F(colors));
     }
 
-
 #if 0
     float flt;
     printf("red:");
