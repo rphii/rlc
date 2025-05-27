@@ -234,30 +234,23 @@ int str2_as_bool(Str2 str, bool *out) { /*{{{*/
     return 0;
 } /*}}}*/
 
-int str2_as_int(Str2 str, int *out) { /*{{{*/
+int str2_as_int(Str2 str, int *out, int base) { /*{{{*/
+    if(!str2_len(str)) return -1;
     char *endptr;
     char temp[32] = {0};
     str2_as_cstr(str, temp, 32);
-    size_t result = strtol(temp, &endptr, 0);
-    if(endptr - temp != str2_len(str)) goto try_hex;
-    if(out) *out = result;
-try_hex:
-    result = strtol(temp, &endptr, 16);
+    size_t result = strtol(temp, &endptr, base);
     if(endptr - temp != str2_len(str)) return -1;
     if(out) *out = result;
     return 0;
 } /*}}}*/
 
-int str2_as_size(Str2 str, size_t *out) { /*{{{*/
+int str2_as_size(Str2 str, size_t *out, int base) { /*{{{*/
+    if(!str2_len(str)) return -1;
     char *endptr;
     char temp[32] = {0};
     str2_as_cstr(str, temp, 32);
-    size_t result = strtoull(temp, &endptr, 0);
-    if(endptr - temp != str2_len(str)) goto try_hex;
-    if(out) *out = result;
-    return 0;
-try_hex:
-    result = strtoull(temp, &endptr, 16);
+    size_t result = strtoull(temp, &endptr, base);
     if(endptr - temp != str2_len(str)) return -1;
     if(out) *out = result;
     return 0;
@@ -286,28 +279,97 @@ int str2_as_double(Str2 str, double *out) { /*{{{*/
 int str2_as_color(Str2 str, Color *out) { /*{{{*/
     Color result = {0};
     size_t len = str2_len(str);
+    size_t hex = 0;
+    double dbl = 0;
+    bool valid = false;
     if(len >= 7 && str2_at(str, 0) == '#') {
-        size_t hex = 0;
         if(str2_len(str) == 9) {
-            if(str2_as_size(str2_i0(str, 1), &hex)) return -1;
+            if(str2_as_size(str2_i0(str, 1), &hex, 16)) return -1;
             result.r = (uint8_t)(hex >> 24);
             result.g = (uint8_t)(hex >> 16);
             result.b = (uint8_t)(hex >> 8);
             result.a = (uint8_t)(hex >> 0);
+            valid = true;
         } else if(str2_len(str) == 7) {
-            if(str2_as_size(str2_i0(str, 1), &hex)) return -1;
+            if(str2_as_size(str2_i0(str, 1), &hex, 16)) return -1;
             result.r = (uint8_t)(hex >> 16);
             result.g = (uint8_t)(hex >> 8);
             result.b = (uint8_t)(hex >> 0);
+            valid = true;
         }
         else {
-            return -1;
+            valid = false;
+        }
+    } else if(len >= 5 && !str2_cmp0(str, str2("rgb"))) {
+        if(str2_at(str, 3) == 'a') {
+            Str2 triple = str2_i0(str, 4);
+            triple = str2_i0(triple, str2_find_nws(triple));
+            if(str2_len(triple) && str2_at(triple, 0) == '(') {
+                size_t iE = str2_pair_ch(triple, ')');
+                if(iE > str2_len(triple) - 1) return -1;
+                triple = str2_trim(str2_i0iE(triple, 1, iE));
+                size_t nsep = str2_count_ch(triple, ',');
+                if(!nsep && str2_len(triple) == 8) {
+                    if(!str2_as_size(triple, &hex, 16)) {
+                        result.r = (uint8_t)(hex >> 24);
+                        result.g = (uint8_t)(hex >> 16);
+                        result.b = (uint8_t)(hex >> 8);
+                        result.a = (uint8_t)(hex >> 0);
+                        valid = true;
+                    }
+                } else if(nsep == 3) {
+                    size_t i = 0;
+                    for(Str2 splice = {0}; str2_splice(triple, &splice, ','); ++i) {
+                        if(!splice.str) continue;
+                        Str2 snum = str2_trim(splice);
+                        if(i < 3) {
+                            if(str2_as_size(snum, &hex, 10)) return -1;
+                            if(i == 0) result.r = hex;
+                            if(i == 1) result.g = hex;
+                            if(i == 2) result.b = hex;
+                        } else {
+                            if(str2_as_double(snum, &dbl)) return -1;
+                            if(i == 3) result.a = (uint8_t)round(0xFF*dbl);
+                        }
+                    }
+                    valid = true;
+                }
+            }
+        } else {
+            Str2 triple = str2_i0(str, 3);
+            triple = str2_i0(triple, str2_find_nws(triple));
+            if(str2_len(triple) && str2_at(triple, 0) == '(') {
+                size_t iE = str2_pair_ch(triple, ')');
+                if(iE > str2_len(triple) - 1) return -1;
+                triple = str2_trim(str2_i0iE(triple, 1, iE));
+                size_t nsep = str2_count_ch(triple, ',');
+                result.a = 0xFF;
+                if(!nsep && str2_len(triple) == 6) {
+                    if(!str2_as_size(triple, &hex, 16)) {
+                        result.r = (uint8_t)(hex >> 16);
+                        result.g = (uint8_t)(hex >> 8);
+                        result.b = (uint8_t)(hex >> 0);
+                        valid = true;
+                    }
+                } else if(nsep == 2) {
+                    size_t i = 0;
+                    for(Str2 splice = {0}; str2_splice(triple, &splice, ','); ++i) {
+                        if(!splice.str) continue;
+                        Str2 snum = str2_trim(splice);
+                        if(str2_as_size(snum, &hex, 10)) return -1;
+                        if(i == 0) result.r = hex;
+                        if(i == 1) result.g = hex;
+                        if(i == 2) result.b = hex;
+                    }
+                    valid = true;
+                }
+            }
         }
     } else {
         return -1;
     }
-    if(out) *out = result;
-    return 0;
+    if(valid && out) *out = result;
+    return !valid;
 } /*}}}*/
 
 bool str2_is_heap(Str2 str) { /*{{{*/
@@ -387,29 +449,50 @@ int str2_cmp(Str2 a, Str2 b) { /*{{{*/
     return result;
 } /*}}}*/
 
-int str2_cmp0(Str2 a, Str2 b) {
+int str2_cmp0(Str2 a, Str2 b) { /*{{{*/
     size_t la = str2_len(a); 
     size_t lb = str2_len(b);
     if(la < lb) return -1;
-    //printff("CMP0 [%.*s][%.*s]", lb, a.str, lb, b.str);getchar();
     int result = memcmp(a.str, b.str, lb);
     return result;
-}
+} /*}}}*/
 
-int str2_cmpE(Str2 a, Str2 b) {
+int str2_cmpE(Str2 a, Str2 b) { /*{{{*/
     size_t la = str2_len(a); 
     size_t lb = str2_len(b);
     if(la < lb) return -1;
     int result = memcmp(a.str + la - lb, b.str, lb);
     return result;
-}
+} /*}}}*/
 
 int str2_cmp_ci(Str2 a, Str2 b) { /*{{{*/
     size_t la = str2_len(a); 
     size_t lb = str2_len(b);
     if(la != lb) return -1;
-    for (size_t i = 0; i < str2_len(a); ++i) {
+    for (size_t i = 0; i < la; ++i) {
         int d = tolower(str2_at(a, i)) - tolower(str2_at(b, i));
+        if (d != 0) return d;
+    }
+    return 0;
+} /*}}}*/
+
+int str2_cmp0_ci(Str2 a, Str2 b) { /*{{{*/
+    size_t la = str2_len(a); 
+    size_t lb = str2_len(b);
+    if(la < lb) return -1;
+    for (size_t i = 0; i < lb; ++i) {
+        int d = tolower(str2_at(a, i)) - tolower(str2_at(b, i));
+        if (d != 0) return d;
+    }
+    return 0;
+} /*}}}*/
+
+int str2_cmpE_ci(Str2 a, Str2 b) { /*{{{*/
+    size_t la = str2_len(a); 
+    size_t lb = str2_len(b);
+    if(la < lb) return -1;
+    for (size_t i = 0; i < lb; ++i) {
+        int d = tolower(str2_at(a, i + la - lb)) - tolower(str2_at(b, i));
         if (d != 0) return d;
     }
     return 0;
@@ -437,7 +520,7 @@ int str2_hcmp_ci(Str2 *a, Str2 *b) { /*{{{*/
     size_t ha = str2_hash_ci(a);
     size_t hb = str2_hash_ci(b);
     if(ha != hb) return -1;
-    for (size_t i = 0; i < str2_len(*a); ++i) {
+    for (size_t i = 0; i < la; ++i) {
         int d = tolower(str2_at(*a, i)) - tolower(str2_at(*b, i));
         if (d != 0) return d;
     }

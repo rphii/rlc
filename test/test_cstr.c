@@ -161,6 +161,75 @@ int main(void) {
     str2_clear(&colors);
 
     Color color = {0};
+    Str2 colorstr = {0};
+    colorstr = str2("rgb(ff22ff)");
+    if(!str2_as_color(colorstr, &color)) {
+        str2_clear(&colors);
+        str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
+        printff("%.*s", STR2_F(colors));
+    }
+    colorstr = str2("rgb  (ff22ee)");
+    if(!str2_as_color(colorstr, &color)) {
+        str2_clear(&colors);
+        str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
+        printff("%.*s", STR2_F(colors));
+    }
+    colorstr = str2("rgb  (  ff22dd)");
+    if(!str2_as_color(colorstr, &color)) {
+        str2_clear(&colors);
+        str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
+        printff("%.*s", STR2_F(colors));
+    }
+    colorstr = str2("rgb  (  ff22cc   )");
+    if(!str2_as_color(colorstr, &color)) {
+        str2_clear(&colors);
+        str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
+        printff("%.*s", STR2_F(colors));
+    }
+    colorstr = str2("rgba  (  3322ccff   )");
+    if(!str2_as_color(colorstr, &color)) {
+        str2_clear(&colors);
+        str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
+        printff("%.*s", STR2_F(colors));
+    }
+    colorstr = str2("rgba  (  3322ccee   )");
+    if(!str2_as_color(colorstr, &color)) {
+        str2_clear(&colors);
+        str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
+        printff("%.*s", STR2_F(colors));
+    }
+    colorstr = str2("rgba  (  3322ccdd   )");
+    if(!str2_as_color(colorstr, &color)) {
+        str2_clear(&colors);
+        str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
+        printff("%.*s", STR2_F(colors));
+    }
+    colorstr = str2("rgba  (  123,255,26,0.933   )");
+    if(!str2_as_color(colorstr, &color)) {
+        str2_clear(&colors);
+        str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
+        printff("%.*s", STR2_F(colors));
+    }
+    colorstr = str2("rgba  (  123,255,26,0.5   )");
+    if(!str2_as_color(colorstr, &color)) {
+        str2_clear(&colors);
+        str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
+        printff("%.*s", STR2_F(colors));
+    }
+    colorstr = str2("rgba  (  123,255,26,0.05   )");
+    if(!str2_as_color(colorstr, &color)) {
+        str2_clear(&colors);
+        str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
+        printff("%.*s", STR2_F(colors));
+    }
+    colorstr = str2("rgba  (  123,,26,1   )");
+    if(!str2_as_color(colorstr, &color)) {
+        str2_clear(&colors);
+        str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
+        printff("%.*s", STR2_F(colors));
+    }
+
+
 #if 0
     float flt;
     printf("red:");

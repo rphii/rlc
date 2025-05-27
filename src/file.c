@@ -189,8 +189,8 @@ ErrDecl file_exec(Str2 path, VStr2 *subdirs, bool recursive, bool hidden, FileFu
         }
         while((dp = readdir(dir)) != NULL) {
             Str2 dname = str2_l(dp->d_name);
-            if(!str2_hcmp(&dname, &dot)) continue;
-            if(!str2_hcmp(&dname, &dotdot)) continue;
+            if(!str2_cmp(dname, dot)) continue;
+            if(!str2_cmp(dname, dotdot)) continue;
             if(!hidden && !str2_cmp0(dname, dot)) continue;
             str2_extend(&filename, direns);
             if(str2_len(direns) > 1) str2_push(&filename, PLATFORM_CH_SUBDIR);
