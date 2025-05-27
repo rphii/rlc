@@ -1,26 +1,20 @@
 #include "utf8.h"
 #include "err.h"
 
-void str_u8str(U8Str u8str, Str str) {
+void str_u8str(U8Str u8str, Str2 str) {
     ASSERT_ARG(u8str);
-    str_cstr(str, u8str, U8_CAP);
+    str2_as_cstr(str, u8str, U8_CAP);
 }
 
-void rstr_u8str(U8Str u8str, RStr str) {
-    ASSERT_ARG(u8str);
-    rstr_cstr(str, u8str, U8_CAP);
-}
-
-void u8str_rstr(RStr *str, U8Str u8str) {
+void u8str_rstr(Str2 *str, U8Str u8str) {
     ASSERT_ARG(str);
     ASSERT_ARG(u8str);
     size_t len = strlen(u8str);
     ASSERT(len < U8_CAP, "length of string should not be > %u", U8_CAP);
-    *str = RSTR_LL(u8str, len);
+    *str = str2_ll(u8str, len);
 }
 
-ErrImpl cstr_to_u8_point(U8Str in, U8Point *point)
-{
+ErrImpl cstr_to_u8_point(U8Str in, U8Point *point) {
     ASSERT_ARG(in);
     ASSERT_ARG(point);
     U8Point tinker = {0};
@@ -63,8 +57,7 @@ error:
     return -1;
 }
 
-ErrImpl cstr_from_u8_point(U8Str out, U8Point *point)
-{
+ErrImpl cstr_from_u8_point(U8Str out, U8Point *point) {
     ASSERT_ARG(out);
     ASSERT_ARG(point);
     int bytes = 0;

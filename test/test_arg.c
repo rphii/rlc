@@ -27,7 +27,7 @@ typedef struct Config {
     double number;
     Str2 config;
     Str2 string;
-    Str2 *strings;
+    VStr2 strings;
     ConfigList id;
     ConfigList id2;
     ConfigList id3;
@@ -78,7 +78,7 @@ int main(const int argc, const char **argv) {
     Config preset = {0};
     Str2 *rest2 = {0};
     Str2 *files = {0};
-    Str configuration = {0};
+    Str2 configuration = {0};
     struct Arg *arg = arg_new();
     struct ArgX *x;
     struct ArgXGroup *g;
@@ -167,9 +167,9 @@ int main(const int argc, const char **argv) {
     /*}}}*/
 
     /* load config {{{ */
-    RStr filename = RSTR("test_arg.conf");
+    Str2 filename = str2("test_arg.conf");
     TRYC(file_str_read(filename, &configuration));
-    arg_config(arg, str2_ll(configuration.s, configuration.last));
+    arg_config(arg, str2_ll(configuration.str, str2_len(configuration)));
     /*}}}*/
 
 #if 0
@@ -207,7 +207,7 @@ int main(const int argc, const char **argv) {
     /*}}}*/
 
 clean:
-    str_free(&configuration);
+    str2_free(&configuration);
     arg_free(&arg);
     return err;
 
