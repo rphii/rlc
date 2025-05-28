@@ -104,15 +104,15 @@ Str2 str2_triml_nof(Str2 str) { /*{{{*/
     size_t i0 = 0;
     Str2 result = str2_ll(str.str, len);
     size_t m, n = str2_find_f(str2_i0(result, 0), &m);
-    //if(m + 1 < str2_len(result)
-    //printff("m %zu, n %zu",m,n);
     for(size_t i = 0; i < len; ++i) {
-        //if(i >= n) {
-        //    if(str2_len(result))
-        //}
-        //if(i >= m) n = str2_find_f(str2_i0(result, 0), &m);
-        if(!isspace(str2_at(result, i))) break;
-        i0 ++;
+        if(i >= m) {
+            n = str2_find_f(str2_i0(result, i), &m);
+            n += i;
+            m += i;
+        }
+        if(i >= n && i <= m) continue;
+        if(!isspace(str2_at(str, i))) break;
+        i0 = i + 1;
     }
     return str2_i0(result, i0);
 } /*}}}*/
@@ -1137,6 +1137,7 @@ void str2_printal(Str2 str, Str2Print *p, size_t i0, size_t iE) {
 }
 
 void str2_printraw(Str2 str) { /*{{{*/
+    //printf("raw[");
     for(size_t i = 0; i < str2_len(str); ++i) {
         char c = str2_at(str, i);
         if(c <= 0x1f) {
@@ -1145,5 +1146,6 @@ void str2_printraw(Str2 str) { /*{{{*/
             printf("%c", c);
         }
     }
+    //printf("]\n");
 } /*}}}*/
 

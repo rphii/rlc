@@ -280,7 +280,7 @@ int main(void) {
     str2_printal(str2("               lol                     "), &p, 0, 5);
     str2_println(str2(""));
 
-    str2_printal(str2(F("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed viverra felis vitae massa fringilla, in blandit est euismod. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Aenean consequat tincidunt volutpat. Suspendisse auctor eros lacus, quis consectetur urna rutrum nec. Maecenas eu lectus venenatis, aliquam libero vel, ornare nibh. Quisque sodales iaculis urna, ac venenatis est gravida eu. Morbi dignissim ac augue quis malesuada. Vestibulum aliquet dui porta ante accumsan, vel vestibulum massa commodo. In hac habitasse platea dictumst.", FG_CY) " Donec eget leo hendrerit, luctus nulla non, pulvinar nunc. Aliquam erat volutpat."), &p, 0, 60);
+    str2_printal(str2(F("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed viverra felis vitae massa fringilla, in blandit est euismod. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Aenean consequat tincidunt volutpat. Suspendisse auctor eros lacus, quis consectetur urna rutrum nec. Maecenas eu lectus venenatis, aliquam libero vel, ornare nibh. Quisque sodales iaculis urna, ac venenatis est gravida eu. Morbi dignissim ac augue quis malesuada. Vestibulum aliquet dui porta ante accumsan, vel vestibulum massa commodo. In hac habitasse platea dictumst.", FG_CY) " Donec eget leo hendrerit, luctus nulla non, pulvinar nunc. Aliquam erat volutpat."), &p, 0, 50);
     str2_println(str2(""));
 #endif
 
@@ -323,6 +323,17 @@ int main(void) {
     str2_println(str2(""));
     //str2_printraw(crazystring);
 
+
+    Str2 spacy = {0}, spacy_in = str2("                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                text                              ");
+    for(size_t i = 0; i < str2_len(spacy_in); i += 1) {
+        Color col = {0};
+        col.rgba = rand();
+        Str2 snip = str2_i0iE(spacy_in, i, i + 1 < str2_len(spacy_in) ? i + 1 : str2_len(spacy_in));
+        str2_fmt_fgbg(&spacy, snip, col, COLOR_NONE, false, false, false);
+    }
+    str2_printal(spacy, &p, 0, 50);
+    str2_println(str2(""));
+
     //str2_freeall(a, b, c, d, e);
     str2_free(&crazystring);
 #endif
@@ -334,6 +345,7 @@ int main(void) {
     str2_free(&d);
     str2_free(&e);
     str2_free(&f);
+    printf("done\n");
     return 0;
 }
 
