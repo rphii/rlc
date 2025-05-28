@@ -125,10 +125,10 @@ int main(void) {
     str2_fmt_fgbg(&colors, str2("bold"), (Color){0}, (Color){0}, true, false, false);
     printff("[%.*s]%zu", STR2_F(colors), str2_len(colors));
     str2_clear(&colors);
-    str2_fmt_fgbg(&colors, str2("italic"), (Color){0}, (Color){0}, false, false, true);
+    str2_fmt_fgbg(&colors, str2("italic"), (Color){0}, (Color){0}, false, true, false);
     printff("[%.*s]%zu", STR2_F(colors), str2_len(colors));
     str2_clear(&colors);
-    str2_fmt_fgbg(&colors, str2("underline"), (Color){0}, (Color){0}, false, true, false);
+    str2_fmt_fgbg(&colors, str2("underline"), (Color){0}, (Color){0}, false, false, true);
     printff("[%.*s]%zu", STR2_F(colors), str2_len(colors));
     str2_clear(&colors);
     str2_fmt_fgbg(&colors, str2("vanilla"), (Color){0}, (Color){0}, false, false, false);
@@ -166,67 +166,67 @@ int main(void) {
     if(!str2_as_color(colorstr, &color)) {
         str2_clear(&colors);
         str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
-        printff("%.*s", STR2_F(colors));
+        str2_println(colors);
     }
     colorstr = str2("rgb  (ff22ee)");
     if(!str2_as_color(colorstr, &color)) {
         str2_clear(&colors);
         str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
-        printff("%.*s", STR2_F(colors));
+        str2_println(colors);
     }
     colorstr = str2("rgb  (  ff22dd)");
     if(!str2_as_color(colorstr, &color)) {
         str2_clear(&colors);
         str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
-        printff("%.*s", STR2_F(colors));
+        str2_println(colors);
     }
     colorstr = str2("rgb  (  ff22cc   )");
     if(!str2_as_color(colorstr, &color)) {
         str2_clear(&colors);
         str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
-        printff("%.*s", STR2_F(colors));
+        str2_println(colors);
     }
     colorstr = str2("rgba  (  3322ccff   )");
     if(!str2_as_color(colorstr, &color)) {
         str2_clear(&colors);
         str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
-        printff("%.*s", STR2_F(colors));
+        str2_println(colors);
     }
     colorstr = str2("rgba  (  3322ccee   )");
     if(!str2_as_color(colorstr, &color)) {
         str2_clear(&colors);
         str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
-        printff("%.*s", STR2_F(colors));
+        str2_println(colors);
     }
     colorstr = str2("rgba  (  3322ccdd   )");
     if(!str2_as_color(colorstr, &color)) {
         str2_clear(&colors);
         str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
-        printff("%.*s", STR2_F(colors));
+        str2_println(colors);
     }
     colorstr = str2("rgba  (  123,255,26,0.933   )");
     if(!str2_as_color(colorstr, &color)) {
         str2_clear(&colors);
         str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
-        printff("%.*s", STR2_F(colors));
+        str2_println(colors);
     }
     colorstr = str2("rgba  (  123,255,26,0.5   )");
     if(!str2_as_color(colorstr, &color)) {
         str2_clear(&colors);
         str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
-        printff("%.*s", STR2_F(colors));
+        str2_println(colors);
     }
     colorstr = str2("rgba  (  123,255,26,0.05   )");
     if(!str2_as_color(colorstr, &color)) {
         str2_clear(&colors);
         str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
-        printff("%.*s", STR2_F(colors));
+        str2_println(colors);
     }
     colorstr = str2("rgba  (  123,,26,1   )");
     if(!str2_as_color(colorstr, &color)) {
         str2_clear(&colors);
         str2_fmt_fgbga(&colors, colorstr, COLOR_NONE, color, false, false, false);
-        printff("%.*s", STR2_F(colors));
+        str2_println(colors);
     }
 
 #if 0
@@ -272,8 +272,60 @@ int main(void) {
     printff("\n[\n%.*s\n]%zu", STR2_F(colors), str2_len(colors));
 #endif
 
+    Str2Print p = {0};
+#if 1
+    str2_printal(str2("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed viverra felis vitae massa fringilla, in blandit est euismod. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Aenean consequat tincidunt volutpat. Suspendisse auctor eros lacus, quis consectetur urna rutrum nec. Maecenas eu lectus venenatis, aliquam libero vel, ornare nibh. Quisque sodales iaculis urna, ac venenatis est gravida eu. Morbi dignissim ac augue quis malesuada. Vestibulum aliquet dui porta ante accumsan, vel vestibulum massa commodo. In hac habitasse platea dictumst. Donec eget leo hendrerit, luctus nulla non, pulvinar nunc. Aliquam erat volutpat."), &p, 0, 50);
+    str2_println(str2(""));
+
+    str2_printal(str2("               lol                     "), &p, 0, 5);
+    str2_println(str2(""));
+
+    str2_printal(str2(F("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed viverra felis vitae massa fringilla, in blandit est euismod. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Aenean consequat tincidunt volutpat. Suspendisse auctor eros lacus, quis consectetur urna rutrum nec. Maecenas eu lectus venenatis, aliquam libero vel, ornare nibh. Quisque sodales iaculis urna, ac venenatis est gravida eu. Morbi dignissim ac augue quis malesuada. Vestibulum aliquet dui porta ante accumsan, vel vestibulum massa commodo. In hac habitasse platea dictumst.", FG_CY) " Donec eget leo hendrerit, luctus nulla non, pulvinar nunc. Aliquam erat volutpat."), &p, 0, 60);
+    str2_println(str2(""));
+#endif
+
+#if 1
+    Str2 crazystring = {0}, crazystring_in = str2("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed viverra felis vitae massa fringilla, in blandit est euismod. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Aenean consequat tincidunt volutpat. Suspendisse auctor eros lacus, quis consectetur urna rutrum nec. Maecenas eu lectus venenatis, aliquam libero vel, ornare nibh. Quisque sodales iaculis urna, ac venenatis est gravida eu. Morbi dignissim ac augue quis malesuada. Vestibulum aliquet dui porta ante accumsan, vel vestibulum massa commodo. In hac habitasse platea dictumst. Donec eget leo hendrerit, luctus nulla non, pulvinar nunc. Aliquam erat volutpat.");
+    memset(&p, 0, sizeof(p));
+    for(size_t i = 0; i < str2_len(crazystring_in); i += 3) {
+        Color col = {0};
+        col.rgba = rand();
+        Str2 snip = str2_i0iE(crazystring_in, i, i + 3 < str2_len(crazystring_in) ? i + 3 : str2_len(crazystring_in));
+        str2_fmt_fgbg(&crazystring, snip, col, COLOR_NONE, false, false, false);
+    }
+#endif
+
+#if 0
+    printf("index nof @ 0 -> %zu\n", str2_index_nof(crazystring, 0));
+    str2_println(str2_i0(crazystring, str2_index_nof(crazystring, 0)));
+
+    printf("index nof @ 1 -> %zu\n", str2_index_nof(crazystring, 1));
+    str2_println(str2_i0(crazystring, str2_index_nof(crazystring, 1)));
+
+    printf("index nof @ 2 -> %zu\n", str2_index_nof(crazystring, 2));
+    str2_println(str2_i0(crazystring, str2_index_nof(crazystring, 2)));
+
+    printf("index nof @ 3 -> %zu\n", str2_index_nof(crazystring, 3));
+    str2_println(str2_i0(crazystring, str2_index_nof(crazystring, 3)));
+
+    printf("index nof @ 4 -> %zu\n", str2_index_nof(crazystring, 4));
+    str2_println(str2_i0(crazystring, str2_index_nof(crazystring, 4)));
+
+    printf("index nof @ 5 -> %zu\n", str2_index_nof(crazystring, 5));
+    str2_println(str2_i0(crazystring, str2_index_nof(crazystring, 5)));
+
+    printf("index nof @ 6 -> %zu\n", str2_index_nof(crazystring, 6));
+    str2_println(str2_i0(crazystring, str2_index_nof(crazystring, 6)));
+#endif
+
+#if 1
+    str2_printal(crazystring, &p, 0, 50);
+    str2_println(str2(""));
+    //str2_printraw(crazystring);
 
     //str2_freeall(a, b, c, d, e);
+    str2_free(&crazystring);
+#endif
     str2_free(&colors);
     str2_free(&a);
     str2_free(&a);

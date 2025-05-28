@@ -99,6 +99,24 @@ Str2 str2_trimr(Str2 str) { /*{{{*/
     return result;
 } /*}}}*/
 
+Str2 str2_triml_nof(Str2 str) { /*{{{*/
+    size_t len = str2_len(str);
+    Str2 result = str2_ll(str.str, len);
+    for(size_t i = 0; i < len; ++i) {
+        size_t m, n = str2_find_f(str2_i0(result, 0), &m);
+        if(n < str2_len(result)) {
+            i += m;
+            result.str += (m);
+            result.len -= (m);
+        } else {
+            if(!isspace(str2_at(result, 0))) break;
+            ++result.str;
+            --result.len;
+        }
+    }
+    return result;
+} /*}}}*/
+
 Str2 str2_ensure_dir(Str2 str) { /*{{{*/
     // !!! str = str2_trim(str);
     size_t len = str2_len(str);
@@ -555,9 +573,12 @@ size_t str2_find_f(Str2 str, size_t *out_iE) { /*{{{*/
     size_t i0 = str2_find_substr(str, str2(FS_BEG), false);
     if(out_iE) {
         Str2 s = str2_i0(str, i0);
+        //printf(" find m: [");
+        //str2_printraw(s);
+        //printff("]");
         size_t iE = str2_find_ch(s, 'm');
         if(iE < str2_len(s)) ++iE;
-        *out_iE = iE;
+        *out_iE = i0 + iE;
     }
     return i0;
 } /*}}}*/
@@ -651,8 +672,20 @@ size_t str2_rfind_f(Str2 str, size_t *out_iE) { /*{{{*/
         Str2 s = str2_i0(str, i0);
         size_t iE = str2_rfind_ch(s, 'm');
         if(iE < str2_len(s)) ++iE;
-        *out_iE = iE;
+        *out_iE = i0 + iE;
     }
+    return i0;
+} /*}}}*/
+
+size_t str2_rfind_f0(Str2 str, Str2C *fmt) { /*{{{*/
+    size_t i0 = str2_rfind_substr(str, str2(FS_BEG), false);
+    Str2 s = str2_i0(str, i0);
+    size_t iE = str2_find_ch(s, 'm');
+    if(iE < str2_len(s)) ++iE;
+    s = str2_iE(s, iE);
+    //printf("<FMT:%.*s>",STR2_F(s));
+    if(!str2_cmpE(s, str2("[0m"))) str2_clear(&s);
+    if(fmt) *fmt = s;
     return i0;
 } /*}}}*/
 
@@ -766,23 +799,21 @@ size_t str2_splice(Str2 to_splice, Str2 *prev, char sep) { /*{{{*/
 } /*}}}*/
 
 size_t str2_index_nof(Str2 str, size_t index) {
+    size_t len = str2_len(str);
     size_t len_nof = 0;
-    size_t n = 0, m = 0;
+    size_t n = 0, m = 0, i = 0;
     Str2 snip = str;
-    Str2 pat = str2("\033[");
+    if(!index) return 0;
     for(;;) {
-        snip = str2_i0(snip, m);
-        n = str2_find_substr(snip, pat, false);
-        if(len_nof + n > index) {
-            return (index - len_nof);
+        snip = str2_i0(str, i);
+        n = str2_find_f(snip, &m);
+        if(len_nof + n >= index) {
+            //printff("DONE %zu + %zu - %zu", i, index, len_nof);
+            return i + (index - len_nof);
         }
-        if(n >= str2_len(snip)) break;
         len_nof += n;
-        snip = str2_i0(snip, n + str2_len(pat));
-        m = str2_find_ch(snip, 'm');
-        /*len -= (m + pat.last);*/
-        if(m++ >= str2_len(snip)) break;
-        /*len -= (bool)(m);*/
+        i += m;
+        if(i >= len) break;
     }
     return str2_len(str);
 }
@@ -1005,7 +1036,112 @@ size_t str2_writefunc(void *ptr, size_t size, size_t nmemb, Str2 *str) { /*{{{*/
     return size * nmemb;
 } /*}}}*/
 
-void vstr2_free_set(VStr2 *vstr) {
+void vstr2_free_set(VStr2 *vstr) { /*{{{*/
     ASSERT_ARG(vstr);
     array_free_set(*vstr, Str2, (ArrayFree)str2_free);
+} /*}}}*/
+
+void str2_print(Str2 str) { /*{{{*/
+    printf("%.*s", STR2_F(str));
+} /*}}}*/
+
+void str2_println(Str2 str) { /*{{{*/
+    printf("%.*s\n", STR2_F(str));
+} /*}}}*/
+
+void str2_printal(Str2 str, Str2Print *p, size_t i0, size_t iE) {
+    ASSERT_ARG(p);
+    if(iE <= i0) return;
+    size_t len = str2_len(str);
+    size_t w = iE - i0;
+    for(size_t j0 = 0; j0 < len; ) {
+        if(p->nl_pending) {
+            p->nl_pending = false;
+            printf("\n");
+        }
+        //if(jE > len) jE = len;
+        Str2 bufws = str2_triml(str2_i0(str, j0));
+        if(!str2_len(bufws)) break;
+        //printf("bufws[%.*s]", STR2_F(bufws));getchar();
+        //size_t nws = str2_find_nws(bufws);
+        //j0 += nws;
+        //jE += nws;
+        //if(jE > len) jE = len;
+        /* get the buffer to show */
+        size_t inof = str2_index_nof(bufws, w);
+        size_t jE = inof < str2_len(bufws) ? inof : str2_len(bufws);
+        Str2 buf = str2_iE(bufws, jE);
+        /* get the format */
+        Str2 fmt = {0};
+        size_t x = str2_rfind_f0(buf, &fmt);
+#if 0
+        size_t len_nof = w;
+        do {
+            //j0 += (w - len_nof);
+            buf = str2_i0iE(str, j0, jE);
+            jE += (w - len_nof);
+            //printf("get %zu,%zu/len %zu\n", j0,jE,len);
+            //printf("{%.*s@%zu:%zu}", STR2_F(buf), j0, jE);
+            len_nof = str2_len_nof(buf);
+            if(jE >= len) break;
+        } while(len_nof < w || jE >= len);
+        if(jE > len) jE = len;
+        //printf("get2 %zu,%zu/len %zu\n", j0,jE,len);
+        str2_i0iE(str, j0, jE);
+        printf("%zu",len_nof);
+#endif
+        printf("[");
+        str2_print(p->fmt);
+        //str2_printraw(buf);
+        //printf("|");
+        str2_print(buf);
+        if(str2_len(fmt) || str2_len(p->fmt)) printf("\033[0m");
+        printf("]");
+        printf("\n");
+        if(x < str2_len(buf)) {
+            p->fmt = fmt;
+        }
+#if 0
+        //printf("<%.*s@%zu:%zu>", STR2_F(buf), j0, jE);
+        if(str2_len(buf)) {
+            printf("[ ");
+            str2_printraw(p->fmt);
+            printf(" | ");
+            str2_printraw(buf);
+            //printf("%.*s", STR2_F(buf));
+#if 1
+            if(inof != w) {
+                printf("!!!!!FMT!!!!!");
+            }
+#else
+            if(len_nof != str2_len(buf)) {
+                //size_t fE, f0 = str2_rfind_f(buf, &fE);
+                p->fmt = str2_rfind_f0(buf);
+                j0 += str2_len(buf) - len_nof;
+                //if(f0 < str2_len(buf)) {
+                //    p->fmt = str2_i0iE(buf, f0, fE);
+                //}
+            }
+#endif
+            if(str2_len(p->fmt)) {
+                printf("\033[0m");
+            }
+            printf(" ]");
+            p->nl_pending = true;
+        }
+#endif
+        j0 += jE;
+    }
 }
+
+void str2_printraw(Str2 str) { /*{{{*/
+    for(size_t i = 0; i < str2_len(str); ++i) {
+        char c = str2_at(str, i);
+        if(c <= 0x1f) {
+            printf("\\x%2x", (unsigned char)c);
+        } else {
+            printf("%c", c);
+        }
+    }
+} /*}}}*/
+

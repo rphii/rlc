@@ -43,6 +43,7 @@ Str2C str2_i0iE(Str2 str, size_t i0, size_t iE);
 Str2C str2_trim(Str2 str);
 Str2C str2_triml(Str2 str);
 Str2C str2_trimr(Str2 str);
+Str2C str2_triml_nof(Str2 str);
 Str2C str2_ensure_dir(Str2 str);
 Str2C str2_get_ext(Str2 str);
 Str2C str2_get_noext(Str2 str);
@@ -118,7 +119,17 @@ void str2_extend(Str2 *str, Str2 extend);
 void str2_resize(Str2 *str, size_t len);
 void str2_zero(Str2 *str);
 
+typedef struct Str2Print {
+    size_t current;
+    bool nl_pending;
+    Str2 fmt;
+} Str2Print;
+
 size_t str2_writefunc(void *ptr, size_t size, size_t nmemb, Str2 *str);
+void str2_print(Str2 str);
+void str2_println(Str2 str);
+void str2_printal(Str2 str, Str2Print *p, size_t i0, size_t iE);
+void str2_printraw(Str2 str);
 
 void vstr2_free_set(VStr2 *vstr);
 
