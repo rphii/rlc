@@ -101,20 +101,20 @@ Str2 str2_trimr(Str2 str) { /*{{{*/
 
 Str2 str2_triml_nof(Str2 str) { /*{{{*/
     size_t len = str2_len(str);
+    size_t i0 = 0;
     Str2 result = str2_ll(str.str, len);
+    size_t m, n = str2_find_f(str2_i0(result, 0), &m);
+    //if(m + 1 < str2_len(result)
+    //printff("m %zu, n %zu",m,n);
     for(size_t i = 0; i < len; ++i) {
-        size_t m, n = str2_find_f(str2_i0(result, 0), &m);
-        if(n < str2_len(result)) {
-            i += m;
-            result.str += (m);
-            result.len -= (m);
-        } else {
-            if(!isspace(str2_at(result, 0))) break;
-            ++result.str;
-            --result.len;
-        }
+        //if(i >= n) {
+        //    if(str2_len(result))
+        //}
+        //if(i >= m) n = str2_find_f(str2_i0(result, 0), &m);
+        if(!isspace(str2_at(result, i))) break;
+        i0 ++;
     }
-    return result;
+    return str2_i0(result, i0);
 } /*}}}*/
 
 Str2 str2_ensure_dir(Str2 str) { /*{{{*/
@@ -1060,8 +1060,10 @@ void str2_printal(Str2 str, Str2Print *p, size_t i0, size_t iE) {
             printf("\n");
         }
         //if(jE > len) jE = len;
-        Str2 bufws = str2_triml(str2_i0(str, j0));
+        Str2 bufws = str2_triml_nof(str2_i0(str, j0));
         if(!str2_len(bufws)) break;
+        //printff("%p .. %p = %zu", bufws.str, str.str, bufws.str-str.str-j0);
+        j0 += bufws.str - str.str - j0;
         //printf("bufws[%.*s]", STR2_F(bufws));getchar();
         //size_t nws = str2_find_nws(bufws);
         //j0 += nws;
