@@ -20,8 +20,7 @@ FileTypeList file_get_type(Str2 filename) {
     return 0;
 }
 
-int file_is_dir(const Str2 filename)
-{
+int file_is_dir(const Str2 filename) {
     struct stat s;
     char path[FILE_PATH_MAX];
     str2_as_cstr(filename, path, FILE_PATH_MAX);
@@ -45,8 +44,7 @@ size_t file_size(Str2 filename) {/*{{{*/
     return result;
 }/*}}}*/
 
-int file_is_file(Str2 *filename)
-{
+int file_is_file(Str2 *filename) {
     struct stat s;
     char path[4094];
     str2_as_cstr(*filename, path, FILE_PATH_MAX);
@@ -56,8 +54,7 @@ int file_is_file(Str2 *filename)
     return 0;
 }
 
-int file_fp_write(FILE *file, Str2 *content)
-{
+int file_fp_write(FILE *file, Str2 *content) {
     if(!file) THROW("invalid filename");
     if(!content) THROW("invalid output buffer");
 
@@ -73,8 +70,7 @@ error:
     return -1;
 }
 
-int file_fp_read(FILE *file, Str2 *content)
-{
+int file_fp_read(FILE *file, Str2 *content) {
     if(!file) THROW("invalid filename");
     if(!content) THROW("invalid output buffer");
 
@@ -99,8 +95,7 @@ error:
     return -1;
 }
 
-int file_str_read(Str2 filename, Str2 *content)
-{
+int file_str_read(Str2 filename, Str2 *content) {
     int err = 0;
     FILE *file = 0;
     if(!content) THROW("invalid output buffer");
@@ -130,8 +125,7 @@ error: ERR_CLEAN;
 }
 
 #if 1
-int file_str2_write(Str2 filename, Str2 *content)
-{
+int file_str2_write(Str2 filename, Str2 *content) {
     int err = 0;
     FILE *file = 0;
     if(!content) THROW("invalid output buffer");

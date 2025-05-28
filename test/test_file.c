@@ -3,12 +3,14 @@
 int do_work(const Str2 file, void *p) {
     //str2_extend((Str2 *)p, file);
     //str2_push((Str2 *)p, '\n');
-    printff("%.*s", STR2_F(file));
+    //printff("%.*s", STR2_F(file));
+    printf("%s\n", file.str);
     return 0;
 }
 
 int main(void) {
 
+#if 0
     Str2 content = {0};
     try(file_str_read(str2("test_file.c"), &content));
     printff("%.*s", STR2_F(content));
@@ -21,7 +23,9 @@ int main(void) {
         str2_free(sub);
     }
     array_clear(subdirs);
+#endif
 
+    VStr2 subdirs = 0;
     Str2 out = {0};
     try(file_exec(str2("/home/rphii"), &subdirs, true, true, do_work, &out));
     while(array_len(subdirs)) {
@@ -32,7 +36,7 @@ int main(void) {
     printf("%.*s", STR2_F(out));
     
     array_free(subdirs);
-    str2_free(&content);
+    //str2_free(&content);
     str2_free(&out);
     return 0;
 }
