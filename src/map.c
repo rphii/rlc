@@ -218,7 +218,6 @@ void *_map_set(void *map MAP_DEBUG_DEFS, size_t size_val, void *key, size_t size
     if(!l->key.size) {
         map_error("cannot have a key size of zero");
     }
-    size_t size = size_val + l->key.size + sizeof(MapMeta);
     if(3 * l->used / 2 >= map_width_cap(l->width)) {
         *p = _map_grow2(*p MAP_DEBUG_ARGS, l->key.size, size_val, l->width + 2);
     }
