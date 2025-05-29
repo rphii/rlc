@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include "err.h"
-#include "str2.h"
+#include "str.h"
 
 typedef struct U8Point {
     uint32_t val;
@@ -13,8 +13,8 @@ typedef struct U8Point {
 
 typedef char U8Str[U8_CAP];
 
-void str_u8str(U8Str u8str, Str2 str);
-void u8str_rstr(Str2 *str, U8Str u8str);
+void str_u8str(U8Str u8str, Str str);
+void u8str_rstr(Str *str, U8Str u8str);
 
 #define ERR_cstr_to_u8_point(...) "failed conversion to u8 point"
 ErrDecl cstr_to_u8_point(U8Str in, U8Point *point);
