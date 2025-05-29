@@ -1001,10 +1001,9 @@ void str2_input(Str2 *str) { /*{{{*/
     fflush(stdin);
 } /*}}}*/
 
-Str2 str2_copy(Str2 str) { /*{{{*/
-    Str2 result = {0};
-    str2_extend(&result, str);
-    return result;
+void str2_copy(Str2 *copy, Str2 str) { /*{{{*/
+    str2_clear(copy);
+    str2_extend(copy, str);
 } /*}}}*/
 
 void str2_push(Str2 *str, char c) { /*{{{*/
@@ -1052,88 +1051,55 @@ void str2_println(Str2 str) { /*{{{*/
 void str2_printal(Str2 str, Str2Print *p, size_t i0, size_t iE) {
     ASSERT_ARG(p);
     if(iE <= i0) return;
+    bool first = true;
     size_t len = str2_len(str);
     size_t w = iE - i0;
+    size_t w0 = iE > p->progress ? iE - p->progress : w;
+    //printff("w0 %zu",w0);
+    size_t pad = i0 > p->progress ? i0 - p->progress : 0;
+    w0 -= pad;
+    //printff(".");getchar();
+    //printff("progress:%zu, pad:%zu, w0:%zu",p->progress,pad,w0);
+    printf("%*s", (int)pad, "");
+    p->progress += pad;
+    //printff(".");getchar();
     for(size_t j0 = 0; j0 < len; ) {
         if(p->nl_pending) {
             p->nl_pending = false;
+            p->progress = 0;
+            //printff("NL");
             printf("\n");
         }
         //if(jE > len) jE = len;
-        Str2 bufws = str2_triml_nof(str2_i0(str, j0));
+        Str2 bufws = first ? str : str2_triml_nof(str2_i0(str, j0));
         if(!str2_len(bufws)) break;
         //printff("%p .. %p = %zu", bufws.str, str.str, bufws.str-str.str-j0);
         j0 += bufws.str - str.str - j0;
-        //printf("bufws[%.*s]", STR2_F(bufws));getchar();
-        //size_t nws = str2_find_nws(bufws);
-        //j0 += nws;
-        //jE += nws;
-        //if(jE > len) jE = len;
-        /* get the buffer to show */
-        size_t inof = str2_index_nof(bufws, w);
+        size_t inof = str2_index_nof(bufws, first ? w0 : w);
         size_t jE = inof < str2_len(bufws) ? inof : str2_len(bufws);
         Str2 buf = str2_iE(bufws, jE);
+        size_t lnof = str2_len_nof(buf);
         /* get the format */
         Str2 fmt = {0};
         size_t x = str2_rfind_f0(buf, &fmt);
-#if 0
-        size_t len_nof = w;
-        do {
-            //j0 += (w - len_nof);
-            buf = str2_i0iE(str, j0, jE);
-            jE += (w - len_nof);
-            //printf("get %zu,%zu/len %zu\n", j0,jE,len);
-            //printf("{%.*s@%zu:%zu}", STR2_F(buf), j0, jE);
-            len_nof = str2_len_nof(buf);
-            if(jE >= len) break;
-        } while(len_nof < w || jE >= len);
-        if(jE > len) jE = len;
-        //printf("get2 %zu,%zu/len %zu\n", j0,jE,len);
-        str2_i0iE(str, j0, jE);
-        printf("%zu",len_nof);
-#endif
-        printf("[");
+        //printf("[");
+        if(!first) printf("%*s", (int)(i0), "");
+        if(!first) p->progress += i0;
         str2_print(p->fmt);
-        //str2_printraw(buf);
-        //printf("|");
         str2_print(buf);
         if(str2_len(fmt) || str2_len(p->fmt)) printf("\033[0m");
-        printf("]");
-        printf("\n");
+        //printf("]");
+        p->progress += lnof;
+        if(p->progress >= iE) {
+            p->nl_pending = true;
+        }
         if(x < str2_len(buf)) {
             p->fmt = fmt;
         }
-#if 0
-        //printf("<%.*s@%zu:%zu>", STR2_F(buf), j0, jE);
-        if(str2_len(buf)) {
-            printf("[ ");
-            str2_printraw(p->fmt);
-            printf(" | ");
-            str2_printraw(buf);
-            //printf("%.*s", STR2_F(buf));
-#if 1
-            if(inof != w) {
-                printf("!!!!!FMT!!!!!");
-            }
-#else
-            if(len_nof != str2_len(buf)) {
-                //size_t fE, f0 = str2_rfind_f(buf, &fE);
-                p->fmt = str2_rfind_f0(buf);
-                j0 += str2_len(buf) - len_nof;
-                //if(f0 < str2_len(buf)) {
-                //    p->fmt = str2_i0iE(buf, f0, fE);
-                //}
-            }
-#endif
-            if(str2_len(p->fmt)) {
-                printf("\033[0m");
-            }
-            printf(" ]");
-            p->nl_pending = true;
-        }
-#endif
         j0 += jE;
+        first = false;
     }
+    p->nl_pending = false;
 }
 
 void str2_printraw(Str2 str) { /*{{{*/

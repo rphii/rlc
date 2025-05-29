@@ -113,14 +113,15 @@ void str2_fmt_va(Str2 *str, const char *format, va_list va);
 void str2_fmt_fgbg(Str2 *out, Str2 text, Color fg, Color bg, bool bold, bool italic, bool underline);
 void str2_fmt_fgbga(Str2 *out, Str2 text, Color fg, Color bg, bool bold, bool italic, bool underline);
 void str2_input(Str2 *str);
-Str2 str2_copy(Str2 str);
+//Str2 str2_copy(Str2 str);
+void str2_copy(Str2 *copy, Str2 str);
 void str2_push(Str2 *str, char c);
 void str2_extend(Str2 *str, Str2 extend);
 void str2_resize(Str2 *str, size_t len);
 void str2_zero(Str2 *str);
 
 typedef struct Str2Print {
-    size_t current;
+    size_t progress;
     bool nl_pending;
     Str2 fmt;
 } Str2Print;
