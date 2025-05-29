@@ -44,25 +44,25 @@ const char *arglist_str(ArgList id) {
 }
 
 typedef struct ArgBase {
-    Str2 program;           // program name
-    Str2 desc;              // description of program
-    Str2 epilog;            // text below argument help
+    Str program;           // program name
+    Str desc;              // description of program
+    Str epilog;            // text below argument help
     unsigned char prefix;   // default: -
     unsigned char flag_sep; // default: ,
     bool show_help;         // display help if no arguments provided
-    VStr2 *rest_vec;
-    Str2 rest_desc;
+    VStr *rest_vec;
+    Str rest_desc;
 } ArgBase;
 
 typedef union ArgXVal {
-    Str2C *s;            // string
+    StrC *s;            // string
     ssize_t *z;         // number
     int *i;             // number
     double *f;          // double
     bool *b;            // bool
     void *x;            // exotic
     int e;              // enum
-    VStr2C *v;           // vector
+    VStrC *v;           // vector
 } ArgXVal;
 
 typedef struct ArgXCallback {
@@ -84,7 +84,7 @@ typedef struct ArgX { /*{{{*/
     ArgXVal val;
     ArgXVal ref;
     int e; // enum
-    Str2C type;
+    StrC type;
     struct ArgXGroup *o; // option
     struct ArgXGroup *group; // required for options / parent group
     struct {
@@ -95,8 +95,8 @@ typedef struct ArgX { /*{{{*/
     } attr;
     struct {
         const unsigned char c;
-        const Str2 opt;
-        const Str2 desc;
+        const Str opt;
+        const Str desc;
     } info;
 
 } ArgX; /*}}}*/
@@ -105,8 +105,8 @@ void argx_free(struct ArgX *argx);
 void argx_group_free(struct ArgXGroup *group);
 
 #include "lut.h"
-LUT_INCLUDE(TArgX, targx, Str2, BY_VAL, struct ArgX, BY_REF);
-LUT_IMPLEMENT(TArgX, targx, Str2, BY_VAL, struct ArgX, BY_REF, str2_dhash, str2_cmp, 0, argx_free);
+LUT_INCLUDE(TArgX, targx, Str, BY_VAL, struct ArgX, BY_REF);
+LUT_IMPLEMENT(TArgX, targx, Str, BY_VAL, struct ArgX, BY_REF, str_dhash, str_cmp, 0, argx_free);
 //typedef struct ArgX *TArgX;
 
 int argx_cmp_index(ArgX *a, ArgX *b) {
@@ -126,7 +126,7 @@ VEC_IMPLEMENT(VArgX, vargx, ArgX *, BY_VAL, SORT, argx_cmp_index);
 typedef struct ArgXGroup {
     VArgX vec;
     TArgX lut;
-    Str2C desc;
+    StrC desc;
     struct Arg *root; // required literally only for assigning short options
     struct ArgX *parent; // required for options
 } ArgXGroup;
@@ -144,11 +144,11 @@ typedef struct ArgParse {
         ArgX *x;
     } help;
     struct {
-        VStr2 *vec;
-        Str2 desc;
+        VStr *vec;
+        Str desc;
         ArgXGroup *pos;
     } rest;
-    Str2C config;
+    StrC config;
 } ArgParse;
 
 typedef enum {
@@ -174,11 +174,11 @@ typedef struct ArgPrint {
     int pad;        // current padding
     //int progress;   // how many characters already printed on line
     int relevant;   // 
-    Str2 line;       // current line
-    Str2 buf;        // temporary buffer
+    Str line;       // current line
+    Str buf;        // temporary buffer
     bool wrapped;   // wheter or not the last line was wrapped
     ArgPrintList prev;  // previous print thing
-    Str2Print p_al;
+    StrPrint p_al;
 } ArgPrint;
 
 typedef struct Arg {
@@ -222,7 +222,7 @@ ArgXGroup *arg_opt(Arg *arg) {
     return &arg->opt;
 }
 
-void arg_init(struct Arg *arg, Str2 program, Str2 description, Str2 epilog) {
+void arg_init(struct Arg *arg, Str program, Str description, Str epilog) {
     ASSERT_ARG(arg);
     arg->base.program = program;
     arg->base.desc = description;
@@ -230,9 +230,9 @@ void arg_init(struct Arg *arg, Str2 program, Str2 description, Str2 epilog) {
     arg->base.prefix = ARG_INIT_DEFAULT_PREFIX;
     arg->base.show_help = ARG_INIT_DEFAULT_SHOW_HELP;
     arg->base.flag_sep = ARG_INIT_DEFAULT_FLAG_SEP;
-    arg->pos.desc = str2("Usage");
-    arg->opt.desc = str2("Options");
-    arg->env.desc = str2("Environment Variables");
+    arg->pos.desc = str("Usage");
+    arg->opt.desc = str("Options");
+    arg->env.desc = str("Environment Variables");
     arg->opt.root = arg;
     arg->parse.base = &arg->base;
     arg->print.bounds.c = 2;
@@ -264,13 +264,13 @@ void arg_init_prefix(struct Arg *arg, unsigned char prefix) {
     arg->base.prefix = prefix;
 }
 
-void arg_init_rest(struct Arg *arg, Str2 description, VStr2 *rest) {
+void arg_init_rest(struct Arg *arg, Str description, VStr *rest) {
     ASSERT_ARG(arg);
     arg->base.rest_vec = rest;
     arg->base.rest_desc = description;
 }
 
-void arg_init_pipe(struct Arg *arg, VStr2 *out, pthread_mutex_t *mutex) {
+void arg_init_pipe(struct Arg *arg, VStr *out, pthread_mutex_t *mutex) {
     ASSERT_ARG(arg);
     ASSERT_ARG(out);
     ASSERT_ARG(mutex);
@@ -281,21 +281,21 @@ ErrDecl argx_group_push(ArgXGroup *group, ArgX *in, ArgX **out) {
     ASSERT_ARG(group);
     ASSERT_ARG(in);
     TArgXKV *xkv = targx_once(&group->lut, in->info.opt, in);
-    if(!xkv) THROW("option '%.*s' already exists!", STR2_F(in->info.opt));
+    if(!xkv) THROW("option '%.*s' already exists!", STR_F(in->info.opt));
     TRYG(vargx_push_back(&group->vec, xkv->val));
     //return xkv->val;
     if(out) *out = xkv->val;
     return 0;
 error:
-    //ABORT("critical error in " F("[%.*s]", BOLD) " -- aborting", STR2_STR2_F(group->desc));
+    //ABORT("critical error in " F("[%.*s]", BOLD) " -- aborting", STR_STR_F(group->desc));
     return -1;
 }
 
-struct ArgX *argx_init(struct ArgXGroup *group, const unsigned char c, Str2C optX, Str2C descX) {
+struct ArgX *argx_init(struct ArgXGroup *group, const unsigned char c, StrC optX, StrC descX) {
     ASSERT_ARG(group);
-    Str2 opt = str2_trim(optX);
-    Str2 desc = str2_trim(descX);
-    if(!str2_len(opt)) ABORT("cannot add an empty long-opt argument");
+    Str opt = str_trim(optX);
+    Str desc = str_trim(descX);
+    if(!str_len(opt)) ABORT("cannot add an empty long-opt argument");
     ArgX x = {
         .info = {c, opt, desc},
         .group = group,
@@ -303,14 +303,14 @@ struct ArgX *argx_init(struct ArgXGroup *group, const unsigned char c, Str2C opt
     ArgX *argx = 0;
     TRYC(argx_group_push(group, &x, &argx));
     if(c) {
-        if(!group->root) ABORT("cannot specify short option '%c' for '%.*s'", c, STR2_F(opt));
+        if(!group->root) ABORT("cannot specify short option '%c' for '%.*s'", c, STR_F(opt));
         ArgX *xx = group->root->opt_short[c];
-        if(xx) ABORT("already specified short option '%c' for '%.*s'; cannot set for '%.*s' as well.", c, STR2_F(xx->info.opt), STR2_F(opt));
+        if(xx) ABORT("already specified short option '%c' for '%.*s'; cannot set for '%.*s' as well.", c, STR_F(xx->info.opt), STR_F(opt));
         group->root->opt_short[c] = argx;
     }
     return argx;
 error:
-    ABORT("critical error in " F("[%.*s]", BOLD) " -- aborting", STR2_F(group->desc));
+    ABORT("critical error in " F("[%.*s]", BOLD) " -- aborting", STR_F(group->desc));
     return 0;
 }
 
@@ -318,7 +318,7 @@ error:
 
 /* 1) ASSIGN MAIN ID {{{ */
 
-void argx_str(ArgX *x, Str2 *val, Str2 *ref) {
+void argx_str(ArgX *x, Str *val, Str *ref) {
     ASSERT_ARG(x);
     ASSERT_ARG(val);
     x->id = ARG_STRING;
@@ -360,7 +360,7 @@ void argx_flag_set(ArgX *x, bool *val, bool *ref) {
     x->val.b = val;
     x->ref.b = ref;
 }
-void argx_type(struct ArgX *x, Str2C type) {
+void argx_type(struct ArgX *x, StrC type) {
     ASSERT_ARG(x);
     x->type = type;
 }
@@ -368,7 +368,7 @@ void argx_none(ArgX *x) {
     ASSERT_ARG(x);
     x->id = ARG_NONE;
 }
-void argx_vstr(struct ArgX *x, VStr2 *val, VStr2 *ref) {
+void argx_vstr(struct ArgX *x, VStr *val, VStr *ref) {
     ASSERT_ARG(x);
     ASSERT_ARG(val);
     x->id = ARG_VECTOR;
@@ -405,13 +405,13 @@ void argx_help(struct ArgX *x, struct Arg *arg) {
     x->attr.callback.priority = 1;
 }
 
-struct ArgX *argx_pos(struct Arg *arg, Str2 opt, Str2 desc) {
+struct ArgX *argx_pos(struct Arg *arg, Str opt, Str desc) {
     ASSERT_ARG(arg);
     ArgX *x = argx_init(&arg->pos, 0, opt, desc);
     return x;
 }
 
-void argx_env(struct Arg *arg, Str2C opt, Str2C desc, Str2C *val, Str2C *ref, bool hide_value) {
+void argx_env(struct Arg *arg, StrC opt, StrC desc, StrC *val, StrC *ref, bool hide_value) {
     ASSERT_ARG(arg);
     ASSERT_ARG(val);
     ArgX *x = argx_init(&arg->env, 0, opt, desc);
@@ -427,21 +427,21 @@ void argx_env(struct Arg *arg, Str2C opt, Str2C desc, Str2C *val, Str2C *ref, bo
 
 void argx_int_mm(ArgX *x, int min, int max) {
     ASSERT_ARG(x);
-    if(x->id != ARG_INT) ABORT("wrong argx type in '%.*s' to set min/max: %s", STR2_F(x->info.opt), arglist_str(x->id));
+    if(x->id != ARG_INT) ABORT("wrong argx type in '%.*s' to set min/max: %s", STR_F(x->info.opt), arglist_str(x->id));
     x->attr.min.i = min;
     x->attr.max.i = max;
 }
 
 void argx_ssz_mm(ArgX *x, ssize_t min, ssize_t max) {
     ASSERT_ARG(x);
-    if(x->id != ARG_SSZ) ABORT("wrong argx type in '%.*s' to set min/max: %s", STR2_F(x->info.opt), arglist_str(x->id));
+    if(x->id != ARG_SSZ) ABORT("wrong argx type in '%.*s' to set min/max: %s", STR_F(x->info.opt), arglist_str(x->id));
     x->attr.min.z = min;
     x->attr.max.z = max;
 }
 
 void argx_dbl_mm(ArgX *x, double min, double max) {
     ASSERT_ARG(x);
-    if(x->id != ARG_FLOAT) ABORT("wrong argx type in '%.*s' to set min/max: %s", STR2_F(x->info.opt), arglist_str(x->id));
+    if(x->id != ARG_FLOAT) ABORT("wrong argx type in '%.*s' to set min/max: %s", STR_F(x->info.opt), arglist_str(x->id));
     x->attr.min.f = min;
     x->attr.max.f = max;
 }
@@ -457,13 +457,13 @@ void argx_func(struct ArgX *x, size_t priority, void *func, void *data, bool qui
 void argx_opt_enum(struct ArgX *x, int val) {
     ASSERT_ARG(x);
     if(!(x->group && x->group->parent) || x->group->parent->id != ARG_OPTION) {
-        ABORT("can only set enums to child nodes of options " F("[%.*s]", BOLD), STR2_F(x->info.opt));
+        ABORT("can only set enums to child nodes of options " F("[%.*s]", BOLD), STR_F(x->info.opt));
     }
     if(!x->group->parent->val.i) {
-        ABORT("parent " F("[%.*s]", BOLD) " has to be assigned to an enum", STR2_F(x->group->parent->info.opt));
+        ABORT("parent " F("[%.*s]", BOLD) " has to be assigned to an enum", STR_F(x->group->parent->info.opt));
     }
     x->e = val;
-    //printff("SET [%.*s] ENUM TO %i", STR2_F(x->info.opt), val);
+    //printff("SET [%.*s] ENUM TO %i", STR_F(x->info.opt), val);
 }
 void argx_hide_value(struct ArgX *x, bool hide_value) {
     ASSERT_ARG(x);
@@ -478,29 +478,29 @@ void argx_hide_value(struct ArgX *x, bool hide_value) {
 
 void arg_do_print(Arg *arg, int endline) {
     ASSERT_ARG(arg);
-    Str2 content = arg->print.line;
-    str2_printal(content, &arg->print.p_al, arg->print.pad, arg->print.bounds.max);
+    Str content = arg->print.line;
+    str_printal(content, &arg->print.p_al, arg->print.pad, arg->print.bounds.max);
     for(int i = 0; i < endline; ++i) {
         printf("\n");
         arg->print.p_al.progress = 0;
     }
-    str2_clear(&arg->print.line);
+    str_clear(&arg->print.line);
 }
 
 void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
     ASSERT_ARG(arg);
     ASSERT_ARG(format);
     /* start string fmt */
-    str2_clear(&arg->print.buf);
+    str_clear(&arg->print.buf);
     va_list argp;
     va_start(argp, format);
-    str2_fmt_va(&arg->print.buf, format, argp);
+    str_fmt_va(&arg->print.buf, format, argp);
     va_end(argp);
     /* do padding */
     switch(id) {
         case ARG_PRINT_NONE: {
             arg->print.pad = 0;
-            str2_extend(&arg->print.line, arg->print.buf);
+            str_extend(&arg->print.line, arg->print.buf);
             arg_do_print(arg, 0);
             arg->print.p_al.progress = 0;
         } break;
@@ -513,46 +513,46 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
         /* special cases */
         case ARG_PRINT_TYPE: {
             if(arg->print.prev == ARG_PRINT_LONG) {
-                str2_copy(&arg->print.line, str2(" "));
+                str_copy(&arg->print.line, str(" "));
                 arg_do_print(arg, 0);
-                str2_clear(&arg->print.line);
+                str_clear(&arg->print.line);
                 arg->print.pad = arg->print.bounds.opt + 2;
             }
-            str2_extend(&arg->print.line, arg->print.buf);
+            str_extend(&arg->print.line, arg->print.buf);
         } break;
         case ARG_PRINT_DESC: {
             if(arg->print.prev == ARG_PRINT_TYPE) {
                 arg_do_print(arg, 0);
                 if(arg->print.p_al.progress + 1 > arg->print.bounds.desc) {
-                    str2_copy(&arg->print.line, str2(""));
+                    str_copy(&arg->print.line, str(""));
                     arg_do_print(arg, 1);
                     arg->print.pad = arg->print.bounds.opt + 4;
                 } else {
-                    str2_fmt(&arg->print.line, " ");
+                    str_fmt(&arg->print.line, " ");
                     arg_do_print(arg, 0);
                     arg->print.pad = arg->print.bounds.desc;
                 }
             } else {
                 arg->print.pad = arg->print.bounds.desc;
             }
-            str2_clear(&arg->print.line);
-            str2_extend(&arg->print.line, arg->print.buf);
+            str_clear(&arg->print.line);
+            str_extend(&arg->print.line, arg->print.buf);
             arg_do_print(arg, false);
         } break;
         case ARG_PRINT_VALUE: {
             if(arg->print.prev == ARG_PRINT_DESC) {
-                str2_copy(&arg->print.line, str2(" "));
+                str_copy(&arg->print.line, str(" "));
                 arg_do_print(arg, false);
                 arg->print.pad = arg->print.bounds.desc;
-                str2_clear(&arg->print.line);
+                str_clear(&arg->print.line);
             }
-            str2_extend(&arg->print.line, arg->print.buf);
+            str_extend(&arg->print.line, arg->print.buf);
         } break;
         case ARG_PRINT__ENDLINE: {
             arg_do_print(arg, 1);
         } break;
         ARG_PRINT__KEEPLINE: {
-            str2_extend(&arg->print.line, arg->print.buf);
+            str_extend(&arg->print.line, arg->print.buf);
             arg_do_print(arg, 0);
         } break;
         case ARG_PRINT__LENGTH: ABORT(ERR_UNREACHABLE);
@@ -570,8 +570,8 @@ void argx_print_pre(Arg *arg, ArgX *argx) { /*{{{*/
         case ARG_BOOL:
         case ARG_VECTOR:
         case ARG_FLOAT: {
-            if(str2_len(argx->type)) {
-                arg_handle_print(arg, ARG_PRINT_TYPE, F("<%.*s>", ARG_TYPE_F), STR2_F(argx->type));
+            if(str_len(argx->type)) {
+                arg_handle_print(arg, ARG_PRINT_TYPE, F("<%.*s>", ARG_TYPE_F), STR_F(argx->type));
             } else {
                 arg_handle_print(arg, ARG_PRINT_TYPE, F("%s", ARG_TYPE_F), arglist_str(argx->id));
             }
@@ -584,9 +584,9 @@ void argx_print_pre(Arg *arg, ArgX *argx) { /*{{{*/
                     if(i) arg_handle_print(arg, ARG_PRINT_TYPE, F("|", ARG_OPTION_F));
                     ArgX *x = vargx_get_at(&g->vec, i);
                     if(g && g->parent && g->parent->val.i && *g->parent->val.i == x->e) {
-                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_OPTION_F UL), STR2_F(x->info.opt));
+                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_OPTION_F UL), STR_F(x->info.opt));
                     } else {
-                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_OPTION_F), STR2_F(x->info.opt));
+                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_OPTION_F), STR_F(x->info.opt));
                     }
                 }
                 arg_handle_print(arg, ARG_PRINT_TYPE, F(">", ARG_OPTION_F));
@@ -601,11 +601,11 @@ void argx_print_pre(Arg *arg, ArgX *argx) { /*{{{*/
                     ArgX *x = vargx_get_at(&g->vec, i);
                     ASSERT_ARG(x->group);
                     ASSERT_ARG(x->group->parent);
-                    ASSERT(x->id == ARG_FLAG, "the option [%.*s] in [--%.*s] should be set as a %s", STR2_F(x->info.opt), STR2_F(x->group->parent->info.opt), arglist_str(ARG_FLAG));
+                    ASSERT(x->id == ARG_FLAG, "the option [%.*s] in [--%.*s] should be set as a %s", STR_F(x->info.opt), STR_F(x->group->parent->info.opt), arglist_str(ARG_FLAG));
                     if(*x->val.b) {
-                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_FLAG_F UL), STR2_F(x->info.opt));
+                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_FLAG_F UL), STR_F(x->info.opt));
                     } else {
-                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_FLAG_F), STR2_F(x->info.opt));
+                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_FLAG_F), STR_F(x->info.opt));
                     }
                 }
                 arg_handle_print(arg, ARG_PRINT_TYPE, F(">", ARG_FLAG_F));
@@ -633,8 +633,8 @@ void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
     switch(argx->id) {
         case ARG_ENV:
         case ARG_STRING: {
-            if(val->s && str2_len(*val->s)) {
-                arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%.*s", ARG_VAL_F), STR2_F(*val->s));
+            if(val->s && str_len(*val->s)) {
+                arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%.*s", ARG_VAL_F), STR_F(*val->s));
             } else {
                 arg_handle_print(arg, ARG_PRINT_VALUE, "");
             }
@@ -653,9 +653,9 @@ void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
             if(val->v && array_len(*val->v)) {
                 arg_handle_print(arg, ARG_PRINT_VALUE, F("=[", ARG_F_SEP));
                 for(size_t i = 0; val->v && i < array_len(*val->v); ++i) {
-                    Str2 *s = array_it(*val->v, i);
+                    Str *s = array_it(*val->v, i);
                     if(i) arg_handle_print(arg, ARG_PRINT_VALUE, F(",", ARG_F_SEP));
-                    arg_handle_print(arg, ARG_PRINT_VALUE, F("%.*s", ARG_VAL_F), STR2_F(*s));
+                    arg_handle_print(arg, ARG_PRINT_VALUE, F("%.*s", ARG_VAL_F), STR_F(*s));
                 }
                 arg_handle_print(arg, ARG_PRINT_VALUE, F("]", ARG_F_SEP));
             } else {
@@ -692,21 +692,21 @@ void argx_print(Arg *arg, ArgX *x, bool detailed) { /*{{{*/
         arg_handle_print(arg, ARG_PRINT_SHORT, F("%c%c", BOLD FG_WT_B), pfx, x->info.c);
     }
     /* print long form (should always be available) */
-    //printff("[%.*s] %s group %p", STR2_F(x->info.opt), arglist_str(x->id), x->group);
+    //printff("[%.*s] %s group %p", STR_F(x->info.opt), arglist_str(x->id), x->group);
     if(x->group && x->group == &arg->pos) {
-        arg_handle_print(arg, ARG_PRINT_LONG, F("%.*s", IT), STR2_F(x->info.opt));
+        arg_handle_print(arg, ARG_PRINT_LONG, F("%.*s", IT), STR_F(x->info.opt));
     } else if(x->id == ARG_ENV) {
-        arg_handle_print(arg, ARG_PRINT_SHORT, F("%.*s", ARG_F_ENV), STR2_F(x->info.opt));
+        arg_handle_print(arg, ARG_PRINT_SHORT, F("%.*s", ARG_F_ENV), STR_F(x->info.opt));
     } else if(x->group && x->group->parent) {
-        arg_handle_print(arg, ARG_PRINT_LONG, F("  %.*s", BOLD FG_WT_B), STR2_F(x->info.opt));
+        arg_handle_print(arg, ARG_PRINT_LONG, F("  %.*s", BOLD FG_WT_B), STR_F(x->info.opt));
     } else {
-        arg_handle_print(arg, ARG_PRINT_LONG, F("%c%c%.*s", BOLD FG_WT_B), pfx, pfx, STR2_F(x->info.opt));
+        arg_handle_print(arg, ARG_PRINT_LONG, F("%c%c%.*s", BOLD FG_WT_B), pfx, pfx, STR_F(x->info.opt));
     }
     //arg_handle_print(arg, ARG_PRINT_DESC, " ");
     argx_print_pre(arg, x);
     /* print description */
-    if(str2_len(x->info.desc)) {
-        arg_handle_print(arg, ARG_PRINT_DESC, "%.*s", STR2_F(x->info.desc));
+    if(str_len(x->info.desc)) {
+        arg_handle_print(arg, ARG_PRINT_DESC, "%.*s", STR_F(x->info.desc));
     }
     bool is_detailed_option = false;
     if(detailed && x->id == ARG_OPTION && x->o) {
@@ -752,7 +752,7 @@ void argx_print_specific(Arg *arg, ArgParse *parse, ArgX *x) { /*{{{*/
         if(x->group->parent) {
             argx_print_specific(arg, parse, x->group->parent);
         } else {
-            arg_handle_print(arg, ARG_PRINT_NONE, F("%.*s:", BOLD UL), STR2_F(x->group->desc));
+            arg_handle_print(arg, ARG_PRINT_NONE, F("%.*s:", BOLD UL), STR_F(x->group->desc));
             arg_do_print(arg, 1);
         }
     }
@@ -766,22 +766,22 @@ void argx_group_print(Arg *arg, ArgXGroup *group) { /*{{{*/
     if(!vargx_length(group->vec) && !(group == &arg->pos)) {
         return;
     }
-    if(str2_len(group->desc)) {
-        arg_handle_print(arg, ARG_PRINT_NONE, F("%.*s:", BOLD UL), STR2_F(group->desc));
+    if(str_len(group->desc)) {
+        arg_handle_print(arg, ARG_PRINT_NONE, F("%.*s:", BOLD UL), STR_F(group->desc));
         arg_do_print(arg, 1);
     }
     if(group == &arg->pos) {
         arg_handle_print(arg, ARG_PRINT_SHORT, F("%s", BOLD), arg->parse.argv[0]);
         for(size_t i = 0; i < vargx_length(group->vec); ++i) {
             ArgX *x = vargx_get_at(&group->vec, i);
-            arg_handle_print(arg, ARG_PRINT_SHORT, " %.*s", STR2_F(x->info.opt));
+            arg_handle_print(arg, ARG_PRINT_SHORT, " %.*s", STR_F(x->info.opt));
             //argx_print(arg, x, false);
         }
         if(vargx_length(arg->opt.vec)) {
             arg_handle_print(arg, ARG_PRINT_SHORT, " " F("[options]", BOLD FG_CY));
         }
-        if(str2_len(arg->base.rest_desc)) {
-            arg_handle_print(arg, ARG_PRINT_SHORT, " " F("%.*s", BOLD FG_MG_B), STR2_F(arg->base.rest_desc));
+        if(str_len(arg->base.rest_desc)) {
+            arg_handle_print(arg, ARG_PRINT_SHORT, " " F("%.*s", BOLD FG_MG_B), STR_F(arg->base.rest_desc));
         }
         arg_do_print(arg, 1);
     }
@@ -807,20 +807,20 @@ int arg_help(struct Arg *arg) { /*{{{*/
         argx_print_specific(arg, &arg->parse, arg->parse.help.x);
     } else {
         /* default help */
-        arg_handle_print(arg, ARG_PRINT_NONE, F("%.*s:", BOLD) " %.*s", STR2_F(arg->base.program), STR2_F(arg->base.desc));
+        arg_handle_print(arg, ARG_PRINT_NONE, F("%.*s:", BOLD) " %.*s", STR_F(arg->base.program), STR_F(arg->base.desc));
         printf("\n");
         argx_group_print(arg, &arg->pos);
         argx_group_print(arg, &arg->opt);
         argx_group_print(arg, &arg->env);
-        if(str2_len(arg->base.epilog)) {
-            arg_handle_print(arg, ARG_PRINT_NONE, "%.*s", STR2_F(arg->base.epilog));
+        if(str_len(arg->base.epilog)) {
+            arg_handle_print(arg, ARG_PRINT_NONE, "%.*s", STR_F(arg->base.epilog));
             printf("\n");
         }
     }
     return 0;
 } /*}}}*/
 
-void arg_config(struct Arg *arg, Str2C conf) {
+void arg_config(struct Arg *arg, StrC conf) {
     ASSERT_ARG(arg);
     arg->parse.config = conf;
 }
@@ -847,12 +847,12 @@ RStr arg_info_opt(struct Arg *arg, void *x) {
 
 /* PARSING FUNCTIONS {{{ */
 
-#define ERR_arg_parse_getopt(group, ...) "failed getting option for " F("[%.*s]", BOLD), STR2_F((group)->desc)
-ErrDecl arg_parse_getopt(ArgXGroup *group, ArgX **x, Str2C opt) {
+#define ERR_arg_parse_getopt(group, ...) "failed getting option for " F("[%.*s]", BOLD), STR_F((group)->desc)
+ErrDecl arg_parse_getopt(ArgXGroup *group, ArgX **x, StrC opt) {
     ASSERT_ARG(group);
     ASSERT_ARG(x);
     *x = targx_get(&group->lut, opt);
-    if(!*x) THROW("value " F("%.*s", FG_BL_B) " is not a valid option", STR2_F(opt));
+    if(!*x) THROW("value " F("%.*s", FG_BL_B) " is not a valid option", STR_F(opt));
     return 0;
 error:
     return -1;
@@ -870,22 +870,22 @@ error:
 }
 
 #define ERR_arg_parse_getv(...) "failed getting an argument"
-ErrDecl arg_parse_getv(ArgParse *parse, Str2 *argV, bool *need_help) {
+ErrDecl arg_parse_getv(ArgParse *parse, Str *argV, bool *need_help) {
     ASSERT_ARG(parse);
     ASSERT_ARG(parse->argv);
     ASSERT_ARG(argV);
     unsigned int pfx = parse->base->prefix;
-    Str2C result;
+    StrC result;
 repeat:
     if(parse->i < parse->argc) {
         char *argv = parse->argv[parse->i++];
-        result = str2_l(argv);
-        if(!parse->force_done_parsing && str2_len(result) == 2 && str2_at(result, 0) == pfx && str2_at(result, 1) == pfx) {
+        result = str_l(argv);
+        if(!parse->force_done_parsing && str_len(result) == 2 && str_at(result, 0) == pfx && str_at(result, 1) == pfx) {
             parse->force_done_parsing = true;
             goto repeat;
         }
         *argV = result;
-        //printff("GOT ARGUMENT %.*s", STR2_F(*argV));
+        //printff("GOT ARGUMENT %.*s", STR_F(*argV));
     } else {
         if(parse->force_done_parsing) {
         } else if(!parse->help.get) {
@@ -916,19 +916,19 @@ bool argx_parse_is_origin_from_pos(ArgParse *parse, ArgX *argx) {
     return argx_parse_is_origin_from_pos(parse, argx->group->parent);
 }
 
-#define ERR_argx_parse(parse, argx, ...) "failed parsing argument " F("[%.*s]", BOLD FG_WT_B) " " F("%s", ARG_TYPE_F), STR2_F(argx->info.opt), arglist_str(argx->id)
+#define ERR_argx_parse(parse, argx, ...) "failed parsing argument " F("[%.*s]", BOLD FG_WT_B) " " F("%s", ARG_TYPE_F), STR_F(argx->info.opt), arglist_str(argx->id)
 ErrDecl argx_parse(ArgParse *parse, ArgX *argx, bool *quit_early) {
     ASSERT_ARG(parse);
     ASSERT_ARG(argx);
-    //printff("PARSE [%.*s]", STR2_F(argx->info.opt));
+    //printff("PARSE [%.*s]", STR_F(argx->info.opt));
     /* add to queue for post processing */
     TRYG(vargx_push_back(&parse->queue, argx));
-    Str2C argV = str2("");
+    StrC argV = str("");
     /* check if we want to get help for this */
     if(parse->help.get) {
         if(!parse->help.x || (argx->group ? parse->help.x == argx->group->parent : false)) {
             parse->help.x = argx;
-            //printff("GETTING HELP [%.*s]", STR2_F(parse->help.x->info.opt));
+            //printff("GETTING HELP [%.*s]", STR_F(parse->help.x->info.opt));
         }
     }
     /* check enum / option */
@@ -939,13 +939,13 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx, bool *quit_early) {
     }
     /* actually begin parsing */
     bool need_help = false;
-    //printff("SETTING VALUE FOR %.*s", STR2_F(argx->info.opt));
+    //printff("SETTING VALUE FOR %.*s", STR_F(argx->info.opt));
     switch(argx->id) {
         case ARG_BOOL: { //printff("GET VALUE FOR BOOL");
             if(parse->i < parse->argc) {
-                TRYC(arg_parse_getv(parse, &argV, &need_help)); //printff("GOT VALUE [%.*s]", STR2_F(argV));
+                TRYC(arg_parse_getv(parse, &argV, &need_help)); //printff("GOT VALUE [%.*s]", STR_F(argV));
                 if(need_help) break;
-                if(str2_as_bool(argV, argx->val.b)) {
+                if(str_as_bool(argV, argx->val.b)) {
                     *argx->val.b = true;
                     arg_parse_getv_undo(parse);
                 }
@@ -959,19 +959,19 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx, bool *quit_early) {
         case ARG_SSZ: {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
             if(need_help) break;
-            TRYC(str2_as_ssize(argV, argx->val.z, 0));
+            TRYC(str_as_ssize(argV, argx->val.z, 0));
         } break;
         case ARG_INT: {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
             if(need_help) break;
             ssize_t z = 0;
-            TRYC(str2_as_ssize(argV, &z, 0));
+            TRYC(str_as_ssize(argV, &z, 0));
             *argx->val.i = (int)z;
         } break;
         case ARG_FLOAT: {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
             if(need_help) break;
-            TRYC(str2_as_double(argV, argx->val.f));
+            TRYC(str_as_double(argV, argx->val.f));
         } break;
         case ARG_STRING: {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
@@ -1002,7 +1002,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx, bool *quit_early) {
                 ArgX *x = vargx_get_at(&argx->o->vec, i);
                 *x->val.b = false;
             }
-            for(Str2 flag = {0}; str2_splice(argV, &flag, parse->base->flag_sep); ) {
+            for(Str flag = {0}; str_splice(argV, &flag, parse->base->flag_sep); ) {
                 if(!flag.str) continue;
                 ArgX *x = 0;
                 TRYC(arg_parse_getopt(argx->o, &x, flag));
@@ -1020,7 +1020,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx, bool *quit_early) {
     /* TODO DRY */
     if(argx && argx->attr.callback.func && !argx->attr.callback.priority) {
         if(argx->attr.callback.func(argx->attr.callback.data)) {
-            THROW_PRINT("failed executing function for " F("[%.*s]", BOLD) "\n", STR2_F(argx->info.opt));
+            THROW_PRINT("failed executing function for " F("[%.*s]", BOLD) "\n", STR_F(argx->info.opt));
             goto error_skip_help;
         }
         *quit_early = argx->attr.callback.quit_early;
@@ -1056,7 +1056,7 @@ void arg_parse_setref_argx(struct ArgX *argx) {
         } break;
         case ARG_ENV:
         case ARG_STRING: {
-            //printff("SETTING STR %.*s=%.*s", STR2_F(argx->info.opt), STR2_F(*argx->ref.s));
+            //printff("SETTING STR %.*s=%.*s", STR_F(argx->info.opt), STR_F(*argx->ref.s));
             if(argx->ref.s) *argx->val.s = *argx->ref.s;
         } break;
         case ARG_VECTOR: {
@@ -1103,7 +1103,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     parse->rest.vec = arg->base.rest_vec;
     parse->rest.desc = arg->base.rest_desc;
     parse->rest.pos = &arg->pos;
-    Str2 temp_clean_env = {0};
+    Str temp_clean_env = {0};
     ArgX *argx = 0;
     parse->i = 1;
     int err = 0;
@@ -1114,28 +1114,28 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     int config_status = arg_config_load(arg);
     /* check optional arguments */
     while(parse->i < parse->argc) {
-        Str2C argV = str2("");
+        StrC argV = str("");
         TRYC(arg_parse_getv(parse, &argV, &need_help));
         if(need_help) break;
         if(*quit_early) goto quit_early;
-        if(!str2_len(argV)) continue;
-        //printff(" [%.*s] %zu / %zu", STR2_F(argV), parse->i, parse->argc);
-        if(!parse->force_done_parsing && str2_len(argV) >= 1 && str2_at(argV, 0) == pfx) {
+        if(!str_len(argV)) continue;
+        //printff(" [%.*s] %zu / %zu", STR_F(argV), parse->i, parse->argc);
+        if(!parse->force_done_parsing && str_len(argV) >= 1 && str_at(argV, 0) == pfx) {
             /* regular checking for options */
-            if(str2_len(argV) >= 2 && str2_at(argV, 1) == pfx) {
-                ASSERT(str2_len(argV) > 2, ERR_UNREACHABLE);
-                Str2C arg_query = str2_i0(argV, 2);
+            if(str_len(argV) >= 2 && str_at(argV, 1) == pfx) {
+                ASSERT(str_len(argV) > 2, ERR_UNREACHABLE);
+                StrC arg_query = str_i0(argV, 2);
                 /* long option */
                 TRYC(arg_parse_getopt(&arg->opt, &argx, arg_query));
                 TRYC(argx_parse(parse, argx, quit_early));
             } else {
-                Str2C arg_queries = str2_i0(argV, 1);
+                StrC arg_queries = str_i0(argV, 1);
                 /* short option */
-                for(size_t i = 0; i < str2_len(arg_queries); ++i) {
-                    const unsigned char query = str2_at(arg_queries, i);
+                for(size_t i = 0; i < str_len(arg_queries); ++i) {
+                    const unsigned char query = str_at(arg_queries, i);
                     TRYC(arg_parse_getopt_short(arg, &argx, query));
                     TRYC(argx_parse(parse, argx, quit_early));
-                    //printff("SHORT OPTION! %.*s", STR2_F(arg_queries));
+                    //printff("SHORT OPTION! %.*s", STR_F(arg_queries));
                 }
                 //ArgX *argx = arg->opt_short[
             }
@@ -1165,10 +1165,10 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     /* gather environment variables */
     for(size_t i = 0; i < vargx_length(arg->env.vec); ++i) {
         ArgX *x = vargx_get_at(&arg->env.vec, i);
-        str2_copy(&temp_clean_env, x->info.opt);
+        str_copy(&temp_clean_env, x->info.opt);
         const char *cenv = getenv(temp_clean_env.str);
         if(!cenv) continue;
-        Str2 env = str2_l((char *)cenv);
+        Str env = str_l((char *)cenv);
         *x->val.s = env;
     }
     if(config_status) {
@@ -1186,10 +1186,10 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     for(size_t i = 0; i < vargx_length(parse->queue); ++i) {
         ArgX *x = vargx_get_at(&parse->queue, i);
         if(!x->attr.callback.priority) continue;
-        //printff("CHECK QUEUE [%.*s]", STR2_F(x->info.opt));
+        //printff("CHECK QUEUE [%.*s]", STR_F(x->info.opt));
         if(x && x->attr.callback.func) {
             if(x->attr.callback.func(x->attr.callback.data)) {
-                THROW_PRINT("failed executing function for " F("[%.*s]", BOLD) "\n", STR2_F(x->info.opt));
+                THROW_PRINT("failed executing function for " F("[%.*s]", BOLD) "\n", STR_F(x->info.opt));
                 goto error_skip_help;
             }
             *quit_early = x->attr.callback.quit_early;
@@ -1205,7 +1205,7 @@ quit_early:
         THROW("missing %zu positional arguments", vargx_length(arg->pos.vec) - parse->n_pos_parsed);
     }
 clean:
-    str2_free(&temp_clean_env);
+    str_free(&temp_clean_env);
     vargx_free(&parse->queue);
     //DO THIS OUTSIDE:
     //if(*quit_early) {
@@ -1222,21 +1222,21 @@ error_skip_help:
 
 /* CONFIG FUNCTIONS {{{ */
 
-int arg_config_error(struct Arg *arg, Str2C line, size_t line_nb, Str2C opt, ArgX *argx) {
+int arg_config_error(struct Arg *arg, StrC line, size_t line_nb, StrC opt, ArgX *argx) {
     ASSERT_ARG(arg);
     int done = 0;
     if(line.str) {
         THROW_PRINT("config error on " F("line %zu", BOLD FG_MG_B) ":\n", line_nb);
         if(!opt.str) {
-            ERR_PRINTF("        %.*s:\n", STR2_F(line));
+            ERR_PRINTF("        %.*s:\n", STR_F(line));
             ERR_PRINTF("        ^");
         } else {
-            Str2 pre = str2_ll(line.str, opt.str - line.str);
-            Str2 at = opt;
-            Str2 post = str2_ll(str2_it(line, str2_len(opt)), str2_len(line) - str2_len(opt));
-            ERR_PRINTF("        %.*s" F("%.*s", BOLD FG_RD_B) "%.*s\n", STR2_F(pre), STR2_F(at), STR2_F(post));
+            Str pre = str_ll(line.str, opt.str - line.str);
+            Str at = opt;
+            Str post = str_ll(str_it(line, str_len(opt)), str_len(line) - str_len(opt));
+            ERR_PRINTF("        %.*s" F("%.*s", BOLD FG_RD_B) "%.*s\n", STR_F(pre), STR_F(at), STR_F(post));
             ERR_PRINTF("        %*s", (int)(opt.str - line.str), "");
-            for(size_t i = 0; i < str2_len(opt); ++i) {
+            for(size_t i = 0; i < str_len(opt); ++i) {
                 ERR_PRINTF(F("~", BOLD FG_RD_B));
             }
         }
@@ -1258,20 +1258,20 @@ ErrDecl arg_config_load(struct Arg *arg) {
     ASSERT_ARG(arg);
     int err = 0;
     size_t line_nb = 0;
-    Str2C line = {0}, opt = {0}, conf = arg->parse.config;
-    if(!str2_len(conf)) return 0;
+    StrC line = {0}, opt = {0}, conf = arg->parse.config;
+    if(!str_len(conf)) return 0;
     ArgX *argx = 0;
-    for(memset(&line, 0, sizeof(line)); str2_splice(conf, &line, '\n'); ++line_nb) {
+    for(memset(&line, 0, sizeof(line)); str_splice(conf, &line, '\n'); ++line_nb) {
         if(!line.str) continue;
-        line = str2_trim(line);
+        line = str_trim(line);
         argx = 0;
-        if(!str2_len(line)) continue;
-        if(str2_at(line, 0) == '#') continue;
-        //printff("CONFIG:%.*s",STR2_F(line));
-        for(memset(&opt, 0, sizeof(opt)); str2_splice(line, &opt, '='); ) {
+        if(!str_len(line)) continue;
+        if(str_at(line, 0) == '#') continue;
+        //printff("CONFIG:%.*s",STR_F(line));
+        for(memset(&opt, 0, sizeof(opt)); str_splice(line, &opt, '='); ) {
             if(!opt.str) continue;
-            opt = str2_trim(opt);
-            //printff(" OPT:%.*s",STR2_F(opt));
+            opt = str_trim(opt);
+            //printff(" OPT:%.*s",STR_F(opt));
             if(!argx) {
                 TRYC(arg_parse_getopt(&arg->opt, &argx, opt));
                 if(argx->id == ARG_HELP) {
@@ -1282,7 +1282,7 @@ ErrDecl arg_config_load(struct Arg *arg) {
                     THROW("cannot configure non-value option");
                 }
             } else {
-                //printff("setting value for [%.*s] : %.*s", STR2_F(argx->info.opt), STR2_F(opt));
+                //printff("setting value for [%.*s] : %.*s", STR_F(argx->info.opt), STR_F(opt));
                 switch(argx->id) {
                     case ARG_OPTION: {
                         ArgXGroup *group = argx->o;
@@ -1292,24 +1292,24 @@ ErrDecl arg_config_load(struct Arg *arg) {
                     } break;
                     case ARG_BOOL: {
                         bool *b = argx->ref.b ? argx->ref.b : argx->val.b;
-                        TRYC(str2_as_bool(opt, b));
+                        TRYC(str_as_bool(opt, b));
                     } break;
                     case ARG_SSZ: {
                         ssize_t *z = argx->ref.z ? argx->ref.z : argx->val.z;
-                        TRYC(str2_as_ssize(opt, z, 0));
+                        TRYC(str_as_ssize(opt, z, 0));
                     } break;
                     case ARG_INT: {
                         int *i = argx->ref.i ? argx->ref.i : argx->val.i;
                         ssize_t z = 0;
-                        TRYC(str2_as_ssize(opt, &z, 0));
+                        TRYC(str_as_ssize(opt, &z, 0));
                         *i = (int)z;
                     } break;
                     case ARG_FLOAT: {
                         double *f = argx->ref.f ? argx->ref.f : argx->val.f;
-                        TRYC(str2_as_double(opt, f));
+                        TRYC(str_as_double(opt, f));
                     } break;
                     case ARG_STRING: {
-                        Str2 *s = argx->ref.s ? argx->ref.s : argx->val.s;
+                        Str *s = argx->ref.s ? argx->ref.s : argx->val.s;
                         *s = opt;
                     } break;
                     case ARG_FLAG: {
@@ -1326,7 +1326,7 @@ ErrDecl arg_config_load(struct Arg *arg) {
                             bool *b = x->ref.b ? x->ref.b : x->val.b;
                             *b = false;
                         }
-                        for(Str2 flag = {0}; str2_splice(opt, &flag, arg->base.flag_sep); ) {
+                        for(Str flag = {0}; str_splice(opt, &flag, arg->base.flag_sep); ) {
                             if(!flag.str) continue;
                             ArgX *x = 0;
                             TRYC(arg_parse_getopt(argx->o, &x, flag));
@@ -1335,7 +1335,7 @@ ErrDecl arg_config_load(struct Arg *arg) {
                         }
                     } break;
                     case ARG_VECTOR: {
-                        VStr2 *v = argx->ref.v ? argx->ref.v : argx->val.v;
+                        VStr *v = argx->ref.v ? argx->ref.v : argx->val.v;
                         array_push(*v, opt);
                     } break;
                     case ARG_HELP:
@@ -1397,8 +1397,8 @@ void arg_free(struct Arg **parg) {
     argx_group_free(&arg->opt);
     argx_group_free(&arg->env);
     argx_group_free(&arg->pos);
-    str2_free(&arg->print.line);
-    str2_free(&arg->print.buf);
+    str_free(&arg->print.line);
+    str_free(&arg->print.buf);
     if(arg->base.rest_vec) array_free(*arg->base.rest_vec);
     free(*parg);
     *parg = 0;

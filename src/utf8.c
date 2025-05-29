@@ -1,17 +1,17 @@
 #include "utf8.h"
 #include "err.h"
 
-void str_u8str(U8Str u8str, Str2 str) {
+void str_u8str(U8Str u8str, Str str) {
     ASSERT_ARG(u8str);
-    str2_as_cstr(str, u8str, U8_CAP);
+    str_as_cstr(str, u8str, U8_CAP);
 }
 
-void u8str_rstr(Str2 *str, U8Str u8str) {
+void u8str_rstr(Str *str, U8Str u8str) {
     ASSERT_ARG(str);
     ASSERT_ARG(u8str);
     size_t len = strlen(u8str);
     ASSERT(len < U8_CAP, "length of string should not be > %u", U8_CAP);
-    *str = str2_ll(u8str, len);
+    *str = str_ll(u8str, len);
 }
 
 ErrImpl cstr_to_u8_point(U8Str in, U8Point *point) {

@@ -4,7 +4,7 @@ sources = [
   'array.c',
   'file.c',
   'map.c',
-  'str2.c',
+  'str.c',
   'utf8.c',
   ]
 
@@ -19,7 +19,7 @@ headers = [
   'lut.h',
   'map.h',
   'platform-detect.h',
-  'str2.h',
+  'str.h',
   'utf8.h',
   'vec.h',
   ]
