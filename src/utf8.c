@@ -92,7 +92,5 @@ ErrImpl cstr_from_u8_point(U8Str out, U8Point *point) {
     }
     point->bytes = bytes;
     return 0;
-error:
-    return -1;
 }
 

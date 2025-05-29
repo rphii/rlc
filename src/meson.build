@@ -1,10 +1,11 @@
 
 sources = [
   'file.c',
-  'str.c',
+  'str2.c',
   'utf8.c',
   'arg.c',
   'map.c',
+  'array.c',
   'array.c',
   ]
 
@@ -15,7 +16,7 @@ headers = [
   'file.h',
   'lut.h',
   'platform-detect.h',
-  'str.h',
+  'str2.h',
   'utf8.h',
   'vec.h',
   'arg.h',

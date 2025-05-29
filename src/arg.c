@@ -478,50 +478,8 @@ void argx_hide_value(struct ArgX *x, bool hide_value) {
 
 void arg_do_print(Arg *arg, int endline) {
     ASSERT_ARG(arg);
-    int pad = arg->print.pad;
-    //int pad0 = arg->print.progress > pad ? 0 : pad - arg->print.progress;
-    //printff("max %zu", arg->print.bounds.max);
-    //printff("PROGRESS %zu", arg->print.progress);
     Str2 content = arg->print.line;
-    //printf("%.*s", STR2_F(content));
     str2_printal(content, &arg->print.p_al, arg->print.pad, arg->print.bounds.max);
-    //arg->print.progress += arg->print.p_al.progress;
-#if 0
-    return;
-    Str2 fmt = str2_dyn(str2(""));
-    bool repeat = false;
-    /* first padding */
-    printf("%*s", pad0, "");
-    arg->print.progress += pad0;
-    /* print line-wise */
-    while(str2_len(content)) {
-        /* if we repeat, continue with .. */
-        int len_line_printable = str2_len_nof(content);
-        /* start new line and pad correctly if we repeat */
-        if(repeat) {
-            printf(F("\n%*s", ""), pad, "");
-            arg->print.progress = pad;
-            content = str2_triml(content);
-        }
-        if(len_line_printable + arg->print.progress > arg->print.bounds.max) {
-            len_line_printable = arg->print.bounds.max - arg->print.progress;
-        }
-        int len_line_index = str2_index_nof(content, len_line_printable);
-
-        Str2 line_print = str2_iE(content, len_line_index);
-        size_t fE = 0;
-        size_t f0 = str2_rfind_f(line_print, &fE);
-        printf("%.*s%.*s", STR2_F(fmt), STR2_F(line_print));
-        if(f0 < str2_len(line_print)) fmt = str2_i0iE(line_print, f0, fE);
-        arg->print.progress += len_line_printable;
-
-        //printf("%.*s", STR2_F(content));
-        //rstr_clear(&content);
-        content.str += len_line_index;
-        content.len -= len_line_index;
-        repeat = true;
-    }
-#endif
     for(int i = 0; i < endline; ++i) {
         printf("\n");
         arg->print.p_al.progress = 0;
@@ -601,9 +559,6 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
     }
     arg->print.prev = id;
     return;
-error:
-    ABORT(ERR_INTERNAL("formatting error"));
-    //return result;
 }
 
 void argx_print_pre(Arg *arg, ArgX *argx) { /*{{{*/
