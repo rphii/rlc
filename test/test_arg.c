@@ -94,7 +94,7 @@ int main(const int argc, const char **argv) {
 
     arg_init(arg, str2("test_arg"), str2("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), str2("github: https://github.com/rphii"));
     arg_init_rest(arg, str2("files"), &files);
-    //arg_init_width(arg, 40, 45);
+    arg_init_width(arg, 40, 45);
     //arg_init_width(arg, 0, 45);
 
     x=argx_init(arg_opt(arg), 'h', str2("help"), str2("print this help"));

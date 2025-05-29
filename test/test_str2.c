@@ -281,12 +281,12 @@ int main(void) {
     str2_println(str2(""));
 
     str2_printal(str2(F("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed viverra felis vitae massa fringilla, in blandit est euismod. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Aenean consequat tincidunt volutpat. Suspendisse auctor eros lacus, quis consectetur urna rutrum nec. Maecenas eu lectus venenatis, aliquam libero vel, ornare nibh. Quisque sodales iaculis urna, ac venenatis est gravida eu. Morbi dignissim ac augue quis malesuada. Vestibulum aliquet dui porta ante accumsan, vel vestibulum massa commodo. In hac habitasse platea dictumst.", FG_CY) " Donec eget leo hendrerit, luctus nulla non, pulvinar nunc. Aliquam erat volutpat."), &p, 0, 50);
-    str2_println(str2(""));
+    //str2_println(str2(""));
 #endif
 
 #if 1
-    Str2 crazystring = {0}, crazystring_in = str2("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed viverra felis vitae massa fringilla, in blandit est euismod. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Aenean consequat tincidunt volutpat. Suspendisse auctor eros lacus, quis consectetur urna rutrum nec. Maecenas eu lectus venenatis, aliquam libero vel, ornare nibh. Quisque sodales iaculis urna, ac venenatis est gravida eu. Morbi dignissim ac augue quis malesuada. Vestibulum aliquet dui porta ante accumsan, vel vestibulum massa commodo. In hac habitasse platea dictumst. Donec eget leo hendrerit, luctus nulla non, pulvinar nunc. Aliquam erat volutpat.");
-    memset(&p, 0, sizeof(p));
+    Str2 crazystring = {0}, crazystring_in = str2(" Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed viverra felis vitae massa fringilla, in blandit est euismod. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Aenean consequat tincidunt volutpat. Suspendisse auctor eros lacus, quis consectetur urna rutrum nec. Maecenas eu lectus venenatis, aliquam libero vel, ornare nibh. Quisque sodales iaculis urna, ac venenatis est gravida eu. Morbi dignissim ac augue quis malesuada. Vestibulum aliquet dui porta ante accumsan, vel vestibulum massa commodo. In hac habitasse platea dictumst. Donec eget leo hendrerit, luctus nulla non, pulvinar nunc. Aliquam erat volutpat.");
+    //memset(&p, 0, sizeof(p));
     for(size_t i = 0; i < str2_len(crazystring_in); i += 3) {
         Color col = {0};
         col.rgba = rand();
@@ -319,19 +319,17 @@ int main(void) {
 #endif
 
 #if 1
-    str2_printal(crazystring, &p, 0, 50);
-    str2_println(str2(""));
-    //str2_printraw(crazystring);
-
+    str2_printal(crazystring, &p, 10, 50);
+    str2_printal(str2("asdf xyz abc"), &p, 30, 50);
+    str2_printal(str2("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"), &p, 42, 50);
 
     Str2 spacy = {0}, spacy_in = str2("                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                text                              ");
     for(size_t i = 0; i < str2_len(spacy_in); i += 1) {
-        Color col = {0};
-        col.rgba = rand();
+        Color col = { .rgba = rand() };
         Str2 snip = str2_i0iE(spacy_in, i, i + 1 < str2_len(spacy_in) ? i + 1 : str2_len(spacy_in));
-        str2_fmt_fgbg(&spacy, snip, col, COLOR_NONE, false, false, false);
+        str2_fmt_fgbg(&spacy, snip, COLOR_RGB_NEGATIVE(col), col, false, false, false);
     }
-    str2_printal(spacy, &p, 0, 50);
+    str2_printal(spacy, &p, 45, 50);
     str2_println(str2(""));
 
     //str2_freeall(a, b, c, d, e);

@@ -172,12 +172,13 @@ typedef struct ArgPrint {
         int opt;    // spacing until long option
     } bounds;
     int pad;        // current padding
-    int progress;   // how many characters already printed on line
+    //int progress;   // how many characters already printed on line
     int relevant;   // 
     Str2 line;       // current line
     Str2 buf;        // temporary buffer
     bool wrapped;   // wheter or not the last line was wrapped
     ArgPrintList prev;  // previous print thing
+    Str2Print p_al;
 } ArgPrint;
 
 typedef struct Arg {
@@ -478,8 +479,15 @@ void argx_hide_value(struct ArgX *x, bool hide_value) {
 void arg_do_print(Arg *arg, int endline) {
     ASSERT_ARG(arg);
     int pad = arg->print.pad;
-    int pad0 = arg->print.progress > pad ? 0 : pad - arg->print.progress;
+    //int pad0 = arg->print.progress > pad ? 0 : pad - arg->print.progress;
+    //printff("max %zu", arg->print.bounds.max);
+    //printff("PROGRESS %zu", arg->print.progress);
     Str2 content = arg->print.line;
+    //printf("%.*s", STR2_F(content));
+    str2_printal(content, &arg->print.p_al, arg->print.pad, arg->print.bounds.max);
+    //arg->print.progress += arg->print.p_al.progress;
+#if 0
+    return;
     Str2 fmt = str2_dyn(str2(""));
     bool repeat = false;
     /* first padding */
@@ -513,9 +521,10 @@ void arg_do_print(Arg *arg, int endline) {
         content.len -= len_line_index;
         repeat = true;
     }
+#endif
     for(int i = 0; i < endline; ++i) {
         printf("\n");
-        arg->print.progress = 0;
+        arg->print.p_al.progress = 0;
     }
     str2_clear(&arg->print.line);
 }
@@ -534,8 +543,8 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
         case ARG_PRINT_NONE: {
             arg->print.pad = 0;
             str2_extend(&arg->print.line, arg->print.buf);
-            arg_do_print(arg, false);
-            arg->print.progress = 0;
+            arg_do_print(arg, 0);
+            arg->print.p_al.progress = 0;
         } break;
         case ARG_PRINT_SHORT: {
             arg->print.pad = arg->print.bounds.c;
@@ -546,8 +555,8 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
         /* special cases */
         case ARG_PRINT_TYPE: {
             if(arg->print.prev == ARG_PRINT_LONG) {
-                arg->print.line = str2_copy(str2(" "));
-                arg_do_print(arg, false);
+                str2_copy(&arg->print.line, str2(" "));
+                arg_do_print(arg, 0);
                 str2_clear(&arg->print.line);
                 arg->print.pad = arg->print.bounds.opt + 2;
             }
@@ -555,14 +564,14 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
         } break;
         case ARG_PRINT_DESC: {
             if(arg->print.prev == ARG_PRINT_TYPE) {
-                arg_do_print(arg, false);
-                if(arg->print.progress + 1 > arg->print.bounds.desc) {
-                    arg->print.line = str2_copy(str2(""));
-                    arg_do_print(arg, true);
+                arg_do_print(arg, 0);
+                if(arg->print.p_al.progress + 1 > arg->print.bounds.desc) {
+                    str2_copy(&arg->print.line, str2(""));
+                    arg_do_print(arg, 1);
                     arg->print.pad = arg->print.bounds.opt + 4;
                 } else {
                     str2_fmt(&arg->print.line, " ");
-                    arg_do_print(arg, false);
+                    arg_do_print(arg, 0);
                     arg->print.pad = arg->print.bounds.desc;
                 }
             } else {
@@ -574,7 +583,7 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
         } break;
         case ARG_PRINT_VALUE: {
             if(arg->print.prev == ARG_PRINT_DESC) {
-                arg->print.line = str2_copy(str2(" "));
+                str2_copy(&arg->print.line, str2(" "));
                 arg_do_print(arg, false);
                 arg->print.pad = arg->print.bounds.desc;
                 str2_clear(&arg->print.line);
@@ -586,7 +595,7 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
         } break;
         ARG_PRINT__KEEPLINE: {
             str2_extend(&arg->print.line, arg->print.buf);
-            arg_do_print(arg, false);
+            arg_do_print(arg, 0);
         } break;
         case ARG_PRINT__LENGTH: ABORT(ERR_UNREACHABLE);
     }
@@ -1201,7 +1210,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     /* gather environment variables */
     for(size_t i = 0; i < vargx_length(arg->env.vec); ++i) {
         ArgX *x = vargx_get_at(&arg->env.vec, i);
-        temp_clean_env = str2_copy(x->info.opt);
+        str2_copy(&temp_clean_env, x->info.opt);
         const char *cenv = getenv(temp_clean_env.str);
         if(!cenv) continue;
         Str2 env = str2_l((char *)cenv);
@@ -1427,6 +1436,7 @@ void argx_group_free(ArgXGroup *group) {
 
 
 void arg_free(struct Arg **parg) {
+    //printff("FREE ARGS");
     ASSERT_ARG(parg);
     Arg *arg = *parg;
     argx_group_free(&arg->opt);
@@ -1437,6 +1447,7 @@ void arg_free(struct Arg **parg) {
     if(arg->base.rest_vec) array_free(*arg->base.rest_vec);
     free(*parg);
     *parg = 0;
+    //printff("FREED ARGS");
 }
 
 /*}}}*/
