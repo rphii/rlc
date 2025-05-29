@@ -270,7 +270,7 @@ void arg_init_rest(struct Arg *arg, Str2 description, VStr2 *rest) {
     arg->base.rest_desc = description;
 }
 
-void arg_init_pipe(struct Arg *arg, VrStr *out, pthread_mutex_t *mutex) {
+void arg_init_pipe(struct Arg *arg, VStr2 *out, pthread_mutex_t *mutex) {
     ASSERT_ARG(arg);
     ASSERT_ARG(out);
     ASSERT_ARG(mutex);

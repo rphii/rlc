@@ -1,6 +1,5 @@
 #ifndef ARG_H
 
-#include "str.h"
 #include "str2.h"
 
 #define ARG_INIT_DEFAULT_WIDTH      80
