@@ -21,7 +21,7 @@
 
 #define LUT_TYPE_FREE(F,X,T,M)         ((void (*)(LUT_ITEM(T,M)))(F))(X)
 
-#define LUT_TYPE_CMP(C,A,B,T,M)        ((int (*)(const LUT_ITEM(T,M), const LUT_ITEM(T,M)))(C))(A, B)
+#define LUT_TYPE_CMP(C,A,B,T,M)        ((int (*)(LUT_ITEM(T,M), LUT_ITEM(T,M)))(C))(A, B)
 
 #define LUT_PTR_BY_VAL   
 #define LUT_PTR_BY_REF                 &

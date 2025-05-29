@@ -29,11 +29,11 @@ void str_zero(Str *str) {
 
 #define STR_HASH_PRECOMP(str)  if(str->hash_src == __func__) return str->hash_val
 #define STR_HASH_SET(str, hash)        do { \
-        str->hash_src = (void *)__func__; \
-        str->hash_val = hash; \
+        ((Str *)str)->hash_src = (void *)__func__; \
+        ((Str *)str)->hash_val = hash; \
     } while(0)
 #define STR_HASH_CLEAR(str)        do { \
-        str->hash_src = 0; \
+        ((Str *)str)->hash_src = 0; \
     } while(0)
 
 Str str_dyn(StrC str) { /*{{{*/
@@ -42,43 +42,43 @@ Str str_dyn(StrC str) { /*{{{*/
     return str;
 } /*}}}*/
 
-struct Str str_l(char *str) { /*{{{*/
-    Str result = { .len = strlen(str), .str = str };
+const StrC str_l(const char *str) { /*{{{*/
+    Str result = { .len = strlen(str), .str = (char *)str };
     return result;
 } /*}}}*/
 
-struct Str str_ll(char *str, size_t len) { /*{{{*/
-    Str result = { .len = len, .str = str };
+const StrC str_ll(const char *str, size_t len) { /*{{{*/
+    Str result = { .len = len, .str = (char *)str };
     return result;
 } /*}}}*/
 
-Str str_i0(Str str, size_t i0) { /*{{{*/
+const StrC str_i0(Str str, size_t i0) { /*{{{*/
     Str result = {0};
     result.str = str_it(str, i0);
     result.len = str_len(str) + str.str - result.str;
     return result;
 } /*}}}*/
 
-Str str_iE(Str str, size_t iE) { /*{{{*/
+const StrC str_iE(Str str, size_t iE) { /*{{{*/
     Str result = {0};
     result.str = str.str;
     result.len = str_it(str, iE) - str_it(str, 0);
     return result;
 } /*}}}*/
 
-Str str_i0iE(Str str, size_t i0, size_t iE) { /*{{{*/
+const StrC str_i0iE(Str str, size_t i0, size_t iE) { /*{{{*/
     Str result = {0};
     result.str = str_it(str, i0);
     result.len = str_it(str, iE) - str_it(str, i0);
     return result;
 } /*}}}*/
 
-Str str_trim(Str str) { /*{{{*/
+const StrC str_trim(Str str) { /*{{{*/
     Str result = str_triml(str_trimr(str));
     return result;
 } /*}}}*/
 
-Str str_triml(Str str) { /*{{{*/
+const StrC str_triml(Str str) { /*{{{*/
     size_t len = str_len(str);
     Str result = str_ll(str.str, len);
     for(size_t i = 0; i < len; ++i) {
@@ -89,7 +89,7 @@ Str str_triml(Str str) { /*{{{*/
     return result;
 } /*}}}*/
 
-Str str_trimr(Str str) { /*{{{*/
+const StrC str_trimr(Str str) { /*{{{*/
     size_t len = str_len(str);
     Str result = str_ll(str.str, len);
     for(size_t i = len; i > 0; --i) {
@@ -99,7 +99,7 @@ Str str_trimr(Str str) { /*{{{*/
     return result;
 } /*}}}*/
 
-Str str_triml_nof(Str str) { /*{{{*/
+const StrC str_triml_nof(Str str) { /*{{{*/
     size_t len = str_len(str);
     size_t i0 = 0;
     Str result = str_ll(str.str, len);
@@ -117,7 +117,7 @@ Str str_triml_nof(Str str) { /*{{{*/
     return str_i0(result, i0);
 } /*}}}*/
 
-Str str_ensure_dir(Str str) { /*{{{*/
+const StrC str_ensure_dir(Str str) { /*{{{*/
     // !!! str = str_trim(str);
     size_t len = str_len(str);
     Str result = str_ll(str.str, len);
@@ -133,7 +133,7 @@ Str str_ensure_dir(Str str) { /*{{{*/
     return result;
 } /*}}}*/
 
-Str str_get_ext(Str str) { /*{{{*/
+const StrC str_get_ext(Str str) { /*{{{*/
     size_t len = str_len(str);
     Str result = str_ll(str.str, len);
     if(len) {
@@ -150,7 +150,7 @@ Str str_get_ext(Str str) { /*{{{*/
     return result;
 } /*}}}*/
 
-Str str_get_noext(Str str) { /*{{{*/
+const StrC str_get_noext(Str str) { /*{{{*/
     size_t len = str_len(str);
     Str result = str_ll(str.str, len);
     if(len) {
@@ -166,7 +166,7 @@ Str str_get_noext(Str str) { /*{{{*/
     return result;
 } /*}}}*/
 
-Str str_get_dir(Str str) { /*{{{*/
+const StrC str_get_dir(Str str) { /*{{{*/
     size_t len = str_len(str);
     Str result = str_ll(str.str, len);
     if(len) {
@@ -181,7 +181,7 @@ Str str_get_dir(Str str) { /*{{{*/
     return result;
 } /*}}}*/
 
-Str str_get_nodir(Str str) { /*{{{*/
+const StrC str_get_nodir(Str str) { /*{{{*/
     size_t len = str_len(str);
     Str result = str_ll(str.str, len);
     if(len) {
@@ -197,7 +197,7 @@ Str str_get_nodir(Str str) { /*{{{*/
     return result;
 } /*}}}*/
 
-Str str_get_basename(Str str) { /*{{{*/
+const StrC str_get_basename(Str str) { /*{{{*/
     size_t len = str_len(str);
     Str result = str_ll(str.str, len);
     if(len) {
@@ -455,7 +455,7 @@ size_t str_dhash(Str str) { /*{{{*/
     return hash;
 } /*}}}*/
 
-size_t str_hash(Str *str) { /*{{{*/
+size_t str_hash(const Str *str) { /*{{{*/
     ASSERT_ARG(str);
     STR_HASH_PRECOMP(str);
     size_t hash = 5381;
@@ -469,7 +469,7 @@ size_t str_hash(Str *str) { /*{{{*/
     return hash;
 } /*}}}*/
 
-size_t str_hash_ci(Str *str) { /*{{{*/
+size_t str_hash_ci(const Str *str) { /*{{{*/
     ASSERT_ARG(str);
     STR_HASH_PRECOMP(str);
     size_t hash = 5381;
@@ -490,6 +490,22 @@ int str_cmp(Str a, Str b) { /*{{{*/
     int result = memcmp(a.str, b.str, la);
     return result;
 } /*}}}*/
+
+int str_cmp_sortable(const Str a, const Str b) {
+    size_t la = str_len(a);
+    size_t lb = str_len(b);
+    int result = -1;
+    if(la != lb) {
+        size_t less = la < lb ? la : lb;
+        result = memcmp(a.str, b.str, less);
+        if(!result) {
+            result = la - lb;
+        }
+    } else {
+        result = memcmp(a.str, b.str, la);
+    }
+    return result;
+} 
 
 int str_cmp0(Str a, Str b) { /*{{{*/
     size_t la = str_len(a); 
@@ -540,7 +556,7 @@ int str_cmpE_ci(Str a, Str b) { /*{{{*/
     return 0;
 } /*}}}*/
 
-int str_hcmp(Str *a, Str *b) { /*{{{*/
+int str_hcmp(const Str *a, const Str *b) { /*{{{*/
     ASSERT_ARG(a);
     ASSERT_ARG(b);
     size_t la = str_len(*a); 
@@ -553,7 +569,7 @@ int str_hcmp(Str *a, Str *b) { /*{{{*/
     return result;
 } /*}}}*/
 
-int str_hcmp_ci(Str *a, Str *b) { /*{{{*/
+int str_hcmp_ci(const Str *a, const Str *b) { /*{{{*/
     ASSERT_ARG(a);
     ASSERT_ARG(b);
     size_t la = str_len(*a); 
@@ -568,6 +584,22 @@ int str_hcmp_ci(Str *a, Str *b) { /*{{{*/
     }
     return 0;
 } /*}}}*/
+
+int str_pcmp_sortable(Str *a, Str *b) {
+    size_t la = str_len(*a);
+    size_t lb = str_len(*b);
+    int result = -1;
+    if(la != lb) {
+        size_t less = la < lb ? la : lb;
+        result = memcmp(a->str, b->str, less);
+        if(!result) {
+            result = la - lb;
+        }
+    } else {
+        result = memcmp(a->str, b->str, la);
+    }
+    return result;
+}
 
 size_t str_find_f(Str str, size_t *out_iE) { /*{{{*/
     size_t i0 = str_find_substr(str, str(FS_BEG), false);
@@ -940,7 +972,7 @@ void str_fmt_va(Str *str, const char *format, va_list va) { /*{{{*/
     STR_HASH_CLEAR(str);
 } /*}}}*/
 
-void str_fmt_fgbg(Str *out, const Str text, Color fg, Color bg, bool bold, bool italic, bool underline) { /*{{{*/
+void str_fmt_fgbg(Str *out, const StrC text, Color fg, Color bg, bool bold, bool italic, bool underline) { /*{{{*/
     ASSERT_ARG(out);
     if(!str_is_dynamic(*out)) ABORT("attempting to format constant string");
     bool do_fmt = ((fg.rgba || bg.rgba || bold || italic || underline));
@@ -964,7 +996,7 @@ void str_fmt_fgbg(Str *out, const Str text, Color fg, Color bg, bool bold, bool 
     else {                   str_fmt(out, fmt, STR_F(text)); }
 } /*}}}*/
 
-void str_fmt_fgbga(Str *out, const Str text, Color fg, Color bg, bool bold, bool italic, bool underline) { /*{{{*/
+void str_fmt_fgbga(Str *out, const StrC text, Color fg, Color bg, bool bold, bool italic, bool underline) { /*{{{*/
     ASSERT_ARG(out);
     if(!str_is_dynamic(*out)) ABORT("attempting to format constant string");
     bool do_fmt = ((fg.rgba || bg.rgba || bold || italic || underline));
@@ -1016,17 +1048,26 @@ void str_push(Str *str, char c) { /*{{{*/
 
 void str_extend(Str *str, Str extend) { /*{{{*/
     ASSERT_ARG(str);
+    //printff("EXTEND");
+    //printff("EXTEND");
     if(!str_is_dynamic(*str)) ABORT("attempting to extend constant string");
+    //printff("EXTEND");
     size_t len_app = str_len(extend);
 
+    //printff("EXTEND");
     // calculate required memory
     size_t len_old = str_len(*str);
+    //printff("EXTEND");
     size_t len_new = len_old + len_app;
+    //printff("EXTEND, resize %zu", len_new);
     str_resize(str, len_new);
 
+    //printff("%p .. %p < %p .. %p", str->str,str->str+len_app, extend.str,extend.str+len_app);
+    //printff("EXTEND, len_old %zu, %p", len_old, str->str);
     // actual append
     memcpy(&str->str[len_old], extend.str, len_app);
 
+    //printff("EXTEND");
     STR_HASH_CLEAR(str);
 } /*}}}*/
 

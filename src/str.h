@@ -34,22 +34,23 @@ ErrDecl str_remove_escapes(Str *restrict out, Str *restrict in) { /**/
 
 Str str_dyn(StrC str);
 
+#define STR(s) (Str){ .str = s, .len = sizeof(s)-1 }
 #define str(s) str_ll(s, sizeof(s)-1)
-StrC str_l(char *str);
-StrC str_ll(char *str, size_t len);
-StrC str_i0(Str str, size_t i0);
-StrC str_iE(Str str, size_t iE);
-StrC str_i0iE(Str str, size_t i0, size_t iE);
-StrC str_trim(Str str);
-StrC str_triml(Str str);
-StrC str_trimr(Str str);
-StrC str_triml_nof(Str str);
-StrC str_ensure_dir(Str str);
-StrC str_get_ext(Str str);
-StrC str_get_noext(Str str);
-StrC str_get_dir(Str str);
-StrC str_get_nodir(Str str);
-StrC str_get_basename(Str str);
+const StrC str_l(const char *str);
+const StrC str_ll(const char *str, size_t len);
+const StrC str_i0(Str str, size_t i0);
+const StrC str_iE(Str str, size_t iE);
+const StrC str_i0iE(Str str, size_t i0, size_t iE);
+const StrC str_trim(Str str);
+const StrC str_triml(Str str);
+const StrC str_trimr(Str str);
+const StrC str_triml_nof(Str str);
+const StrC str_ensure_dir(Str str);
+const StrC str_get_ext(Str str);
+const StrC str_get_noext(Str str);
+const StrC str_get_dir(Str str);
+const StrC str_get_nodir(Str str);
+const StrC str_get_basename(Str str);
 void str_as_cstr(Str str, char *out, size_t len);
 #define ERR_str_as_bool(...)  "failed converting string to bool"
 int str_as_bool(Str str, bool *out);
@@ -67,16 +68,18 @@ bool str_is_dynamic(Str str);
 size_t str_len(Str str);
 size_t str_len_nof(Str str);
 size_t str_dhash(Str str);
-size_t str_hash(Str *str);
-size_t str_hash_ci(Str *str);
+size_t str_hash(const Str *str);
+size_t str_hash_ci(const Str *str);
 int str_cmp(Str a, Str b);
+int str_cmp_sortable(const Str a, const Str b);
 int str_cmp0(Str a, Str b);
 int str_cmpE(Str a, Str b);
 int str_cmp_ci(Str a, Str b);
 int str_cmp0_ci(Str a, Str b);
 int str_cmpE_ci(Str a, Str b);
-int str_hcmp(Str *a, Str *b);
-int str_hcmp_ci(Str *a, Str *b);
+int str_hcmp(const Str *a, const Str *b);
+int str_hcmp_ci(const Str *a, const Str *b);
+int str_pcmp_sortable(Str *a, Str *b);
 
 size_t str_find_f(Str str, size_t *out_iE);
 size_t str_find_ch(Str str, char c);

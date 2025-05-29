@@ -79,7 +79,7 @@ int file_fp_read(FILE *file, Str *content) {
     size_t bytes_file = (size_t)ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    printff("file length %zu", bytes_file);
+    //printff("file length %zu", bytes_file);
     /* allocate memory */
     str_resize(content, bytes_file);
 
