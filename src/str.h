@@ -37,8 +37,8 @@ ErrDecl str_remove_escapes(Str *restrict out, Str *restrict in) { /**/
 
 Str str_dyn(StrC str);
 
-#define STR(s) (Str){ .str = s, .len = sizeof(s)-1 }
-#define str(s) str_ll(s, sizeof(s)-1)
+#define STR(s) (StrC){ .str = s, .len = sizeof(s)-1 }
+#define str(s) STR(s)
 const StrC str_l(const char *str);
 const StrC str_ll(const char *str, size_t len);
 const StrC str_i0(Str str, size_t i0);
