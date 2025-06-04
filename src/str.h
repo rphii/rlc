@@ -11,6 +11,7 @@
 //#define STR_BIT_DYNAMIC    (~(SIZE_MAX >> 2) & (SIZE_MAX >> 1))
 //#define STR_BIT_MASK       (~(SIZE_MAX >> 2))
 
+
 typedef struct Str {
     char *str;
     struct {
@@ -18,8 +19,10 @@ typedef struct Str {
         bool is_dynamic : +1;
         bool is_heap    : +1;
     };
+#if defined(STR_HASH_ENABLE_CACHED)
     size_t hash_val;
     void *hash_src;
+#endif
 } Str, StrC, *VStr, *VStrC;
 
 
