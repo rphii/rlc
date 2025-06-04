@@ -27,6 +27,7 @@ void str_zero(Str *str) {
     memset(str, 0, sizeof(*str));
 }
 
+#if defined(STR_HASH_ENABLE_CACHED)
 #define STR_HASH_PRECOMP(str)  if(str->hash_src == __func__) return str->hash_val
 #define STR_HASH_SET(str, hash)        do { \
         ((Str *)str)->hash_src = (void *)__func__; \
@@ -35,6 +36,11 @@ void str_zero(Str *str) {
 #define STR_HASH_CLEAR(str)        do { \
         ((Str *)str)->hash_src = 0; \
     } while(0)
+#else
+#define STR_HASH_PRECOMP(str)
+#define STR_HASH_SET(str, hash)
+#define STR_HASH_CLEAR(str)
+#endif
 
 Str str_dyn(StrC str) { /*{{{*/
     str.is_dynamic = true;
