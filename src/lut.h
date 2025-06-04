@@ -62,7 +62,7 @@
     int A##_grow(N *lut, size_t width); \
     int A##_copy(N *dst, N *src); \
     N##KV *A##_once(N *lut, const LUT_ITEM(TK, MK) key, LUT_ITEM(TV, MV) val); \
-    int A##_set(N *lut, const LUT_ITEM(TK, MK) key, LUT_ITEM(TV, MV) val); \
+    N##KV *A##_set(N *lut, const LUT_ITEM(TK, MK) key, LUT_ITEM(TV, MV) val); \
     TV *A##_get(N *lut, const LUT_ITEM(TK, MK) key); \
     N##KV *A##_get_kv(N *lut, const LUT_ITEM(TK, MK) key); \
     void A##_del(N *lut, const LUT_ITEM(TK, MK) key); \
@@ -308,11 +308,11 @@
 
 
 #define LUT_IMPLEMENT_COMMON_SET(N, A, TK, MK, TV, MV, H, C, FK, FV) \
-    int A##_set(N *lut, const LUT_ITEM(TK, MK) key, LUT_ITEM(TV, MV) val) { \
+    N##KV *A##_set(N *lut, const LUT_ITEM(TK, MK) key, LUT_ITEM(TV, MV) val) { \
         LUT_ASSERT_ARG(lut); \
         LUT_ASSERT_ARG_M(key, MK); \
         if(2 * lut->used >= LUT_CAP(lut->width)) { \
-            if(A##_grow(lut, lut->width + 2)) return -1; \
+            if(A##_grow(lut, lut->width + 2)) ABORT("malloc"); \
         } \
         size_t hash = H(key); \
         N##KV **item = A##_static_get_item(lut, key, hash, true); \
@@ -337,7 +337,7 @@
             } \
             *item = malloc(req); \
             memset(*item, 0, req); \
-            if(!*item) return -1; \
+            if(!*item) ABORT("malloc"); \
             if(LUT_IS_BY_REF(MK)) { \
                 void *p = (void *)(uint8_t *)*item + sizeof(**item) + 0; \
                 memset(p, 0, sizeof((*item)->key)); \
@@ -360,7 +360,7 @@
         } \
         (*item)->hash = hash; \
         ++lut->used; \
-        return 0; \
+        return *item; \
     }
 
 #define LUT_IMPLEMENT_COMMON_GET(N, A, TK, MK, TV, MV, H, C, FK, FV) \
