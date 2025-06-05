@@ -69,7 +69,7 @@ typedef struct ArgXCallback {
     ArgFunction func;
     void *data;
     bool quit_early;
-    size_t priority;
+    ssize_t priority;
 } ArgXCallback;
 
 typedef union ArgXNumber {
@@ -402,7 +402,7 @@ void argx_help(struct ArgX *x, struct Arg *arg) {
     x->attr.callback.func = (ArgFunction)arg_help;
     x->attr.callback.data = arg;
     x->attr.callback.quit_early = true;
-    x->attr.callback.priority = 1;
+    x->attr.callback.priority = -(ssize_t)1;
 }
 
 struct ArgX *argx_pos(struct Arg *arg, Str opt, Str desc) {
@@ -446,7 +446,7 @@ void argx_dbl_mm(ArgX *x, double min, double max) {
     x->attr.max.f = max;
 }
 
-void argx_func(struct ArgX *x, size_t priority, void *func, void *data, bool quit_early) {
+void argx_func(struct ArgX *x, ssize_t priority, void *func, void *data, bool quit_early) {
     ASSERT_ARG(x);
     ASSERT_ARG(func);
     x->attr.callback.priority = priority;
