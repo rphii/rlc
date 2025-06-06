@@ -161,12 +161,13 @@ error: ERR_CLEAN;
 ErrDecl file_exec(Str path, VStr *subdirs, bool recursive, bool hidden, FileFunc exec, void *args) {
     ASSERT_ARG(subdirs);
     ASSERT_ARG(exec);
-    printf("path: %.*s\n", STR_F(path));
+    //printf("path: %.*s\n", STR_F(path));
     int err = 0;
     DIR *dir = 0;
     Str dot = str(".");
     Str dotdot = str("..");
     //printf("FILENAME: %.*s\n", STR_F(path));
+    if(!str_len(path)) return 0;
     FileTypeList type = file_get_type(path);
     vstr_free_set(subdirs);
     Str filename = {0};
