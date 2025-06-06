@@ -191,6 +191,10 @@ ErrDecl file_exec(Str path, VStr *subdirs, bool recursive, bool hidden, FileFunc
             str_extend(&filename, direns);
             if(str_len(direns) > 1) str_push(&filename, PLATFORM_CH_SUBDIR);
             str_extend(&filename, dname);
+            if(!str_len(filename)) {
+                str_clear(&filename);
+                continue;
+            }
             FileTypeList type2 = file_get_type(filename);
             if(type2 == FILE_TYPE_DIR) {
                 array_push(*subdirs, filename);
