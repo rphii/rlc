@@ -161,6 +161,7 @@ error: ERR_CLEAN;
 ErrDecl file_exec(Str path, VStr *subdirs, bool recursive, bool hidden, FileFunc exec, void *args) {
     ASSERT_ARG(subdirs);
     ASSERT_ARG(exec);
+    printf("path: %.*s\n", STR_F(path));
     int err = 0;
     DIR *dir = 0;
     Str dot = str(".");
