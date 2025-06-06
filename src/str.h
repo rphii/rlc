@@ -35,6 +35,8 @@ int str_cmp_ci_any(const Str *a, const Str **b, size_t len) { /**/
 ErrDecl str_remove_escapes(Str *restrict out, Str *restrict in) { /**/
 #endif
 
+#define STR_DYN()   (Str){ .is_dynamic = true }
+
 Str str_dyn(StrC str);
 void str_pdyn(StrC *str);
 
