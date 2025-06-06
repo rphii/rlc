@@ -36,6 +36,7 @@ ErrDecl str_remove_escapes(Str *restrict out, Str *restrict in) { /**/
 #endif
 
 Str str_dyn(StrC str);
+void str_pdyn(StrC *str);
 
 #define STR(s) (StrC){ .str = s, .len = sizeof(s)-1 }
 #define str(s) STR(s)
