@@ -166,8 +166,8 @@ ErrDecl file_exec(Str path, VStr *subdirs, bool recursive, bool hidden, FileFunc
     DIR *dir = 0;
     Str dot = str(".");
     Str dotdot = str("..");
-    //printf("FILENAME: %.*s\n", STR_F(path));
     if(!str_len(path)) return 0;
+    printf("FILENAME: %.*s\n", STR_F(path));
     FileTypeList type = file_get_type(path);
     vstr_free_set(subdirs);
     Str filename = {0};
@@ -196,6 +196,7 @@ ErrDecl file_exec(Str path, VStr *subdirs, bool recursive, bool hidden, FileFunc
                 array_push(*subdirs, filename);
                 str_zero(&filename);
             } else if(type2 == FILE_TYPE_FILE) {
+                printf("FILENAME: %.*s\n", STR_F(filename));
                 TRY(exec(filename, args), "an error occured while executing the function");
                 str_clear(&filename);
             } else {
