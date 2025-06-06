@@ -26,18 +26,21 @@ typedef void (*ArrayFree)(void *);
 
 /* functions for use {{{ */
 
-#define array_grow(array, capacity)     _array_grow(&array ARRAY_DEBUG_INFO, sizeof(*array), capacity)
-#define array_resize(array, length)     _array_resize(&array ARRAY_DEBUG_INFO, sizeof(*array), length)
+/* take address */
+#define array_grow(array, capacity)     _array_grow(array ARRAY_DEBUG_INFO, sizeof(**array), capacity)
+#define array_resize(array, length)     _array_resize(array ARRAY_DEBUG_INFO, sizeof(**array), length)
+#define array_push(array, item)         (*(typeof(* array))_array_push(array ARRAY_DEBUG_INFO, sizeof(**array)) = item)
+#define array_free(array)               _array_free(array)
+#define array_free_set(array, type, f)  _array_free_set(array ARRAY_DEBUG_INFO, sizeof(type), f)
+
+/* don't take address */
 #define array_copy(array)               _array_copy(array ARRAY_DEBUG_INFO, sizeof(*array))
-#define array_push(array, item)         (*(typeof(array))_array_push(&array ARRAY_DEBUG_INFO, sizeof(*array)) = item)
 #define array_pop(array)                *(typeof(array))_array_pop(array ARRAY_DEBUG_INFO, sizeof(*array))
 #define array_at(array, index)          *(typeof(array))_array_addr(array ARRAY_DEBUG_INFO, sizeof(*array), index)
 #define array_it(array, index)          (typeof(array))_array_addr(array ARRAY_DEBUG_INFO, sizeof(*array), index)
 #define array_len(array)                _array_len(array)
 #define array_cap(array)                _array_cap(array)
 #define array_clear(array)              _array_clear(array)
-#define array_free(array)               _array_free(&array)
-#define array_free_set(array, type, f)  _array_free_set(&array ARRAY_DEBUG_INFO, sizeof(type), f)
 
 /*}}}*/
 

@@ -981,7 +981,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx, bool *quit_early) {
         case ARG_VECTOR: {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
             if(need_help) break;
-            array_push(*argx->val.v, argV);
+            array_push(argx->val.v, argV);
             if(argx_parse_is_origin_from_pos(parse, argx)) {
                 parse->rest.vec = argx->val.v;
                 parse->rest.desc = argx->info.desc;
@@ -1147,7 +1147,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
             ++parse->n_pos_parsed;
         } else if(parse->rest.vec) {
             /* no argument, push rest */
-            array_push(*parse->rest.vec, argV);
+            array_push(parse->rest.vec, argV);
         }
         /* in case of trying to get help, also search pos and then env */
         if(parse->help.get && !parse->help.x && parse->i < parse->argc) {
@@ -1336,7 +1336,7 @@ ErrDecl arg_config_load(struct Arg *arg) {
                     } break;
                     case ARG_VECTOR: {
                         VStr *v = argx->ref.v ? argx->ref.v : argx->val.v;
-                        array_push(*v, opt);
+                        array_push(v, opt);
                     } break;
                     case ARG_HELP:
                     case ARG_ENV: 
@@ -1377,7 +1377,7 @@ void argx_free(ArgX *argx) {
         free(argx->o);
     }
     if(argx->id == ARG_VECTOR) {
-        array_free(*argx->val.v);
+        array_free(argx->val.v);
     }
     memset(argx, 0, sizeof(*argx));
 };
@@ -1399,7 +1399,7 @@ void arg_free(struct Arg **parg) {
     argx_group_free(&arg->pos);
     str_free(&arg->print.line);
     str_free(&arg->print.buf);
-    if(arg->base.rest_vec) array_free(*arg->base.rest_vec);
+    if(arg->base.rest_vec) array_free(arg->base.rest_vec);
     free(*parg);
     *parg = 0;
     //printff("FREED ARGS");
