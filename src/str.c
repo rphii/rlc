@@ -12,7 +12,7 @@ void str_resize(Str *str, size_t len) {
     ASSERT_ARG(str);
     if(!str_is_dynamic(*str)) ABORT("attempting to resize constant string");
     char *result = str_is_heap(*str) ? str->str : 0;
-    array_resize(result, len + 1);
+    array_resize(&result, len + 1);
     if(!str_is_heap(*str)) {
         memcpy(result, str->str, str_len(*str));
     }
@@ -935,7 +935,7 @@ void str_free(Str *str) { /*{{{*/
     if(!str) return;
     //printf("free %p [%.*s]\n", str, STR_F(*str));
     if(str_is_heap(*str)) {
-        array_free(str->str);
+        array_free(&str->str);
     }
     memset(str, 0, sizeof(*str));
 } /*}}}*/
@@ -1084,7 +1084,7 @@ size_t str_writefunc(void *ptr, size_t size, size_t nmemb, Str *str) { /*{{{*/
 
 void vstr_free_set(VStr *vstr) { /*{{{*/
     ASSERT_ARG(vstr);
-    array_free_set(*vstr, Str, (ArrayFree)str_free);
+    array_free_set(vstr, Str, (ArrayFree)str_free);
 } /*}}}*/
 
 void str_print(Str str) { /*{{{*/
