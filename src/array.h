@@ -6,7 +6,7 @@ typedef void (*ArrayFree)(void *);
 
 /* debug optimization {{{ */
 
-#if defined(NDEBUG)
+#if defined(NDEBUG) && 0
 #define ARRAY_DEBUG_INFO
 #define ARRAY_DEBUG_ARG
 #define ARRAY_DEBUG_ARGS
