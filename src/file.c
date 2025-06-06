@@ -191,7 +191,7 @@ ErrDecl file_exec(Str path, VStr *subdirs, bool recursive, bool hidden, FileFunc
             str_extend(&filename, dname);
             FileTypeList type2 = file_get_type(filename);
             if(type2 == FILE_TYPE_DIR) {
-                array_push(subdirs, filename);
+                array_push(*subdirs, filename);
                 str_zero(&filename);
             } else if(type2 == FILE_TYPE_FILE) {
                 TRY(exec(filename, args), "an error occured while executing the function");
@@ -232,7 +232,7 @@ ErrDecl file_dir_read(Str dirname, VStr *files) {
         if(!str_cmp(str_l(dp->d_name), str(".")) || !str_cmp(str_l(dp->d_name), str(".."))) continue;
         str_fmt(&filename, "%.*s/%s", (int)len, dirname.str, dp->d_name);
         //printf("FILE: %.*s\n", STR_F(&filename));
-        array_push(files, filename);
+        array_push(*files, filename);
     }
 clean:
     if(dir) closedir(dir);
