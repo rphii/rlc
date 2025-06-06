@@ -42,6 +42,10 @@ void str_zero(Str *str) {
 #define STR_HASH_CLEAR(str)
 #endif
 
+void str_pdyn(StrC *str) { /*{{{*/
+    str->is_dynamic = true;
+} /*}}}*/
+
 Str str_dyn(StrC str) { /*{{{*/
     str.is_dynamic = true;
     //str.len |= STR_BIT_DYNAMIC;
