@@ -121,6 +121,7 @@ void str_fmt(Str *str, char *format, ...);
 void str_fmt_va(Str *str, const char *format, va_list va);
 void str_fmt_fgbg(Str *out, Str text, Color fg, Color bg, bool bold, bool italic, bool underline);
 void str_fmt_fgbga(Str *out, Str text, Color fg, Color bg, bool bold, bool italic, bool underline);
+void str_fmt_websafe(Str *out, Str url);
 void str_input(Str *str);
 //Str str_copy(Str str);
 void str_copy(Str *copy, Str str);
