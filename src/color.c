@@ -10,4 +10,13 @@ void color_fmt_rgb(Str *out, Color color) { /*{{{*/
     str_free(&text);
 } /*}}}*/
 
+void color_fmt_rgb_fmt(Str *out, Color color, Str fmt) {
+    ASSERT_ARG(out);
+    if(!str_is_dynamic(*out)) ABORT("attempting to format constant string");
+    Str text = STR_DYN();
+    str_extend(&text, fmt);
+    str_fmt_fgbg(out, text, COLOR_NONE, color, false, false, false);
+    str_free(&text);
+}
+
 
