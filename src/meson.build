@@ -2,6 +2,7 @@
 sources = [
   'arg.c',
   'array.c',
+  'color.c',
   'file.c',
   'map.c',
   'str.c',
