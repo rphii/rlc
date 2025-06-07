@@ -39,6 +39,7 @@ typedef struct Color {
 
 typedef struct Str Str;
 void color_fmt_rgb(Str *out, Color color);
+void color_fmt_rgb_fmt(Str *out, Color color, Str fmt);
 
 #define COLOR_H
 #endif
