@@ -37,6 +37,8 @@ typedef struct Color {
 #define COLOR_FUCHSIA 	        COLOR_RGB(0xFF,0x00,0xFF)
 #define COLOR_PURPLE 	        COLOR_RGB(0x80,0x00,0x80)
 
+typedef struct Str Str;
+void color_fmt_rgb(Str *out, Color color);
 
 #define COLOR_H
 #endif
