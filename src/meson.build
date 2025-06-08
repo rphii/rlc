@@ -18,7 +18,7 @@ headers = [
   'colorprint.h',
   'err.h',
   'file.h',
-  'json.c',
+  'json.h',
   'lut.h',
   'map.h',
   'platform-detect.h',
