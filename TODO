@@ -15,4 +15,11 @@ arg.c
     option to not show env variable's default value. or not at all, not even with --help ENV
     pipe
 
+    crash if: (uncomment 4th line to not crash)
+
+      x=argx_init(arg_opt(arg), 'c', str("categories"), str("search: categories"));
+        g=argx_flag(x);
+          x=argx_init(g, 0, str("general"), str(""));
+            //argx_flag_set(x, &cli.api.print_url, 0);
+
 
