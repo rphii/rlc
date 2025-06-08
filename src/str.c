@@ -1030,10 +1030,10 @@ void str_fmt_fgbga(Str *out, const StrC text, Color fg, Color bg, bool bold, boo
     else {                   str_fmt(out, fmt, STR_F(text)); }
 } /*}}}*/
 
-void str_fmt_websafe(Str *out, Str url) { /*{{{*/
+void str_fmt_websafe(Str *out, Str text) { /*{{{*/
     Str escape = str(" <>#%+{}|\\^~[]';/?:@=&$");
-    for(size_t i = 0; i < str_len(url); ++i) {
-        unsigned char c = str_at(url, i);
+    for(size_t i = 0; i < str_len(text); ++i) {
+        unsigned char c = str_at(text, i);
         if(str_find_ch(escape, c) < str_len(escape)) {
             str_fmt(out, "%%%02x", c);
         } else {
