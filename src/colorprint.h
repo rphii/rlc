@@ -15,6 +15,7 @@
 #define BOLD    ";1"     /* bold */
 #define IT      ";3"     /* italic */
 #define UL      ";4"     /* underline */
+#define STRIKE  ";9"     /* strikethrough */
 
 /* === foreground colors === */
 #define FG_BK   ";30"    /* black */
