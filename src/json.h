@@ -1,6 +1,6 @@
 #ifndef RPHIIC_JSON_H
 
-#include <rphii/str.h>
+#include "str.h"
 
 #define JSON_DEPTH_MAX  4096
 

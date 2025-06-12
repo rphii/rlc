@@ -1,5 +1,5 @@
 #include "json.h"
-#include <rphii/utf8.h>
+#include "utf8.h"
 
 bool json_parse_value(JsonParse *p, JsonParseValue *v);
 
