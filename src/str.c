@@ -83,6 +83,19 @@ const StrC str_i0iE(Str str, size_t i0, size_t iE) { /*{{{*/
     return result;
 } /*}}}*/
 
+const StrC str_split(Str str, size_t i, Str *right) { /*{{{*/
+    size_t len = str_len(str);
+    if(i > len) i = len;
+    StrC left = str_iE(str, i);
+    if(right) *right = str_i0(str, (i + 1 > len) ? len : i + 1);
+    return left;
+} /*}}}*/
+
+const StrC str_split_ch(Str str, char c, Str *right) { /*{{{*/
+    size_t i = str_find_ch(str, c);
+    return str_split(str, i, right);
+} /*}}}*/
+
 const StrC str_trim(Str str) { /*{{{*/
     Str result = str_triml(str_trimr(str));
     return result;
