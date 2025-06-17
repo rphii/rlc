@@ -1,5 +1,4 @@
 arg.c NEW
-    priority -> annoying to start custom priority at 2 -> make help prio -1 and ukno then user can start at 1
     verify if allow_rest is not set, but we get more! what the hell!
     argx_pos! positional on sub-group?
     implement option=value
