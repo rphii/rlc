@@ -94,7 +94,7 @@ int main(const int argc, const char **argv) {
 
     arg_init(arg, str("test_arg"), str("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), str("github: https://github.com/rphii"));
     arg_init_rest(arg, str("files"), &files);
-    arg_init_width(arg, 40, 45);
+    arg_init_width(arg, 60, 45);
     //arg_init_width(arg, 0, 45);
 
     x=argx_init(arg_opt(arg), 'h', str("help"), str("print this help"));
@@ -109,8 +109,8 @@ int main(const int argc, const char **argv) {
     x=argx_init(arg_opt(arg), 'i', str("integer"), str("integer value"));
       argx_int(x, (int *)&config.whole, (int *)&preset.whole);
     x=argx_init(arg_opt(arg), 'o', str("option"), str("select one option"));
-      //g=argx_opt(x, (int *)&config.id, (int *)&preset.id);
-      g=argx_opt(x, (int *)&config.id, 0);
+      g=argx_opt(x, (int *)&config.id, (int *)&preset.id);
+      //g=argx_opt(x, (int *)&config.id, 0);
         //x=argx_init(g, 0, str("none"), str("do nothing"));
         //  argx_opt_enum(x, CONFIG_NONE);
         x=argx_init(g, 0, str("print"), str("print stuff"));

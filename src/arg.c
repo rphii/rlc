@@ -81,6 +81,7 @@ typedef union ArgXNumber {
 typedef struct ArgX { /*{{{*/
 
     ArgList id;
+    size_t count; // number of times argx_parse successfully parsed
     ArgXVal val;
     ArgXVal ref;
     int e; // enum
@@ -954,14 +955,17 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx, bool *quit_early) {
             } else {
                 *argx->val.b = true;
             }
+            ++argx->count;
         } break;
         case ARG_FLAG: {
             *argx->val.b = true;
+            ++argx->count;
         } break;
         case ARG_SSZ: {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
             if(need_help) break;
             TRYC(str_as_ssize(argV, argx->val.z, 0));
+            ++argx->count;
         } break;
         case ARG_INT: {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
@@ -969,21 +973,25 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx, bool *quit_early) {
             ssize_t z = 0;
             TRYC(str_as_ssize(argV, &z, 0));
             *argx->val.i = (int)z;
+            ++argx->count;
         } break;
         case ARG_FLOAT: {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
             if(need_help) break;
             TRYC(str_as_double(argV, argx->val.f));
+            ++argx->count;
         } break;
         case ARG_STRING: {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
             if(need_help) break;
             *argx->val.s = argV;
+            ++argx->count;
         } break;
         case ARG_VECTOR: {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
             if(need_help) break;
             array_push(*argx->val.v, argV);
+            ++argx->count;
             if(argx_parse_is_origin_from_pos(parse, argx)) {
                 parse->rest.vec = argx->val.v;
                 parse->rest.desc = argx->info.desc;
@@ -995,20 +1003,24 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx, bool *quit_early) {
             ArgX *x = 0;
             TRYC(arg_parse_getopt(argx->o, &x, argV));
             TRYC(argx_parse(parse, x, quit_early));
+            ++argx->count;
         } break;
         case ARG_FLAGS: {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
             if(need_help) break;
             ASSERT(argx->o, ERR_NULLPTR);
-            for(size_t i = 0; i < vargx_length(argx->o->vec); ++i) {
-                ArgX *x = vargx_get_at(&argx->o->vec, i);
-                *x->val.b = false;
+            if(!argx->count) {
+                for(size_t i = 0; i < vargx_length(argx->o->vec); ++i) {
+                    ArgX *x = vargx_get_at(&argx->o->vec, i);
+                    *x->val.b = false;
+                }
             }
             for(Str flag = {0}; str_splice(argV, &flag, parse->base->flag_sep); ) {
                 if(!flag.str) continue;
                 ArgX *x = 0;
                 TRYC(arg_parse_getopt(argx->o, &x, flag));
                 TRYC(argx_parse(parse, x, quit_early));
+                ++argx->count;
             }
         } break;
         case ARG_HELP: {
@@ -1235,7 +1247,7 @@ int arg_config_error(struct Arg *arg, StrC line, size_t line_nb, StrC opt, ArgX 
         } else {
             Str pre = str_ll(line.str, opt.str - line.str);
             Str at = opt;
-            Str post = str_ll(str_it(line, str_len(opt)), str_len(line) - str_len(opt));
+            Str post = str_i0(line, str_len(pre) + str_len(at));
             ERR_PRINTF("        %.*s" F("%.*s", BOLD FG_RD_B) "%.*s\n", STR_F(pre), STR_F(at), STR_F(post));
             ERR_PRINTF("        %*s", (int)(opt.str - line.str), "");
             for(size_t i = 0; i < str_len(opt); ++i) {
@@ -1266,9 +1278,9 @@ ErrDecl arg_config_load(struct Arg *arg) {
     for(memset(&line, 0, sizeof(line)); str_splice(conf, &line, '\n'); ++line_nb) {
         if(!line.str) continue;
         line = str_trim(line);
+        line = str_iE(line, str_find_ch(line, '#'));
         argx = 0;
         if(!str_len(line)) continue;
-        if(str_at(line, 0) == '#') continue;
         //printff("CONFIG:%.*s",STR_F(line));
         for(memset(&opt, 0, sizeof(opt)); str_splice(line, &opt, '='); ) {
             if(!opt.str) continue;
