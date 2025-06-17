@@ -726,13 +726,15 @@ void argx_print(Arg *arg, ArgX *x, bool detailed) { /*{{{*/
     }
     if(detailed && x->id == ARG_OPTION && x->o) {
         int *n = x->val.i;
-        for(size_t i = 0; n && i < vargx_length(x->o->vec); ++i) {
+        size_t i = 0;
+        for(i = 0; n && i < vargx_length(x->o->vec); ++i) {
+        //printff("HELLO");
             ArgX *xx = vargx_get_at(&x->o->vec, i);
             if(xx->e != *n) continue;
             argx_print(arg, xx, false);
             break;
         }
-        if(!n) {
+        if(!n || i >= vargx_length(x->o->vec)) {
             arg_do_print(arg, 1);
         }
     } else {

@@ -25,19 +25,19 @@ typedef struct Config {
     ssize_t whole;
     bool boolean;
     double number;
-    Str2 config;
-    Str2 string;
-    VStr2 strings;
+    Str config;
+    Str string;
+    VStr strings;
     ConfigList id;
     ConfigList id2;
     ConfigList id3;
     struct {
         ConfigModeList id;
         ssize_t z;
-        Str2 s;
+        Str s;
         double f;
         bool b;
-        VrStr v;
+        VStr v;
     } mode;
     struct {
         bool safe;
@@ -76,9 +76,9 @@ int main(const int argc, const char **argv) {
     size_t n_arg = 0;
     Config config = {0};
     Config preset = {0};
-    Str2 *rest2 = {0};
-    Str2 *files = {0};
-    Str2 configuration = {0};
+    Str *rest2 = {0};
+    Str *files = {0};
+    Str configuration = {0};
     struct Arg *arg = arg_new();
     struct ArgX *x;
     struct ArgXGroup *g;
@@ -88,88 +88,89 @@ int main(const int argc, const char **argv) {
     preset.flags.other = true;
     preset.flags.safe = true;
     preset.id = CONFIG_LMAO;
-    preset.config = str2("path/to/config/that-is-very-long-and-unnecessary");
+    preset.config = str("path/to/config/that-is-very-long-and-unnecessary");
 
     /* set up arguments {{{*/
 
-    arg_init(arg, str2("test_arg"), str2("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), str2("github: https://github.com/rphii"));
-    arg_init_rest(arg, str2("files"), &files);
+    arg_init(arg, str("test_arg"), str("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), str("github: https://github.com/rphii"));
+    arg_init_rest(arg, str("files"), &files);
     arg_init_width(arg, 40, 45);
     //arg_init_width(arg, 0, 45);
 
-    x=argx_init(arg_opt(arg), 'h', str2("help"), str2("print this help"));
+    x=argx_init(arg_opt(arg), 'h', str("help"), str("print this help"));
       argx_help(x, arg);
-    x=argx_init(arg_opt(arg), 0, str2("xyz"), str2("nothing"));
-    x=argx_init(arg_opt(arg), 'b', str2("bool"), str2("boolean value and a long description that is"));
+    x=argx_init(arg_opt(arg), 0, str("xyz"), str("nothing"));
+    x=argx_init(arg_opt(arg), 'b', str("bool"), str("boolean value and a long description that is"));
       argx_bool(x, &config.boolean, &preset.boolean);
-    x=argx_init(arg_opt(arg), 'f', str2("double"), str2("double value"));
+    x=argx_init(arg_opt(arg), 'f', str("double"), str("double value"));
       argx_dbl(x, &config.number, &preset.number);
-    x=argx_init(arg_opt(arg), 's', str2("string"), str2("string value"));
+    x=argx_init(arg_opt(arg), 's', str("string"), str("string value"));
       argx_str(x, &config.string, &preset.string);
-    x=argx_init(arg_opt(arg), 'i', str2("integer"), str2("integer value"));
+    x=argx_init(arg_opt(arg), 'i', str("integer"), str("integer value"));
       argx_int(x, (int *)&config.whole, (int *)&preset.whole);
-    x=argx_init(arg_opt(arg), 'o', str2("option"), str2("select one option"));
-      g=argx_opt(x, (int *)&config.id, (int *)&preset.id);
-        x=argx_init(g, 0, str2("none"), str2("do nothing"));
-          argx_opt_enum(x, CONFIG_NONE);
-        x=argx_init(g, 0, str2("print"), str2("print stuff"));
+    x=argx_init(arg_opt(arg), 'o', str("option"), str("select one option"));
+      //g=argx_opt(x, (int *)&config.id, (int *)&preset.id);
+      g=argx_opt(x, (int *)&config.id, 0);
+        //x=argx_init(g, 0, str("none"), str("do nothing"));
+        //  argx_opt_enum(x, CONFIG_NONE);
+        x=argx_init(g, 0, str("print"), str("print stuff"));
           argx_opt_enum(x, CONFIG_PRINT);
-        x=argx_init(g, 0, str2("browser"), str2("browse stuff"));
+        x=argx_init(g, 0, str("browser"), str("browse stuff"));
           argx_opt_enum(x, CONFIG_BROWSER);
-        x=argx_init(g, 0, str2("lmao"), str2("what the fuck"));
+        x=argx_init(g, 0, str("lmao"), str("what the fuck"));
           argx_opt_enum(x, CONFIG_LMAO);
           argx_ssz(x, &nfuck, 0);
           argx_func(x, ++n_arg, hello_world, &nfuck, false);
-        x=argx_init(g, 0, str2("test"), str2("what the fuck"));
+        x=argx_init(g, 0, str("test"), str("what the fuck"));
           argx_opt_enum(x, 6);
-        x=argx_init(g, 0, str2("useless"), str2("what the fuck"));
+        x=argx_init(g, 0, str("useless"), str("what the fuck"));
           argx_opt_enum(x, 7);
-        x=argx_init(g, 0, str2("verbose"), str2("what the fuck"));
+        x=argx_init(g, 0, str("verbose"), str("what the fuck"));
           argx_opt_enum(x, 8);
-    //x=argx_init(arg_opt(arg), n_arg++, 0, str2("very-long-option-that-is-very-important-and-cool-but-serves-no-purpose-whatsoever-anyways-how-are-you-doing-today"), str2("select another option"));
-    x=argx_init(arg_opt(arg), 'F', str2("flags"), str2("set different flags"));
+    //x=argx_init(arg_opt(arg), n_arg++, 0, str("very-long-option-that-is-very-important-and-cool-but-serves-no-purpose-whatsoever-anyways-how-are-you-doing-today"), str("select another option"));
+    x=argx_init(arg_opt(arg), 'F', str("flags"), str("set different flags"));
       g=argx_flag(x);
-        x=argx_init(g, 0, str2("safe"), str2("enable safe operation"));
+        x=argx_init(g, 0, str("safe"), str("enable safe operation"));
           argx_flag_set(x, &config.flags.safe, &preset.flags.safe);
-        x=argx_init(g, 0, str2("unsafe"), str2("enable unsafe operation"));
+        x=argx_init(g, 0, str("unsafe"), str("enable unsafe operation"));
           argx_flag_set(x, &config.flags.unsafe, &preset.flags.unsafe);
-        x=argx_init(g, 0, str2("other"), str2("enable other operation"));
+        x=argx_init(g, 0, str("other"), str("enable other operation"));
           argx_flag_set(x, &config.flags.other, &preset.flags.other);
 
-    x=argx_pos(arg, str2("mode"), str2("the main mode"));
+    x=argx_pos(arg, str("mode"), str("the main mode"));
       g=argx_opt(x, (int *)&config.mode.id, (int *)&preset.mode.id);
-        x=argx_init(g, 0, str2("none"), str2("do nothing"));
+        x=argx_init(g, 0, str("none"), str("do nothing"));
           argx_opt_enum(x, CONFIG_MODE_NONE);
-        x=argx_init(g, 0, str2("hello"), str2("print hello"));
+        x=argx_init(g, 0, str("hello"), str("print hello"));
           argx_func(x, ++n_arg, hello_world, &nfuck, true);
           argx_opt_enum(x, CONFIG_MODE_HELLO);
-        x=argx_init(g, 0, str2("int"), str2("set int"));
+        x=argx_init(g, 0, str("int"), str("set int"));
           argx_ssz(x, &config.mode.z, &preset.mode.z);
           argx_opt_enum(x, CONFIG_MODE_INT);
-        x=argx_init(g, 0, str2("float"), str2("set float"));
+        x=argx_init(g, 0, str("float"), str("set float"));
           argx_dbl(x, &config.mode.f, &preset.mode.f);
           argx_opt_enum(x, CONFIG_MODE_FLOAT);
-        x=argx_init(g, 0, str2("string"), str2("set string"));
+        x=argx_init(g, 0, str("string"), str("set string"));
           argx_str(x, &config.mode.s, &preset.mode.s);
           argx_opt_enum(x, CONFIG_MODE_STRING);
-        x=argx_init(g, 0, str2("bool"), str2("set bool"));
+        x=argx_init(g, 0, str("bool"), str("set bool"));
           argx_bool(x, &config.mode.b, &preset.mode.b);
           argx_opt_enum(x, CONFIG_MODE_BOOL);
-        x=argx_init(g, 0, str2("strings"), str2("set strings"));
+        x=argx_init(g, 0, str("strings"), str("set strings"));
           argx_vstr(x, &rest2, 0);
           argx_opt_enum(x, CONFIG_MODE_STRINGS);
 
-    x=argx_init(arg_opt(arg), 'I', str2("input"), str2("input files"));
+    x=argx_init(arg_opt(arg), 'I', str("input"), str("input files"));
       argx_vstr(x, &config.strings, &preset.strings);
-      argx_type(x, str2("input-files"));
+      argx_type(x, str("input-files"));
 
-    argx_env(arg, str2("ARG_CONFIG_PATH"), str2("config path"), &config.config, &preset.config, false);
+    argx_env(arg, str("ARG_CONFIG_PATH"), str("config path"), &config.config, &preset.config, false);
     /*}}}*/
 
     /* load config {{{ */
-    Str2 filename = str2("test_arg.conf");
+    Str filename = str("test_arg.conf");
     TRYC(file_str_read(filename, &configuration));
-    arg_config(arg, str2_ll(configuration.str, str2_len(configuration)));
+    arg_config(arg, str_ll(configuration.str, str_len(configuration)));
     /*}}}*/
 
 #if 0
@@ -194,20 +195,20 @@ int main(const int argc, const char **argv) {
     printf("quit? %s\n", quit_early ? "yes" : "no");
     printf("INPUT-FILES:\n");
     for(size_t i = 0; i < array_len(config.strings); ++i) {
-        printf(" %.*s\n", STR2_F(array_at(config.strings, i)));
+        printf(" %.*s\n", STR_F(array_at(config.strings, i)));
     }
     printf("FILES:\n");
     for(size_t i = 0; i < array_len(files); ++i) {
-        printf(" %.*s\n", STR2_F(array_at(files, i)));
+        printf(" %.*s\n", STR_F(array_at(files, i)));
     }
     printf("STRINGS:\n");
     for(size_t i = 0; i < array_len(rest2); ++i) {
-        printf(" %.*s\n", STR2_F(array_at(rest2, i)));
+        printf(" %.*s\n", STR_F(array_at(rest2, i)));
     }
     /*}}}*/
 
 clean:
-    str2_free(&configuration);
+    str_free(&configuration);
     arg_free(&arg);
     return err;
 
