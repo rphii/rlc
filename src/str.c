@@ -826,8 +826,8 @@ size_t str_pair_ch(Str str, char c1) { /*{{{*/
     char c0 = str_at(str, 0);
     for(size_t i = 1; i < str_len(str); ++i) {
         char c = str_at(str, i);
-        if(c == c0) level++;
-        else if(c == c1) level--;
+        if(c == c1) level--;
+        else if(c == c0) level++;
         if(level <= 0) return i;
     }
     return len;
