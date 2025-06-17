@@ -47,6 +47,8 @@ const StrC str_ll(const char *str, size_t len);
 const StrC str_i0(Str str, size_t i0);
 const StrC str_iE(Str str, size_t iE);
 const StrC str_i0iE(Str str, size_t i0, size_t iE);
+const StrC str_split(Str str, size_t i, Str *right);
+const StrC str_split_ch(Str str, char c, Str *right);
 const StrC str_trim(Str str);
 const StrC str_triml(Str str);
 const StrC str_trimr(Str str);
