@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 gcc -o test_arg.out test_arg.c ../src/arg.c \
-    ../src/str2.c ../src/file.c ../src/array.c -lm \
+    ../src/str.c ../src/file.c ../src/array.c -lm \
     -Og -rdynamic -ggdb3 -fsanitize=address \
 
     #-lrphiic
