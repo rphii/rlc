@@ -14,9 +14,9 @@ typedef struct Color {
     };
 } Color;
 
-#define COLOR_RGBA(r,g,b,a)     (Color){{{ r, g, b, a }}}
+#define COLOR_RGBA(R,G,B,A)     (Color){ .r = (R), .g = (G), .b = (B), .a = (A)}
 
-#define COLOR_RGB(r,g,b)        (Color){{{ r, g, b, 0xFF }}}
+#define COLOR_RGB(R,G,B)        (Color){ .r = (R), .g = (G), .b = (B), 0xFF }
 #define COLOR_RGB_NEGATIVE(col) COLOR_RGB(~col.r, ~col.g, ~col.b)
 
 #define COLOR_NONE              COLOR_RGBA(0, 0, 0, 0)
