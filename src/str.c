@@ -1069,7 +1069,7 @@ void str_fmtx(Str *out, StrFmtX fmtx, char *fmt, ...) {
     //printff("len old %zu, new %zu, diff %zu", len_old, len_new, len_diff);
     //printff("PART STRING:[%.*s]:%zu", STR_F(*out), out->len);
     //printff("MOVE: %p -> %p x %zu", str_it(*out, len_new), str_it(*out, len_old), len_diff);
-    memmove(str_it(*out, len_old), str_it(*out, len_new), len_diff);
+    //memmove(str_it(*out, len_old), str_it(*out, len_new), len_diff);
     str_resize(out, out->len - (len_new - len_old));
     //printff("FINAL STRING:[%.*s]:%zu", STR_F(*out), out->len);
 }
