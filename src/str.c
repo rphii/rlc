@@ -1062,10 +1062,12 @@ void str_fmtx(Str *out, StrFmtX fmtx, char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
     str_fmt_va(out, fmt, va);
+    va_end(va);
     str_fmt_fgbg(out, str_i0(*out, len_old), fmtx.fg, fmtx.bg, fmtx.bold, fmtx.italic, fmtx.underline);
     size_t len_new = out->len;
-    memmove(str_it(*out, len_new), str_it(*out, len_old), len_new - len_old);
-    va_end(va);
+    size_t len_diff = len_new - len_old;
+    memmove(str_it(*out, len_new), str_it(*out, len_old), len_diff);
+    out->len -= len_diff;
 }
 
 void str_input(Str *str) { /*{{{*/
