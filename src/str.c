@@ -53,7 +53,7 @@ Str str_dyn(StrC str) { /*{{{*/
 } /*}}}*/
 
 const StrC str_l(const char *str) { /*{{{*/
-    Str result = { .len = strlen(str), .str = (char *)str };
+    Str result = { .len = str ? strlen(str) : 0, .str = (char *)str };
     return result;
 } /*}}}*/
 
