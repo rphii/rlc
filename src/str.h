@@ -25,6 +25,13 @@ typedef struct Str {
 #endif
 } Str, StrC, *VStr, *VStrC;
 
+typedef struct StrFmtX {
+    Color fg;
+    Color bg;
+    bool bold;
+    bool italic;
+    bool underline;
+} StrFmtX;
 
 #if 0
 #define IMPL_STR_POP_BACK_CHAR(A, N) /**/ \
@@ -123,6 +130,7 @@ void str_fmt(Str *str, char *format, ...);
 void str_fmt_va(Str *str, const char *format, va_list va);
 void str_fmt_fgbg(Str *out, Str text, Color fg, Color bg, bool bold, bool italic, bool underline);
 void str_fmt_fgbga(Str *out, Str text, Color fg, Color bg, bool bold, bool italic, bool underline);
+void str_fmtx(Str *out, StrFmtX fmtx, char *fmt, ...);
 void str_fmt_websafe(Str *out, Str text);
 void str_input(Str *str);
 //Str str_copy(Str str);
