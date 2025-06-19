@@ -1055,6 +1055,19 @@ void str_fmt_websafe(Str *out, Str text) { /*{{{*/
     }
 } /*}}}*/
 
+void str_fmtx(Str *out, StrFmtX fmtx, char *fmt, ...) {
+    ASSERT_ARG(out);
+    ASSERT_ARG(fmt);
+    size_t len_old = out->len;
+    va_list va;
+    va_start(va, fmt);
+    str_fmt_va(out, fmt, va);
+    str_fmt_fgbg(out, str_i0(*out, len_old), fmtx.fg, fmtx.bg, fmtx.bold, fmtx.italic, fmtx.underline);
+    size_t len_new = out->len;
+    memmove(str_it(*out, len_new), str_it(*out, len_old), len_new - len_old);
+    va_end(va);
+}
+
 void str_input(Str *str) { /*{{{*/
     ASSERT_ARG(str);
     if(!str_is_dynamic(*str)) ABORT("attempting to input constant string");
