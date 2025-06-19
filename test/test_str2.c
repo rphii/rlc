@@ -338,10 +338,14 @@ int main(void) {
 #endif
 
     Str y = STR_DYN();
-    str_fmtx(&y, (StrFmtX){}, "a string!");
-    str_fmtx(&y, (StrFmtX){}, "a string!");
-    str_fmtx(&y, (StrFmtX){}, "a string!");
+    str_fmtx(&y, (StrFmtX){ .fg.rgba = 0xf13091 }, "a string!");
+    str_fmtx(&y, (StrFmtX){ .fg.rgba = 0x982192 }, "another!");
+    str_fmtx(&y, (StrFmtX){ .bg.rgba = 0x897921 }, "a string!");
     str_println(y);
+
+    printff("EMPTY STRING>>");
+    str_println(str_l(0));
+    printff("EMPTY STRING<<");
 
     str_free(&colors);
     str_free(&a);
