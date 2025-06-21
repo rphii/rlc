@@ -87,7 +87,7 @@ bool json_parse_string(JsonParse *p, Str *val) {
             U8Str u8 = {0};
             U8Point u8p = {0};
             str_as_cstr(q.head, u8, U8_CAP);
-            if(cstr_to_u8_point(u8, &u8p)) {
+            if(cstr_to_u8_point(u8, &u8p) || u8p.val < ' ') {
                 goto invalid;
             }
             q.head.str += u8p.bytes;
