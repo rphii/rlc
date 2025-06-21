@@ -37,7 +37,7 @@ typedef struct Config {
         Str s;
         double f;
         bool b;
-        VStr v;
+        VStrC v;
     } mode;
     struct {
         bool safe;
@@ -78,7 +78,7 @@ int main(const int argc, const char **argv) {
     Config preset = {0};
     Str *rest2 = {0};
     Str *files = {0};
-    Str configuration = {0};
+    Str configuration = STR_DYN;
     struct Arg *arg = arg_new();
     struct ArgX *x;
     struct ArgXGroup *g;
@@ -113,6 +113,8 @@ int main(const int argc, const char **argv) {
       //g=argx_opt(x, (int *)&config.id, 0);
         //x=argx_init(g, 0, str("none"), str("do nothing"));
         //  argx_opt_enum(x, CONFIG_NONE);
+        x=argx_init(g, 0, str("none"), str("do nothing"));
+          argx_opt_enum(x, CONFIG_NONE);
         x=argx_init(g, 0, str("print"), str("print stuff"));
           argx_opt_enum(x, CONFIG_PRINT);
         x=argx_init(g, 0, str("browser"), str("browse stuff"));
@@ -168,7 +170,7 @@ int main(const int argc, const char **argv) {
     /*}}}*/
 
     /* load config {{{ */
-    Str filename = str("test_arg.conf");
+    Str filename = STR("test_arg.conf");
     TRYC(file_str_read(filename, &configuration));
     arg_config(arg, str_ll(configuration.str, str_len(configuration)));
     /*}}}*/
