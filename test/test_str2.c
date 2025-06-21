@@ -13,7 +13,7 @@ int main(void) {
     printff("sizeof Str %zu", sizeof(Str));
     //return 0;
 
-    Str a = {0};
+    Str a = str_dyn(str(""));
     Str b = str_dyn(str("HOME path: "));
     Str c = str_dyn(str(" \v HOME path!  \t "));
     //str_l(getenv("HOME"));
@@ -102,7 +102,7 @@ int main(void) {
     x = str_ensure_dir(pathtest);
     printff("%.*s -> ensur [%.*s]%zu", STR_F(pathtest), STR_F(x), str_len(x));
 
-    Str f = {0};
+    Str f = STR_DYN();
     str_push(&f, '<');
     str_push(&f, 'x');
     str_push(&f, 'y');
@@ -122,7 +122,7 @@ int main(void) {
         printff("splice:[%.*s]", STR_F(splice));
     }
 
-    Str colors = {0};
+    Str colors = STR_DYN();
     str_fmt_fgbg(&colors, str("bold"), (Color){0}, (Color){0}, true, false, false);
     printff("[%.*s]%zu", STR_F(colors), str_len(colors));
     str_clear(&colors);
@@ -162,7 +162,7 @@ int main(void) {
     str_clear(&colors);
 
     Color color = {0};
-    Str colorstr = {0};
+    Str colorstr = STR_DYN();
     colorstr = str("rgb(ff22ff)");
     if(!str_as_color(colorstr, &color)) {
         str_clear(&colors);
@@ -286,7 +286,7 @@ int main(void) {
 #endif
 
 #if 1
-    Str crazystring = {0}, crazystring_in = str(" Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed viverra felis vitae massa fringilla, in blandit est euismod. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Aenean consequat tincidunt volutpat. Suspendisse auctor eros lacus, quis consectetur urna rutrum nec. Maecenas eu lectus venenatis, aliquam libero vel, ornare nibh. Quisque sodales iaculis urna, ac venenatis est gravida eu. Morbi dignissim ac augue quis malesuada. Vestibulum aliquet dui porta ante accumsan, vel vestibulum massa commodo. In hac habitasse platea dictumst. Donec eget leo hendrerit, luctus nulla non, pulvinar nunc. Aliquam erat volutpat.");
+    Str crazystring = STR_DYN(), crazystring_in = str(" Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed viverra felis vitae massa fringilla, in blandit est euismod. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Aenean consequat tincidunt volutpat. Suspendisse auctor eros lacus, quis consectetur urna rutrum nec. Maecenas eu lectus venenatis, aliquam libero vel, ornare nibh. Quisque sodales iaculis urna, ac venenatis est gravida eu. Morbi dignissim ac augue quis malesuada. Vestibulum aliquet dui porta ante accumsan, vel vestibulum massa commodo. In hac habitasse platea dictumst. Donec eget leo hendrerit, luctus nulla non, pulvinar nunc. Aliquam erat volutpat.");
     //memset(&p, 0, sizeof(p));
     for(size_t i = 0; i < str_len(crazystring_in); i += 3) {
         Color col = {0};
@@ -324,7 +324,7 @@ int main(void) {
     str_printal(str("asdf xyz abc"), &p, 30, 50);
     str_printal(str("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"), &p, 42, 50);
 
-    Str spacy = {0}, spacy_in = str("                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                text                              ");
+    Str spacy = STR_DYN(), spacy_in = str("                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                text                              ");
     for(size_t i = 0; i < str_len(spacy_in); i += 1) {
         Color col = { .rgba = rand() };
         Str snip = str_i0iE(spacy_in, i, i + 1 < str_len(spacy_in) ? i + 1 : str_len(spacy_in));
