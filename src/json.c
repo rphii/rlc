@@ -49,7 +49,7 @@ bool json_parse_string(JsonParse *p, Str *val) {
     ASSERT_ARG(p);
     ASSERT_ARG(val);
     JsonParse q = *p;
-    if(!json_parse_ch(&q, '"')) return false;
+    if(!json_parse_ch(&q, '"')) goto invalid;
     int escape = 0;
     while(str_len(q.head)) {
         if(escape < 0) {
@@ -64,12 +64,12 @@ bool json_parse_string(JsonParse *p, Str *val) {
                 case 'r' : break;
                 case 't' : break;
                 case 'u' : escape += 4; break;
-                default  : return false;
+                default  : goto invalid;
             }
             ++q.head.str;
             --q.head.len;
         } else if(escape) {
-            if(!json_parse_any(&q, str("0123456789abcdefABCDEF"))) return false;
+            if(!json_parse_any(&q, str("0123456789abcdefABCDEF"))) goto invalid;
             --escape;
         } else if(json_parse_ch(&q, '\\')) {
             escape = -1;
@@ -84,8 +84,19 @@ bool json_parse_string(JsonParse *p, Str *val) {
             ++q.head.str;
             --q.head.len;
         } else {
-            return false;
+            U8Str u8 = {0};
+            U8Point u8p = {0};
+            str_as_cstr(q.head, u8, U8_CAP);
+            if(cstr_to_u8_point(u8, &u8p)) {
+                goto invalid;
+            }
+            q.head.str += u8p.bytes;
+            q.head.len -= u8p.bytes;
         }
+    }
+invalid:
+    if(p->settings.verbose) {
+        printf("%*s[invalid string] %.*s", (int)p->depth, "", STR_F(p->head));
     }
     return false;
 }
@@ -275,6 +286,7 @@ ErrDecl json_parse_valid(Str input) {
         .settings.verbose = false,
     };
     if(json_parse_value(&q, &v)) goto valid;
+    printff("INVALID INPUT: HEAD @ [%.*s]", STR_F(q.head));
     return -1;
 valid:
     json_parse_ws(&q);
