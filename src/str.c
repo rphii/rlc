@@ -1168,10 +1168,12 @@ void str_printal(Str str, StrPrint *p, size_t i0, size_t iE) {
         //if(jE > len) jE = len;
         Str bufws = first ? str : str_triml_nof(str_i0(str, j0));
         if(!str_len(bufws)) break;
+        Str bufnl = str_iE(bufws, str_find_ch(bufws, '\n'));
+        bool have_nl = bufws.len != bufnl.len;
         //printff("%p .. %p = %zu", bufws.str, str.str, bufws.str-str.str-j0);
-        j0 += bufws.str - str.str - j0;
-        size_t inof = str_index_nof(bufws, first ? w0 : w);
-        size_t jE = inof < str_len(bufws) ? inof : str_len(bufws);
+        j0 += bufnl.str - str.str - j0;
+        size_t inof = str_index_nof(bufnl, first ? w0 : w);
+        size_t jE = inof < str_len(bufnl) ? inof : str_len(bufws);
         Str buf = str_iE(bufws, jE);
         size_t lnof = str_len_nof(buf);
         /* get the format */
@@ -1185,7 +1187,7 @@ void str_printal(Str str, StrPrint *p, size_t i0, size_t iE) {
         if(str_len(fmt) || str_len(p->fmt)) printf("\033[0m");
         //printf("]");
         p->progress += lnof;
-        if(p->progress >= iE) {
+        if(p->progress >= iE || have_nl) {
             p->nl_pending = true;
         }
         if(x < str_len(buf)) {
