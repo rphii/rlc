@@ -76,6 +76,7 @@ int str_as_ssize(Str str, ssize_t *out, int base);
 int str_as_float(Str str, float *out);
 #define ERR_str_as_double(...)  "failed converting string to double"
 int str_as_double(Str str, double *out);
+#define ERR_str_as_color(...)  "failed converting string to color"
 int str_as_color(Str str, Color *out);
 
 bool str_is_heap(Str str);

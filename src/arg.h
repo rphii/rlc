@@ -41,6 +41,7 @@ void argx_env(struct Arg *arg, Str opt, Str desc, Str *val, Str *ref, bool hide_
 struct ArgX *argx_init(struct ArgXGroup *group, const unsigned char c, const Str optX, const Str descX);
 
 void argx_str(struct ArgX *x, Str *val, Str *ref);
+void argx_col(struct ArgX *x, Color *val, Color *ref);
 void argx_ssz(struct ArgX *x, ssize_t *val, ssize_t *ref);
 void argx_int(struct ArgX *x, int *val, int *ref);
 void argx_dbl(struct ArgX *x, double *val, double *ref);
