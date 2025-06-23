@@ -441,6 +441,36 @@ bool str_is_dynamic(Str str) { /*{{{*/
     return false;
 } /*}}}*/
 
+size_t str_len_repr(Str str) { /*{{{*/
+    size_t result = 0;
+    U8Str u8 = {0};
+    U8Point u8p = {0};
+    for(size_t i = 0; i < str.len; ++i) {
+        unsigned char *s = (unsigned char *)str_it(str, i);
+        if(*s == '\033') {
+            if(++s, ++i < str.len) {
+                if(*s == '[') {
+                    Str snip = str_ll((char *)s, str.len - i);
+                    size_t m = str_find_ch(snip, 'm');
+                    if(m < snip.len) i += m;
+                }
+            }
+        } else if(*s < ' ') { /* do not count */
+        } else if(*s < 0x80) {
+            ++result;
+        } else {
+            str_u8str(u8, str_ll((char *)s, str.len - i));
+            cstr_to_u8_point(u8, &u8p);
+            wchar_t w = u8p.val;
+            int wcw = wcwidth(w);
+            if(wcw > 0) result += wcw;
+            //printff("%s === %i\n", u8, wcwidth(w));
+            i += (u8p.bytes - 1);
+        }
+    }
+    return result;
+} /*}}}*/
+
 size_t str_len_raw(Str str) { /*{{{*/
 #if !defined(NDEBUG) && 0
     if(str_is_heap(str)) {
@@ -475,7 +505,7 @@ size_t str_len_u8(Str str) { /*{{{*/
     for(size_t i = 0; i < str.len; ++i) {
         unsigned char *s = (unsigned char *)str_it(str, i);
         if(*s < ' ') { /* don't count width */ }
-        if(*s < 0x80) ++result;
+        else if(*s < 0x80) ++result;
         else {
             str_u8str(u8, str_ll((char *)s, str.len - i));
             cstr_to_u8_point(u8, &u8p);
@@ -1016,7 +1046,7 @@ void str_fmt_va(Str *str, const char *format, va_list va) { /*{{{*/
     STR_HASH_CLEAR(str);
 } /*}}}*/
 
-void str_fmt_fgbg(Str *out, const StrC text, Color fg, Color bg, bool bold, bool italic, bool underline) { /*{{{*/
+void str_fmt_fgbgx(Str *out, const StrC text, Color fg, Color bg, bool bold, bool italic, bool underline, bool bashsafe) { /*{{{*/
     ASSERT_ARG(out);
     if(!str_is_dynamic(*out)) ABORT("attempting to format constant string");
     bool do_fmt = ((fg.rgba || bg.rgba || bold || italic || underline));
@@ -1027,17 +1057,21 @@ void str_fmt_fgbg(Str *out, const StrC text, Color fg, Color bg, bool bold, bool
     char fmt[64] = {0}; /* theoretically 52 would be enough? */
     int len = sizeof(fmt)/sizeof(*fmt);
     int offs = 0;
-    offs += snprintf(fmt, len, "%s", FS_BEG);
+    offs += snprintf(fmt, len, "%s%s", bashsafe ? "\\[" : "", FS_BEG);
     if(fg.rgba) offs += snprintf(fmt + offs, len - offs, "%s", FS_FG3);
     if(bg.rgba) offs += snprintf(fmt + offs, len - offs, "%s", FS_BG3);
     if(bold) offs += snprintf(fmt + offs, len - offs, "%s", BOLD);
     if(italic) offs += snprintf(fmt + offs, len - offs, "%s", IT);
     if(underline) offs += snprintf(fmt + offs, len - offs, "%s", UL);
-    snprintf(fmt + offs, len - offs, "%s", FS_END);
+    snprintf(fmt + offs, len - offs, "%s", bashsafe ? "m\\]%.*s\\[\033[0m\\]" : FS_END);
     if(fg.rgba && bg.rgba) { str_fmt(out, fmt, fg.r, fg.g, fg.b, bg.r, bg.g, bg.b, STR_F(text)); }
     else if(fg.rgba) {       str_fmt(out, fmt, fg.r, fg.g, fg.b, STR_F(text)); }
     else if(bg.rgba) {       str_fmt(out, fmt, bg.r, bg.g, bg.b, STR_F(text)); }
     else {                   str_fmt(out, fmt, STR_F(text)); }
+} /*}}}*/
+
+void str_fmt_fgbg(Str *out, const StrC text, Color fg, Color bg, bool bold, bool italic, bool underline) { /*{{{*/
+    str_fmt_fgbgx(out, text, fg, bg, bold, italic, underline, false);
 } /*}}}*/
 
 void str_fmt_fgbga(Str *out, const StrC text, Color fg, Color bg, bool bold, bool italic, bool underline) { /*{{{*/
@@ -1088,7 +1122,7 @@ void str_fmtx(Str *out, StrFmtX fmtx, char *fmt, ...) {
     if(fmtx.nocolor && *fmtx.nocolor) {
         str_extend(out, str_i0(*out, len_old));
     } else {
-        str_fmt_fgbg(out, str_i0(*out, len_old), fmtx.fg, fmtx.bg, fmtx.bold, fmtx.italic, fmtx.underline);
+        str_fmt_fgbgx(out, str_i0(*out, len_old), fmtx.fg, fmtx.bg, fmtx.bold, fmtx.italic, fmtx.underline, fmtx.bashsafe);
     }
     size_t len_diff = out->len - len_new;
     //printff("len old %zu, new %zu, diff %zu", len_old, len_new, len_diff);
