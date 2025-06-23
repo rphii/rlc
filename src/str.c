@@ -1064,7 +1064,11 @@ void str_fmtx(Str *out, StrFmtX fmtx, char *fmt, ...) {
     str_fmt_va(out, fmt, va);
     va_end(va);
     size_t len_new = out->len;
-    str_fmt_fgbg(out, str_i0(*out, len_old), fmtx.fg, fmtx.bg, fmtx.bold, fmtx.italic, fmtx.underline);
+    if(fmtx.nocolor && *fmtx.nocolor) {
+        str_extend(out, str_i0(*out, len_old));
+    } else {
+        str_fmt_fgbg(out, str_i0(*out, len_old), fmtx.fg, fmtx.bg, fmtx.bold, fmtx.italic, fmtx.underline);
+    }
     size_t len_diff = out->len - len_new;
     //printff("len old %zu, new %zu, diff %zu", len_old, len_new, len_diff);
     //printff("PART STRING:[%.*s]:%zu", STR_F(*out), out->len);

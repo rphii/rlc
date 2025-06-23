@@ -31,6 +31,7 @@ typedef struct StrFmtX {
     bool bold;
     bool italic;
     bool underline;
+    bool *nocolor;
 } StrFmtX;
 
 #if 0
