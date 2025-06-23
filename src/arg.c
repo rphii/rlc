@@ -13,6 +13,7 @@ typedef enum {
     ARG_INT,
     ARG_FLOAT,
     ARG_STRING,
+    ARG_COLOR,
     ARG_ENV,
     ARG_VECTOR,
     //ARG_EXOTIC,
@@ -32,6 +33,7 @@ const char *arglist_str(ArgList id) {
         case ARG_SSZ: return "<int>";
         case ARG_FLOAT: return "<double>";
         case ARG_STRING: return "<string>";
+        case ARG_COLOR: return "<color>";
         case ARG_ENV: return "<env>";
         case ARG_OPTION: return "<option>";
         case ARG_HELP: return "<help>";
@@ -63,6 +65,7 @@ typedef union ArgXVal {
     void *x;            // exotic
     int e;              // enum
     VStrC *v;           // vector
+    Color *c;           // color
 } ArgXVal;
 
 typedef struct ArgXCallback {
@@ -326,6 +329,13 @@ void argx_str(ArgX *x, Str *val, Str *ref) {
     x->val.s = val;
     x->ref.s = ref;
 }
+void argx_col(ArgX *x, Color *val, Color *ref) {
+    ASSERT_ARG(x);
+    ASSERT_ARG(val);
+    x->id = ARG_COLOR;
+    x->val.c = val;
+    x->ref.c = ref;
+}
 void argx_ssz(ArgX *x, ssize_t *val, ssize_t *ref) {
     ASSERT_ARG(x);
     ASSERT_ARG(val);
@@ -564,6 +574,7 @@ void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
 
 void argx_print_pre(Arg *arg, ArgX *argx) { /*{{{*/
     switch(argx->id) {
+        case ARG_COLOR:
         case ARG_STRING:
         case ARG_SSZ:
         case ARG_INT:
@@ -626,6 +637,7 @@ void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
     ASSERT_ARG(argx);
     ASSERT_ARG(val);
     ArgXVal out = *val;
+    Str s = {0};
     if(argx->attr.hide_value) {
         arg_handle_print(arg, ARG_PRINT_VALUE, "");
         arg_handle_print(arg, ARG_PRINT__ENDLINE, "");
@@ -640,9 +652,15 @@ void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
                 arg_handle_print(arg, ARG_PRINT_VALUE, "");
             }
         } break;
+        case ARG_COLOR: {
+            Color zero = {0};
+            if(!val->c->rgba) out.c = &zero;
+            color_fmt_rgb(&s, *out.c);
+            arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%.*s", ARG_VAL_F), STR_F(s));
+        } break;
         case ARG_SSZ: {
             ssize_t zero = 0;
-            if(!val->z) out.z = &zero;
+            if(!val->c) out.z = &zero;
             arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%zi", ARG_VAL_F), *out.z);
         } break;
         case ARG_INT: {
@@ -684,6 +702,7 @@ void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
         case ARG__COUNT: break;
     }
     arg_handle_print(arg, ARG_PRINT__ENDLINE, "");
+    str_free(&s);
 } /*}}}*/
 
 void argx_print(Arg *arg, ArgX *x, bool detailed) { /*{{{*/
@@ -981,6 +1000,12 @@ ErrDecl argx_parse(ArgParse *parse, ArgX *argx, bool *quit_early) {
             TRYC(str_as_double(argV, argx->val.f));
             ++argx->count;
         } break;
+        case ARG_COLOR: {
+            TRYC(arg_parse_getv(parse, &argV, &need_help));
+            if(need_help) break;
+            TRYC(str_as_color(argV, argx->val.c));
+            ++argx->count;
+        } break;
         case ARG_STRING: {
             TRYC(arg_parse_getv(parse, &argV, &need_help));
             if(need_help) break;
@@ -1067,6 +1092,9 @@ void arg_parse_setref_argx(struct ArgX *argx) {
         } break;
         case ARG_FLOAT: {
             if(argx->ref.f) *argx->val.f = *argx->ref.f;
+        } break;
+        case ARG_COLOR: {
+            if(argx->ref.c) *argx->val.c = *argx->ref.c;
         } break;
         case ARG_ENV:
         case ARG_STRING: {
@@ -1321,6 +1349,10 @@ ErrDecl arg_config_load(struct Arg *arg) {
                     case ARG_FLOAT: {
                         double *f = argx->ref.f ? argx->ref.f : argx->val.f;
                         TRYC(str_as_double(opt, f));
+                    } break;
+                    case ARG_COLOR: {
+                        Color *c = argx->ref.c ? argx->ref.c : argx->val.c;
+                        TRYC(str_as_color(opt, c));
                     } break;
                     case ARG_STRING: {
                         Str *s = argx->ref.s ? argx->ref.s : argx->val.s;
