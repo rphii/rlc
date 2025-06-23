@@ -17,7 +17,7 @@ void str_resize(Str *str, size_t len) {
     char *result = str_is_heap(*str) ? str->str : 0;
     array_resize(result, len + 1);
     if(!str_is_heap(*str)) {
-        memcpy(result, str->str, str_len(*str));
+        memcpy(result, str->str, str_len_raw(*str));
     }
     str->str = result;
     str->str[len] = 0;
@@ -68,7 +68,7 @@ const StrC str_ll(const char *str, size_t len) { /*{{{*/
 const StrC str_i0(Str str, size_t i0) { /*{{{*/
     Str result = {0};
     result.str = str_it(str, i0);
-    result.len = str_len(str) + str.str - result.str;
+    result.len = str_len_raw(str) + str.str - result.str;
     return result;
 } /*}}}*/
 
@@ -87,7 +87,7 @@ const StrC str_i0iE(Str str, size_t i0, size_t iE) { /*{{{*/
 } /*}}}*/
 
 const StrC str_split(Str str, size_t i, Str *right) { /*{{{*/
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     if(i > len) i = len;
     StrC left = str_iE(str, i);
     if(right) *right = str_i0(str, (i + 1 > len) ? len : i + 1);
@@ -105,7 +105,7 @@ const StrC str_trim(Str str) { /*{{{*/
 } /*}}}*/
 
 const StrC str_triml(Str str) { /*{{{*/
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     Str result = str_ll(str.str, len);
     for(size_t i = 0; i < len; ++i) {
         if(!isspace(str_at(result, 0))) break;
@@ -116,17 +116,17 @@ const StrC str_triml(Str str) { /*{{{*/
 } /*}}}*/
 
 const StrC str_trimr(Str str) { /*{{{*/
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     Str result = str_ll(str.str, len);
     for(size_t i = len; i > 0; --i) {
-        if(!isspace(str_at(result, str_len(result) - 1))) break;
+        if(!isspace(str_at(result, str_len_raw(result) - 1))) break;
         --result.len;
     }
     return result;
 } /*}}}*/
 
 const StrC str_triml_nof(Str str) { /*{{{*/
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     size_t i0 = 0;
     Str result = str_ll(str.str, len);
     size_t m, n = str_find_f(str_i0(result, 0), &m);
@@ -145,14 +145,14 @@ const StrC str_triml_nof(Str str) { /*{{{*/
 
 const StrC str_ensure_dir(Str str) { /*{{{*/
     // !!! str = str_trim(str);
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     Str result = str_ll(str.str, len);
     if(len > 1) {
         size_t nch = str_rfind_nch(str, PLATFORM_CH_SUBDIR);
         if(!nch && len) ++nch;
         else if(nch < len && str_at(str, nch) != PLATFORM_CH_SUBDIR) ++nch;
         result.len = nch;
-        //if(str_at(result, str_len(result) - 1) == PLATFORM_CH_SUBDIR) {
+        //if(str_at(result, str_len_raw(result) - 1) == PLATFORM_CH_SUBDIR) {
         //    --result.len;
         //}
     }
@@ -160,7 +160,7 @@ const StrC str_ensure_dir(Str str) { /*{{{*/
 } /*}}}*/
 
 const StrC str_get_ext(Str str) { /*{{{*/
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     Str result = str_ll(str.str, len);
     if(len) {
         size_t i = str_rfind_ch(result, '.');
@@ -177,7 +177,7 @@ const StrC str_get_ext(Str str) { /*{{{*/
 } /*}}}*/
 
 const StrC str_get_noext(Str str) { /*{{{*/
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     Str result = str_ll(str.str, len);
     if(len) {
         size_t i = str_rfind_ch(result, '.');
@@ -193,7 +193,7 @@ const StrC str_get_noext(Str str) { /*{{{*/
 } /*}}}*/
 
 const StrC str_get_dir(Str str) { /*{{{*/
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     Str result = str_ll(str.str, len);
     if(len) {
         size_t i0 = str_rfind_ch(result, '/');
@@ -208,7 +208,7 @@ const StrC str_get_dir(Str str) { /*{{{*/
 } /*}}}*/
 
 const StrC str_get_nodir(Str str) { /*{{{*/
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     Str result = str_ll(str.str, len);
     if(len) {
         size_t i0 = str_rfind_ch(result, '/');
@@ -224,7 +224,7 @@ const StrC str_get_nodir(Str str) { /*{{{*/
 } /*}}}*/
 
 const StrC str_get_basename(Str str) { /*{{{*/
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     Str result = str_ll(str.str, len);
     if(len) {
         size_t iE = str_rfind_ch(result, '.');
@@ -245,7 +245,7 @@ const StrC str_get_basename(Str str) { /*{{{*/
 void str_as_cstr(Str str, char *out, size_t len) { /*{{{*/
     ASSERT_ARG(out);
     ASSERT_ARG(len);
-    size_t l = str_len(str);
+    size_t l = str_len_raw(str);
     size_t n = l < len - 1 ? l : len - 1;
     //printff("copying n: %zu [%s] %p -> %p", n, str.str, str.str, out);
     memcpy(out, str.str, n);
@@ -253,7 +253,7 @@ void str_as_cstr(Str str, char *out, size_t len) { /*{{{*/
 } /*}}}*/
 
 int str_as_bool(Str str, bool *out) { /*{{{*/
-    Str in = str_ll(str.str, str_len(str));
+    Str in = str_ll(str.str, str_len_raw(str));
     Str val_true[4] = {
         str("true"),
         str("yes"),
@@ -279,34 +279,34 @@ int str_as_bool(Str str, bool *out) { /*{{{*/
 } /*}}}*/
 
 int str_as_int(Str str, int *out, int base) { /*{{{*/
-    if(!str_len(str)) return -1;
+    if(!str_len_raw(str)) return -1;
     char *endptr;
     char temp[32] = {0};
     str_as_cstr(str, temp, 32);
     size_t result = strtol(temp, &endptr, base);
-    if(endptr - temp != str_len(str)) return -1;
+    if(endptr - temp != str_len_raw(str)) return -1;
     if(out) *out = result;
     return 0;
 } /*}}}*/
 
 int str_as_size(Str str, size_t *out, int base) { /*{{{*/
-    if(!str_len(str)) return -1;
+    if(!str_len_raw(str)) return -1;
     char *endptr;
     char temp[32] = {0};
     str_as_cstr(str, temp, 32);
     size_t result = strtoull(temp, &endptr, base);
-    if(endptr - temp != str_len(str)) return -1;
+    if(endptr - temp != str_len_raw(str)) return -1;
     if(out) *out = result;
     return 0;
 } /*}}}*/
 
 int str_as_ssize(Str str, ssize_t *out, int base) { /*{{{*/
-    if(!str_len(str)) return -1;
+    if(!str_len_raw(str)) return -1;
     char *endptr;
     char temp[32] = {0};
     str_as_cstr(str, temp, 32);
     size_t result = strtoll(temp, &endptr, base);
-    if(endptr - temp != str_len(str)) return -1;
+    if(endptr - temp != str_len_raw(str)) return -1;
     if(out) *out = result;
     return 0;
 } /*}}}*/
@@ -316,7 +316,7 @@ int str_as_float(Str str, float *out) { /*{{{*/
     char temp[32] = {0};
     str_as_cstr(str, temp, 32);
     float result = strtof(temp, &endptr);
-    if(endptr - temp != str_len(str)) return -1;
+    if(endptr - temp != str_len_raw(str)) return -1;
     if(out) *out = result;
     return 0;
 } /*}}}*/
@@ -326,26 +326,26 @@ int str_as_double(Str str, double *out) { /*{{{*/
     char temp[32] = {0};
     str_as_cstr(str, temp, 32);
     double result = strtod(temp, &endptr);
-    if(endptr - temp != str_len(str)) return -1;
+    if(endptr - temp != str_len_raw(str)) return -1;
     if(out) *out = result;
     return 0;
 } /*}}}*/
 
 int str_as_color(Str str, Color *out) { /*{{{*/
     Color result = {0};
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     size_t hex = 0;
     double dbl = 0;
     bool valid = false;
     if(len >= 7 && str_at(str, 0) == '#') {
-        if(str_len(str) == 9) {
+        if(str_len_raw(str) == 9) {
             if(str_as_size(str_i0(str, 1), &hex, 16)) return -1;
             result.r = (uint8_t)(hex >> 24);
             result.g = (uint8_t)(hex >> 16);
             result.b = (uint8_t)(hex >> 8);
             result.a = (uint8_t)(hex >> 0);
             valid = true;
-        } else if(str_len(str) == 7) {
+        } else if(str_len_raw(str) == 7) {
             if(str_as_size(str_i0(str, 1), &hex, 16)) return -1;
             result.r = (uint8_t)(hex >> 16);
             result.g = (uint8_t)(hex >> 8);
@@ -359,12 +359,12 @@ int str_as_color(Str str, Color *out) { /*{{{*/
         if(str_at(str, 3) == 'a') {
             Str triple = str_i0(str, 4);
             triple = str_i0(triple, str_find_nws(triple));
-            if(str_len(triple) && str_at(triple, 0) == '(') {
+            if(str_len_raw(triple) && str_at(triple, 0) == '(') {
                 size_t iE = str_pair_ch(triple, ')');
-                if(iE > str_len(triple) - 1) return -1;
+                if(iE > str_len_raw(triple) - 1) return -1;
                 triple = str_trim(str_i0iE(triple, 1, iE));
                 size_t nsep = str_count_ch(triple, ',');
-                if(!nsep && str_len(triple) == 8) {
+                if(!nsep && str_len_raw(triple) == 8) {
                     if(!str_as_size(triple, &hex, 16)) {
                         result.r = (uint8_t)(hex >> 24);
                         result.g = (uint8_t)(hex >> 16);
@@ -393,13 +393,13 @@ int str_as_color(Str str, Color *out) { /*{{{*/
         } else {
             Str triple = str_i0(str, 3);
             triple = str_i0(triple, str_find_nws(triple));
-            if(str_len(triple) && str_at(triple, 0) == '(') {
+            if(str_len_raw(triple) && str_at(triple, 0) == '(') {
                 size_t iE = str_pair_ch(triple, ')');
-                if(iE > str_len(triple) - 1) return -1;
+                if(iE > str_len_raw(triple) - 1) return -1;
                 triple = str_trim(str_i0iE(triple, 1, iE));
                 size_t nsep = str_count_ch(triple, ',');
                 result.a = 0xFF;
-                if(!nsep && str_len(triple) == 6) {
+                if(!nsep && str_len_raw(triple) == 6) {
                     if(!str_as_size(triple, &hex, 16)) {
                         result.r = (uint8_t)(hex >> 16);
                         result.g = (uint8_t)(hex >> 8);
@@ -441,7 +441,7 @@ bool str_is_dynamic(Str str) { /*{{{*/
     return false;
 } /*}}}*/
 
-size_t str_len(Str str) { /*{{{*/
+size_t str_len_raw(Str str) { /*{{{*/
 #if !defined(NDEBUG) && 0
     if(str_is_heap(str)) {
         //printff("str.len %zu, array_len %zu", x.len & ~STR_BIT_HEAP, array_len(x.str));
@@ -452,17 +452,17 @@ size_t str_len(Str str) { /*{{{*/
 } /*}}}*/
 
 size_t str_len_nof(Str str) { /*{{{*/
-    size_t len = str_len(str), n = 0, m = 0;
+    size_t len = str_len_raw(str), n = 0, m = 0;
     Str snip = str_ll(str.str, len);
     Str pat = str("\033[");
     for(;;) {
         snip = str_i0(snip, m);
         n = str_find_substr(snip, pat, false);
-        if(n >= str_len(snip)) break;
-        snip = str_i0(snip, n + str_len(pat));
+        if(n >= str_len_raw(snip)) break;
+        snip = str_i0(snip, n + str_len_raw(pat));
         m = str_find_ch(snip, 'm');
-        len -= (m + str_len(pat));
-        if(m++ >= str_len(snip)) break;
+        len -= (m + str_len_raw(pat));
+        if(m++ >= str_len_raw(snip)) break;
         len -= (bool)(m);
     }
     return len;
@@ -490,7 +490,7 @@ size_t str_dhash(Str str) { /*{{{*/
     //STR_HASH_PRECOMP(str);
     size_t hash = 5381;
     size_t i = 0;
-    while(i < str_len(str)) {
+    while(i < str_len_raw(str)) {
         unsigned char c = str.str[i++];
         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
     }
@@ -504,7 +504,7 @@ size_t str_hash(const Str *str) { /*{{{*/
     STR_HASH_PRECOMP(str);
     size_t hash = 5381;
     size_t i = 0;
-    while(i < str_len(*str)) {
+    while(i < str_len_raw(*str)) {
         unsigned char c = str->str[i++];
         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
     }
@@ -518,7 +518,7 @@ size_t str_hash_ci(const Str *str) { /*{{{*/
     STR_HASH_PRECOMP(str);
     size_t hash = 5381;
     size_t i = 0;
-    while(i < str_len(*str)) {
+    while(i < str_len_raw(*str)) {
         unsigned char c = tolower(str->str[i++]);
         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
     }
@@ -528,16 +528,16 @@ size_t str_hash_ci(const Str *str) { /*{{{*/
 } /*}}}*/
 
 int str_cmp(Str a, Str b) { /*{{{*/
-    size_t la = str_len(a); 
-    size_t lb = str_len(b);
+    size_t la = str_len_raw(a); 
+    size_t lb = str_len_raw(b);
     if(la != lb) return -1;
     int result = memcmp(a.str, b.str, la);
     return result;
 } /*}}}*/
 
 int str_cmp_sortable(const Str a, const Str b) {
-    size_t la = str_len(a);
-    size_t lb = str_len(b);
+    size_t la = str_len_raw(a);
+    size_t lb = str_len_raw(b);
     int result = -1;
     if(la != lb) {
         size_t less = la < lb ? la : lb;
@@ -552,24 +552,24 @@ int str_cmp_sortable(const Str a, const Str b) {
 } 
 
 int str_cmp0(Str a, Str b) { /*{{{*/
-    size_t la = str_len(a); 
-    size_t lb = str_len(b);
+    size_t la = str_len_raw(a); 
+    size_t lb = str_len_raw(b);
     if(la < lb) return -1;
     int result = memcmp(a.str, b.str, lb);
     return result;
 } /*}}}*/
 
 int str_cmpE(Str a, Str b) { /*{{{*/
-    size_t la = str_len(a); 
-    size_t lb = str_len(b);
+    size_t la = str_len_raw(a); 
+    size_t lb = str_len_raw(b);
     if(la < lb) return -1;
     int result = memcmp(a.str + la - lb, b.str, lb);
     return result;
 } /*}}}*/
 
 int str_cmp_ci(Str a, Str b) { /*{{{*/
-    size_t la = str_len(a); 
-    size_t lb = str_len(b);
+    size_t la = str_len_raw(a); 
+    size_t lb = str_len_raw(b);
     if(la != lb) return -1;
     for (size_t i = 0; i < la; ++i) {
         int d = tolower(str_at(a, i)) - tolower(str_at(b, i));
@@ -579,8 +579,8 @@ int str_cmp_ci(Str a, Str b) { /*{{{*/
 } /*}}}*/
 
 int str_cmp0_ci(Str a, Str b) { /*{{{*/
-    size_t la = str_len(a); 
-    size_t lb = str_len(b);
+    size_t la = str_len_raw(a); 
+    size_t lb = str_len_raw(b);
     if(la < lb) return -1;
     for (size_t i = 0; i < lb; ++i) {
         int d = tolower(str_at(a, i)) - tolower(str_at(b, i));
@@ -590,8 +590,8 @@ int str_cmp0_ci(Str a, Str b) { /*{{{*/
 } /*}}}*/
 
 int str_cmpE_ci(Str a, Str b) { /*{{{*/
-    size_t la = str_len(a); 
-    size_t lb = str_len(b);
+    size_t la = str_len_raw(a); 
+    size_t lb = str_len_raw(b);
     if(la < lb) return -1;
     for (size_t i = 0; i < lb; ++i) {
         int d = tolower(str_at(a, i + la - lb)) - tolower(str_at(b, i));
@@ -603,8 +603,8 @@ int str_cmpE_ci(Str a, Str b) { /*{{{*/
 int str_hcmp(const Str *a, const Str *b) { /*{{{*/
     ASSERT_ARG(a);
     ASSERT_ARG(b);
-    size_t la = str_len(*a); 
-    size_t lb = str_len(*b);
+    size_t la = str_len_raw(*a); 
+    size_t lb = str_len_raw(*b);
     if(la != lb) return -1;
     size_t ha = str_hash(a);
     size_t hb = str_hash(b);
@@ -616,8 +616,8 @@ int str_hcmp(const Str *a, const Str *b) { /*{{{*/
 int str_hcmp_ci(const Str *a, const Str *b) { /*{{{*/
     ASSERT_ARG(a);
     ASSERT_ARG(b);
-    size_t la = str_len(*a); 
-    size_t lb = str_len(*b);
+    size_t la = str_len_raw(*a); 
+    size_t lb = str_len_raw(*b);
     if(la != lb) return -1;
     size_t ha = str_hash_ci(a);
     size_t hb = str_hash_ci(b);
@@ -630,8 +630,8 @@ int str_hcmp_ci(const Str *a, const Str *b) { /*{{{*/
 } /*}}}*/
 
 int str_pcmp_sortable(Str *a, Str *b) {
-    size_t la = str_len(*a);
-    size_t lb = str_len(*b);
+    size_t la = str_len_raw(*a);
+    size_t lb = str_len_raw(*b);
     int result = -1;
     if(la != lb) {
         size_t less = la < lb ? la : lb;
@@ -653,7 +653,7 @@ size_t str_find_f(Str str, size_t *out_iE) { /*{{{*/
         //str_printraw(s);
         //printff("]");
         size_t iE = str_find_ch(s, 'm');
-        if(iE < str_len(s)) ++iE;
+        if(iE < str_len_raw(s)) ++iE;
         *out_iE = i0 + iE;
     }
     return i0;
@@ -661,42 +661,42 @@ size_t str_find_f(Str str, size_t *out_iE) { /*{{{*/
 
 size_t str_find_ch(Str str, char c) { /*{{{*/
 #if 1
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     char *s = memchr(str.str, c, len);
     if(!s) return len;
     return s - str.str;
 #else
-    for(size_t i = 0; i < str_len(str); ++i) {
+    for(size_t i = 0; i < str_len_raw(str); ++i) {
         if(str.str[i] == c) return i;
     }
-    return str_len(str);
+    return str_len_raw(str);
 #endif
 } /*}}}*/
 
 size_t str_find_nch(Str str, char c) { /*{{{*/
-    for(size_t i = 0; i < str_len(str); ++i) {
+    for(size_t i = 0; i < str_len_raw(str); ++i) {
         if(str.str[i] != c) return i;
     }
-    return str_len(str);
+    return str_len_raw(str);
 } /*}}}*/
 
 size_t str_find_ws(Str str) { /*{{{*/
-    for(size_t i = 0; i < str_len(str); ++i) {
+    for(size_t i = 0; i < str_len_raw(str); ++i) {
         if(isspace(str.str[i])) return i;
     }
-    return str_len(str);
+    return str_len_raw(str);
 } /*}}}*/
 
 size_t str_find_nws(Str str) { /*{{{*/
-    for(size_t i = 0; i < str_len(str); ++i) {
+    for(size_t i = 0; i < str_len_raw(str); ++i) {
         if(!isspace(str.str[i])) return i;
     }
-    return str_len(str);
+    return str_len_raw(str);
 } /*}}}*/
 
 size_t str_find_any(Str str, Str any) { /*{{{*/
-    size_t len = str_len(str);
-    size_t len2 = str_len(any);
+    size_t len = str_len_raw(str);
+    size_t len2 = str_len_raw(any);
     for(size_t i = 0; i < len; ++i) {
         char c = str.str[i];
         if(memchr(any.str, c, len2)) {
@@ -707,8 +707,8 @@ size_t str_find_any(Str str, Str any) { /*{{{*/
 } /*}}}*/
 
 size_t str_find_nany(Str str, Str any) { /*{{{*/
-    size_t len = str_len(str);
-    size_t len2 = str_len(any);
+    size_t len = str_len_raw(str);
+    size_t len2 = str_len_raw(any);
     for(size_t i = 0; i < len; ++i) {
         char c = str.str[i];
         if(!memchr(any.str, c, len2)) {
@@ -720,17 +720,17 @@ size_t str_find_nany(Str str, Str any) { /*{{{*/
 
 size_t str_find_substr(Str str, Str sub, bool ignorecase) { /*{{{*/
     /* basic checks */
-    if(!str_len(sub)) return 0;
-    if(str_len(sub) > str_len(str)) {
-        return str_len(str);
+    if(!str_len_raw(sub)) return 0;
+    if(str_len_raw(sub) > str_len_raw(str)) {
+        return str_len_raw(str);
     }
     /* store original indices */
     Str ref = str;
     /* check for substring */
     size_t i = 0;
-    while(str_len(sub) <= str_len(ref)) {
+    while(str_len_raw(sub) <= str_len_raw(ref)) {
         size_t overlap = str_count_overlap(ref, sub, ignorecase);
-        if(overlap == str_len(sub)) {
+        if(overlap == str_len_raw(sub)) {
             return i;
         } else {
             i += overlap + 1;
@@ -739,7 +739,7 @@ size_t str_find_substr(Str str, Str sub, bool ignorecase) { /*{{{*/
         }
     }
     /* restore original */
-    return str_len(str);
+    return str_len_raw(str);
 } /*}}}*/
 
 size_t str_rfind_f(Str str, size_t *out_iE) { /*{{{*/
@@ -747,7 +747,7 @@ size_t str_rfind_f(Str str, size_t *out_iE) { /*{{{*/
     if(out_iE) {
         Str s = str_i0(str, i0);
         size_t iE = str_rfind_ch(s, 'm');
-        if(iE < str_len(s)) ++iE;
+        if(iE < str_len_raw(s)) ++iE;
         *out_iE = i0 + iE;
     }
     return i0;
@@ -757,7 +757,7 @@ size_t str_rfind_f0(Str str, StrC *fmt) { /*{{{*/
     size_t i0 = str_rfind_substr(str, str(FS_BEG), false);
     Str s = str_i0(str, i0);
     size_t iE = str_find_ch(s, 'm');
-    if(iE < str_len(s)) ++iE;
+    if(iE < str_len_raw(s)) ++iE;
     s = str_iE(s, iE);
     //printf("<FMT:%.*s>",STR_F(s));
     if(!str_cmpE(s, str("[0m"))) str_clear(&s);
@@ -767,42 +767,42 @@ size_t str_rfind_f0(Str str, StrC *fmt) { /*{{{*/
 
 size_t str_rfind_ch(Str str, char c) { /*{{{*/
 #if 1
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     char *s = memrchr(str.str, c, len);
     if(!s) return len;
     return s - str.str;
 #else
-    for(size_t i = str_len(str); i > 0; --i) {
+    for(size_t i = str_len_raw(str); i > 0; --i) {
         if(str.str[i - 1] == c) return i - 1;
     }
-    return str_len(str);
+    return str_len_raw(str);
 #endif
 } /*}}}*/
 
 size_t str_rfind_nch(Str str, char c) { /*{{{*/
-    for(size_t i = str_len(str); i > 0; --i) {
+    for(size_t i = str_len_raw(str); i > 0; --i) {
         if(str.str[i - 1] != c) return i - 1;
     }
     return 0;
 } /*}}}*/
 
 size_t str_rfind_ws(Str str) { /*{{{*/
-    for(size_t i = str_len(str); i > 0; --i) {
+    for(size_t i = str_len_raw(str); i > 0; --i) {
         if(isspace(str.str[i - 1])) return i - 1;
     }
-    return str_len(str);
+    return str_len_raw(str);
 } /*}}}*/
 
 size_t str_rfind_nws(Str str) { /*{{{*/
-    for(size_t i = str_len(str); i > 0; --i) {
+    for(size_t i = str_len_raw(str); i > 0; --i) {
         if(!isspace(str.str[i - 1])) return i - 1;
     }
-    return str_len(str);
+    return str_len_raw(str);
 } /*}}}*/
 
 size_t str_rfind_any(Str str, Str any) { /*{{{*/
-    size_t len = str_len(str);
-    size_t len2 = str_len(any);
+    size_t len = str_len_raw(str);
+    size_t len2 = str_len_raw(any);
     for(size_t i = len; i > 0; --i) {
         char c = str.str[i - 1];
         if(memchr(any.str, c, len2)) {
@@ -813,8 +813,8 @@ size_t str_rfind_any(Str str, Str any) { /*{{{*/
 } /*}}}*/
 
 size_t str_rfind_nany(Str str, Str any) { /*{{{*/
-    size_t len = str_len(str);
-    size_t len2 = str_len(any);
+    size_t len = str_len_raw(str);
+    size_t len2 = str_len_raw(any);
     for(size_t i = len; i > 0; --i) {
         char c = str.str[i - 1];
         if(!memchr(any.str, c, len2)) {
@@ -826,8 +826,8 @@ size_t str_rfind_nany(Str str, Str any) { /*{{{*/
 
 size_t str_rfind_substr(Str str, Str substr, bool ignorecase) { /*{{{*/
     /* basic checks */
-    size_t n = str_len(substr);
-    size_t m = str_len(str);
+    size_t n = str_len_raw(substr);
+    size_t m = str_len_raw(str);
     if(!n) return 0;
     if(n > m) {
         return m;
@@ -841,11 +841,11 @@ size_t str_rfind_substr(Str str, Str substr, bool ignorecase) { /*{{{*/
 } /*}}}*/
 
 size_t str_pair_ch(Str str, char c1) { /*{{{*/
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     if(!len) return len;
     size_t level = 1;
     char c0 = str_at(str, 0);
-    for(size_t i = 1; i < str_len(str); ++i) {
+    for(size_t i = 1; i < str_len_raw(str); ++i) {
         char c = str_at(str, i);
         if(c == c1) level--;
         else if(c == c0) level++;
@@ -856,15 +856,15 @@ size_t str_pair_ch(Str str, char c1) { /*{{{*/
 
 size_t str_splice(Str to_splice, Str *prev, char sep) { /*{{{*/
     ASSERT_ARG(prev);
-    size_t len = str_len(to_splice);
+    size_t len = str_len_raw(to_splice);
     Str result = str_ll(to_splice.str, len);
     if(prev && prev->str) {
-        size_t from = prev->str - to_splice.str + str_len(*prev);
+        size_t from = prev->str - to_splice.str + str_len_raw(*prev);
         Str search = str_i0(to_splice, from);
         size_t offset = str_find_ch(search, sep) + from;
         result.str += offset;
         result.len -= offset;
-        if(result.str - to_splice.str < str_len(to_splice)) {
+        if(result.str - to_splice.str < str_len_raw(to_splice)) {
             ++result.str;
             --result.len;
         }
@@ -875,7 +875,7 @@ size_t str_splice(Str to_splice, Str *prev, char sep) { /*{{{*/
 } /*}}}*/
 
 size_t str_index_nof(Str str, size_t index) {
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     size_t len_nof = 0;
     size_t n = 0, m = 0, i = 0;
     Str snip = str;
@@ -891,22 +891,22 @@ size_t str_index_nof(Str str, size_t index) {
         i += m;
         if(i >= len) break;
     }
-    return str_len(str);
+    return str_len_raw(str);
 }
 
 char str_at(Str str, size_t i) { /*{{{*/
-    ASSERT(i < str_len(str), "out of bounds: %zu @ [0..%zu)", i, str_len(str));
+    ASSERT(i < str_len_raw(str), "out of bounds: %zu @ [0..%zu)", i, str_len_raw(str));
     return str.str[i];
 } /*}}}*/
 
 char *str_it(Str str, size_t i) { /*{{{*/
-    ASSERT(i <= str_len(str), "out of bounds: %zu @ [0..%zu]", i, str_len(str));
+    ASSERT(i <= str_len_raw(str), "out of bounds: %zu @ [0..%zu]", i, str_len_raw(str));
     return &str.str[i];
 } /*}}}*/
 
 size_t str_count_overlap(Str a, Str b, bool ignorecase) { /*{{{*/
     size_t overlap = 0;
-    size_t len = str_len(a) > str_len(b) ? str_len(b) : str_len(a);
+    size_t len = str_len_raw(a) > str_len_raw(b) ? str_len_raw(b) : str_len_raw(a);
     if(!ignorecase) {
         for(size_t i = 0; i < len; ++i) {
             char ca = str_at(a, i);
@@ -927,7 +927,7 @@ size_t str_count_overlap(Str a, Str b, bool ignorecase) { /*{{{*/
 
 size_t str_count_ch(Str str, char c) { /*{{{*/
     size_t result = 0;
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     for(size_t i = 0; i < len; ++i) {
         if(str.str[i] == c) ++result;
     }
@@ -936,7 +936,7 @@ size_t str_count_ch(Str str, char c) { /*{{{*/
 
 size_t str_count_nch(Str str, char c) { /*{{{*/
     size_t result = 0;
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     for(size_t i = 0; i < len; ++i) {
         if(str.str[i] != c) ++result;
     }
@@ -945,8 +945,8 @@ size_t str_count_nch(Str str, char c) { /*{{{*/
 
 size_t str_count_any(Str str, Str any) { /*{{{*/
     size_t result = 0;
-    size_t len = str_len(str);
-    size_t len2 = str_len(any);
+    size_t len = str_len_raw(str);
+    size_t len2 = str_len_raw(any);
     for(size_t i = 0; i < len; ++i) {
         if(memchr(any.str, str.str[i], len2)) ++result;
     }
@@ -955,8 +955,8 @@ size_t str_count_any(Str str, Str any) { /*{{{*/
 
 size_t str_count_nany(Str str, Str any) { /*{{{*/
     size_t result = 0;
-    size_t len = str_len(str);
-    size_t len2 = str_len(any);
+    size_t len = str_len_raw(str);
+    size_t len2 = str_len_raw(any);
     for(size_t i = 0; i < len; ++i) {
         if(!memchr(any.str, str.str[i], len2)) ++result;
     }
@@ -1001,7 +1001,7 @@ void str_fmt_va(Str *str, const char *format, va_list va) { /*{{{*/
     }
 
     // calculate required memory
-    size_t len_old = str_len(*str);
+    size_t len_old = str_len_raw(*str);
     size_t len_new = len_old + len_app;
     str_resize(str, len_new);
 
@@ -1066,9 +1066,9 @@ void str_fmt_fgbga(Str *out, const StrC text, Color fg, Color bg, bool bold, boo
 
 void str_fmt_websafe(Str *out, Str text) { /*{{{*/
     Str escape = str(" <>#%+{}|\\^~[]';/?:@=&$");
-    for(size_t i = 0; i < str_len(text); ++i) {
+    for(size_t i = 0; i < str_len_raw(text); ++i) {
         unsigned char c = str_at(text, i);
-        if(str_find_ch(escape, c) < str_len(escape)) {
+        if(str_find_ch(escape, c) < str_len_raw(escape)) {
             str_fmt(out, "%%%02x", c);
         } else {
             str_push(out, c);
@@ -1106,7 +1106,7 @@ void str_input(Str *str) { /*{{{*/
     while((c = getchar()) != '\n' && c != EOF) {
         str_push(str, c);
     }
-    if(!str_len(*str) && (!c || c == EOF || c == '\n')) {
+    if(!str_len_raw(*str) && (!c || c == EOF || c == '\n')) {
         //THROW("an error"); /* TODO describe this error. is this even an error? */
     }
     fflush(stdin);
@@ -1120,7 +1120,7 @@ void str_copy(Str *copy, Str str) { /*{{{*/
 void str_push(Str *str, char c) { /*{{{*/
     ASSERT_ARG(str);
     if(!str_is_dynamic(*str)) ABORT("attempting to push constant string");
-    size_t len = str_len(*str);
+    size_t len = str_len_raw(*str);
     str_resize(str, len + 1);
     str->str[len] = c;
 } /*}}}*/
@@ -1131,11 +1131,11 @@ void str_extend(Str *str, Str extend) { /*{{{*/
     //printff("EXTEND");
     if(!str_is_dynamic(*str)) ABORT("attempting to extend constant string");
     //printff("EXTEND");
-    size_t len_app = str_len(extend);
+    size_t len_app = str_len_raw(extend);
 
     //printff("EXTEND");
     // calculate required memory
-    size_t len_old = str_len(*str);
+    size_t len_old = str_len_raw(*str);
     //printff("EXTEND");
     size_t len_new = len_old + len_app;
     //printff("EXTEND, resize %zu", len_new);
@@ -1172,7 +1172,7 @@ void str_printal(Str str, StrPrint *p, size_t i0, size_t iE) {
     ASSERT_ARG(p);
     if(iE <= i0) return;
     bool first = true;
-    size_t len = str_len(str);
+    size_t len = str_len_raw(str);
     size_t w = iE - i0;
     size_t w0 = iE > p->progress ? iE - p->progress : w;
     //printff("w0 %zu",w0);
@@ -1192,13 +1192,13 @@ void str_printal(Str str, StrPrint *p, size_t i0, size_t iE) {
         }
         //if(jE > len) jE = len;
         Str bufws = first ? str : str_triml_nof(str_i0(str, j0));
-        if(!str_len(bufws)) break;
+        if(!str_len_raw(bufws)) break;
         Str bufnl = str_iE(bufws, str_find_ch(bufws, '\n'));
         bool have_nl = bufws.len != bufnl.len;
         //printff("%p .. %p = %zu", bufws.str, str.str, bufws.str-str.str-j0);
         j0 += bufnl.str - str.str - j0;
         size_t inof = str_index_nof(bufnl, first ? w0 : w);
-        size_t jE = inof < str_len(bufnl) ? inof : str_len(bufws);
+        size_t jE = inof < str_len_raw(bufnl) ? inof : str_len_raw(bufws);
         Str buf = str_iE(bufws, jE);
         size_t lnof = str_len_nof(buf);
         /* get the format */
@@ -1209,13 +1209,13 @@ void str_printal(Str str, StrPrint *p, size_t i0, size_t iE) {
         if(!first) p->progress += i0;
         str_print(p->fmt);
         str_print(buf);
-        if(str_len(fmt) || str_len(p->fmt)) printf("\033[0m");
+        if(str_len_raw(fmt) || str_len_raw(p->fmt)) printf("\033[0m");
         //printf("]");
         p->progress += lnof;
         if(p->progress >= iE || have_nl) {
             p->nl_pending = true;
         }
-        if(x < str_len(buf)) {
+        if(x < str_len_raw(buf)) {
             p->fmt = fmt;
         }
         j0 += jE;
@@ -1226,7 +1226,7 @@ void str_printal(Str str, StrPrint *p, size_t i0, size_t iE) {
 
 void str_printraw(Str str) { /*{{{*/
     //printf("raw[");
-    for(size_t i = 0; i < str_len(str); ++i) {
+    for(size_t i = 0; i < str_len_raw(str); ++i) {
         char c = str_at(str, i);
         if(c <= 0x1f) {
             printf("\\x%2x", (unsigned char)c);

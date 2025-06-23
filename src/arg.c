@@ -299,7 +299,7 @@ struct ArgX *argx_init(struct ArgXGroup *group, const unsigned char c, StrC optX
     ASSERT_ARG(group);
     Str opt = str_trim(optX);
     Str desc = str_trim(descX);
-    if(!str_len(opt)) ABORT("cannot add an empty long-opt argument");
+    if(!str_len_raw(opt)) ABORT("cannot add an empty long-opt argument");
     ArgX x = {
         .info = {c, opt, desc},
         .group = group,
@@ -582,7 +582,7 @@ void argx_print_pre(Arg *arg, ArgX *argx) { /*{{{*/
         case ARG_BOOL:
         case ARG_VECTOR:
         case ARG_FLOAT: {
-            if(str_len(argx->type)) {
+            if(str_len_raw(argx->type)) {
                 arg_handle_print(arg, ARG_PRINT_TYPE, F("<%.*s>", ARG_TYPE_F), STR_F(argx->type));
             } else {
                 arg_handle_print(arg, ARG_PRINT_TYPE, F("%s", ARG_TYPE_F), arglist_str(argx->id));
@@ -646,7 +646,7 @@ void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
     switch(argx->id) {
         case ARG_ENV:
         case ARG_STRING: {
-            if(val->s && str_len(*val->s)) {
+            if(val->s && str_len_raw(*val->s)) {
                 arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%.*s", ARG_VAL_F), STR_F(*val->s));
             } else {
                 arg_handle_print(arg, ARG_PRINT_VALUE, "");
@@ -725,7 +725,7 @@ void argx_print(Arg *arg, ArgX *x, bool detailed) { /*{{{*/
     //arg_handle_print(arg, ARG_PRINT_DESC, " ");
     argx_print_pre(arg, x);
     /* print description */
-    if(str_len(x->info.desc)) {
+    if(str_len_raw(x->info.desc)) {
         arg_handle_print(arg, ARG_PRINT_DESC, "%.*s", STR_F(x->info.desc));
     }
     bool is_detailed_option = false;
@@ -788,7 +788,7 @@ void argx_group_print(Arg *arg, ArgXGroup *group) { /*{{{*/
     if(!vargx_length(group->vec) && !(group == &arg->pos)) {
         return;
     }
-    if(str_len(group->desc)) {
+    if(str_len_raw(group->desc)) {
         arg_handle_print(arg, ARG_PRINT_NONE, F("%.*s:", BOLD UL), STR_F(group->desc));
         arg_do_print(arg, 1);
     }
@@ -802,7 +802,7 @@ void argx_group_print(Arg *arg, ArgXGroup *group) { /*{{{*/
         if(vargx_length(arg->opt.vec)) {
             arg_handle_print(arg, ARG_PRINT_SHORT, " " F("[options]", BOLD FG_CY));
         }
-        if(str_len(arg->base.rest_desc)) {
+        if(str_len_raw(arg->base.rest_desc)) {
             arg_handle_print(arg, ARG_PRINT_SHORT, " " F("%.*s", BOLD FG_MG_B), STR_F(arg->base.rest_desc));
         }
         arg_do_print(arg, 1);
@@ -834,7 +834,7 @@ int arg_help(struct Arg *arg) { /*{{{*/
         argx_group_print(arg, &arg->pos);
         argx_group_print(arg, &arg->opt);
         argx_group_print(arg, &arg->env);
-        if(str_len(arg->base.epilog)) {
+        if(str_len_raw(arg->base.epilog)) {
             arg_handle_print(arg, ARG_PRINT_NONE, "%.*s", STR_F(arg->base.epilog));
             printf("\n");
         }
@@ -902,7 +902,7 @@ repeat:
     if(parse->i < parse->argc) {
         char *argv = parse->argv[parse->i++];
         result = str_l(argv);
-        if(!parse->force_done_parsing && str_len(result) == 2 && str_at(result, 0) == pfx && str_at(result, 1) == pfx) {
+        if(!parse->force_done_parsing && str_len_raw(result) == 2 && str_at(result, 0) == pfx && str_at(result, 1) == pfx) {
             parse->force_done_parsing = true;
             goto repeat;
         }
@@ -1160,12 +1160,12 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         TRYC(arg_parse_getv(parse, &argV, &need_help));
         if(need_help) break;
         if(*quit_early) goto quit_early;
-        if(!str_len(argV)) continue;
+        if(!str_len_raw(argV)) continue;
         //printff(" [%.*s] %zu / %zu", STR_F(argV), parse->i, parse->argc);
-        if(!parse->force_done_parsing && str_len(argV) >= 1 && str_at(argV, 0) == pfx) {
+        if(!parse->force_done_parsing && str_len_raw(argV) >= 1 && str_at(argV, 0) == pfx) {
             /* regular checking for options */
-            if(str_len(argV) >= 2 && str_at(argV, 1) == pfx) {
-                ASSERT(str_len(argV) > 2, ERR_UNREACHABLE);
+            if(str_len_raw(argV) >= 2 && str_at(argV, 1) == pfx) {
+                ASSERT(str_len_raw(argV) > 2, ERR_UNREACHABLE);
                 StrC arg_query = str_i0(argV, 2);
                 /* long option */
                 TRYC(arg_parse_getopt(&arg->opt, &argx, arg_query));
@@ -1173,7 +1173,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
             } else {
                 StrC arg_queries = str_i0(argV, 1);
                 /* short option */
-                for(size_t i = 0; i < str_len(arg_queries); ++i) {
+                for(size_t i = 0; i < str_len_raw(arg_queries); ++i) {
                     const unsigned char query = str_at(arg_queries, i);
                     TRYC(arg_parse_getopt_short(arg, &argx, query));
                     TRYC(argx_parse(parse, argx, quit_early));
@@ -1275,10 +1275,10 @@ int arg_config_error(struct Arg *arg, StrC line, size_t line_nb, StrC opt, ArgX 
         } else {
             Str pre = str_ll(line.str, opt.str - line.str);
             Str at = opt;
-            Str post = str_i0(line, str_len(pre) + str_len(at));
+            Str post = str_i0(line, str_len_raw(pre) + str_len_raw(at));
             ERR_PRINTF("        %.*s" F("%.*s", BOLD FG_RD_B) "%.*s\n", STR_F(pre), STR_F(at), STR_F(post));
             ERR_PRINTF("        %*s", (int)(opt.str - line.str), "");
-            for(size_t i = 0; i < str_len(opt); ++i) {
+            for(size_t i = 0; i < str_len_raw(opt); ++i) {
                 ERR_PRINTF(F("~", BOLD FG_RD_B));
             }
         }
@@ -1301,14 +1301,14 @@ ErrDecl arg_config_load(struct Arg *arg) {
     int err = 0;
     size_t line_nb = 0;
     StrC line = {0}, opt = {0}, conf = arg->parse.config;
-    if(!str_len(conf)) return 0;
+    if(!str_len_raw(conf)) return 0;
     ArgX *argx = 0;
     for(memset(&line, 0, sizeof(line)); str_splice(conf, &line, '\n'); ++line_nb) {
         if(!line.str) continue;
         line = str_trim(line);
         line = str_iE(line, str_find_ch(line, '#'));
         argx = 0;
-        if(!str_len(line)) continue;
+        if(!str_len_raw(line)) continue;
         //printff("CONFIG:%.*s",STR_F(line));
         for(memset(&opt, 0, sizeof(opt)); str_splice(line, &opt, '='); ) {
             if(!opt.str) continue;
