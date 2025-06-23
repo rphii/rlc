@@ -17,7 +17,7 @@ Str json_parse_value_str(JsonParseValue v) {
 /* return true on match */
 bool json_parse_ch(JsonParse *p, char c) {
     ASSERT_ARG(p);
-    if(!str_len(p->head)) return false;
+    if(!str_len_raw(p->head)) return false;
     bool result = (bool)(*p->head.str == c);
     if(result) {
         ++p->head.str;
@@ -29,7 +29,7 @@ bool json_parse_ch(JsonParse *p, char c) {
 /* return true on match */
 bool json_parse_any(JsonParse *p, StrC s) {
     ASSERT_ARG(p);
-    if(!str_len(p->head)) return false;
+    if(!str_len_raw(p->head)) return false;
     char *result = strchr(s.str, *p->head.str);
     if(result && *result) {
         ++p->head.str;
@@ -51,7 +51,7 @@ bool json_parse_string(JsonParse *p, Str *val) {
     JsonParse q = *p;
     if(!json_parse_ch(&q, '"')) goto invalid;
     int escape = 0;
-    while(str_len(q.head)) {
+    while(str_len_raw(q.head)) {
         if(escape < 0) {
             escape = 0;
             switch(*q.head.str) {
@@ -156,7 +156,7 @@ bool json_parse_number(JsonParse *p, Str *val) {
         while(json_parse_any(&q, JSON_DIGITS)) {}
     }
     Str result = str_ll(p->head.str, q.head.str - p->head.str);
-    size_t len = str_len(result);
+    size_t len = str_len_raw(result);
     if(len) {
         *val = result;
         if(p->key.id != JSON_ARRAY && p->key.id != JSON_OBJECT) {
@@ -209,7 +209,7 @@ bool json_parse_array(JsonParse *p) {
         }
         if(!json_parse_ch(&q, ',')) break;
         first = false;
-    } while(str_len(q.head));
+    } while(str_len_raw(q.head));
     if(!json_parse_ch(&q, ']')) return false;
     p->head = q.head;
     if(p->depth) {
@@ -253,7 +253,7 @@ bool json_parse_object(JsonParse *p) {
         /* next */
         if(!json_parse_ch(&q, ',')) break;
         first = false;
-    } while(str_len(q.head));
+    } while(str_len_raw(q.head));
     if(!json_parse_ch(&q, '}')) return false;
     p->head = q.head;
     if(p->depth) {
@@ -290,7 +290,7 @@ ErrDecl json_parse_valid(Str input) {
     return -1;
 valid:
     json_parse_ws(&q);
-    return str_len(q.head);
+    return str_len_raw(q.head);
 }
 
 ErrDecl json_parse(Str input, JsonParseCallback callback, void *user) {
@@ -308,11 +308,11 @@ invalid:
     return -1;
 valid:
     json_parse_ws(&q);
-    return str_len(q.head);
+    return str_len_raw(q.head);
 }
 
 void json_fmt_str(Str *out, Str json_str) {
-    size_t len = str_len(json_str);
+    size_t len = str_len_raw(json_str);
     int escape = 0;
     size_t begin = 0;
     for(size_t i = 0; i < len; ++i) {
@@ -355,7 +355,7 @@ void json_fmt_str(Str *out, Str json_str) {
 }
 
 void json_fix_str(Str *out, Str json_str) {
-    size_t len = str_len(json_str);
+    size_t len = str_len_raw(json_str);
     int escape = 0;
     size_t begin = 0;
     size_t j = 0;

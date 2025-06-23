@@ -59,9 +59,9 @@ int file_fp_write(FILE *file, Str *content) {
     if(!content) THROW("invalid output buffer");
 
     /* write file */
-    size_t bytes_written = fwrite(content->str, 1, str_len(*content), file);
-    if(bytes_written != str_len(*content)) {
-        THROW("bytes written (%zu) mismatch bytes to write (%zu)!", bytes_written, str_len(*content));
+    size_t bytes_written = fwrite(content->str, 1, str_len_raw(*content), file);
+    if(bytes_written != str_len_raw(*content)) {
+        THROW("bytes written (%zu) mismatch bytes to write (%zu)!", bytes_written, str_len_raw(*content));
     }
 
     /* close file outside */
@@ -166,7 +166,7 @@ ErrDecl file_exec(Str path, VStr *subdirs, bool recursive, bool hidden, FileFunc
     DIR *dir = 0;
     Str dot = str(".");
     Str dotdot = str("..");
-    if(!str_len(path)) return 0;
+    if(!str_len_raw(path)) return 0;
     FileTypeList type = file_get_type(path);
     vstr_free_set(subdirs);
     Str filename = {0};
@@ -188,9 +188,9 @@ ErrDecl file_exec(Str path, VStr *subdirs, bool recursive, bool hidden, FileFunc
             if(!str_cmp(dname, dotdot)) continue;
             if(!hidden && !str_cmp0(dname, dot)) continue;
             str_extend(&filename, direns);
-            if(str_len(direns) > 1) str_push(&filename, PLATFORM_CH_SUBDIR);
+            if(str_len_raw(direns) > 1) str_push(&filename, PLATFORM_CH_SUBDIR);
             str_extend(&filename, dname);
-            if(!str_len(filename)) {
+            if(!str_len_raw(filename)) {
                 str_clear(&filename);
                 continue;
             }
@@ -224,7 +224,7 @@ ErrDecl file_dir_read(Str dirname, VStr *files) {
     int err = 0;
     DIR *dir = 0;
     size_t len = str_rfind_ch(dirname, PLATFORM_CH_SUBDIR);
-    if(len < str_len(dirname) && str_at(dirname, len) != PLATFORM_CH_SUBDIR) ++len;
+    if(len < str_len_raw(dirname) && str_at(dirname, len) != PLATFORM_CH_SUBDIR) ++len;
     struct dirent *dp = 0;
     if ((dir = opendir(dirname.str)) == NULL) {
         //goto clean;
