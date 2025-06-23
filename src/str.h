@@ -84,6 +84,7 @@ bool str_is_heap(Str str);
 bool str_is_dynamic(Str str);
 size_t str_len(Str str);
 size_t str_len_nof(Str str);
+size_t str_len_u8(Str str);
 size_t str_dhash(Str str);
 size_t str_hash(const Str *str);
 size_t str_hash_ci(const Str *str);
