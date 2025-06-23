@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE
 #define _GNU_SOURCE
 
 #include "str.h"
@@ -7,6 +8,8 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <math.h>
+#include <wchar.h>
+#include <rphii/utf8.h>
 
 void str_resize(Str *str, size_t len) {
     ASSERT_ARG(str);
@@ -463,6 +466,24 @@ size_t str_len_nof(Str str) { /*{{{*/
         len -= (bool)(m);
     }
     return len;
+} /*}}}*/
+
+size_t str_len_u8(Str str) { /*{{{*/
+    size_t result = 0;
+    U8Str u8 = {0};
+    U8Point u8p = {0};
+    for(size_t i = 0; i < str.len; ++i) {
+        unsigned char *s = (unsigned char *)str_it(str, i);
+        if(*s < ' ') { /* don't count width */ }
+        if(*s < 0x80) ++result;
+        else {
+            str_u8str(u8, str_ll((char *)s, str.len - i));
+            cstr_to_u8_point(u8, &u8p);
+            wchar_t w = u8p.val;
+            result += wcwidth(w);
+        }
+    }
+    return result;
 } /*}}}*/
 
 size_t str_dhash(Str str) { /*{{{*/
