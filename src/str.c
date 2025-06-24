@@ -509,8 +509,8 @@ size_t str_len_u8(Str str) { /*{{{*/
         else {
             str_u8str(u8, str_ll((char *)s, str.len - i));
             cstr_to_u8_point(u8, &u8p);
-            wchar_t w = u8p.val;
-            result += wcwidth(w);
+            i += u8p.bytes - 1;
+            ++result;
         }
     }
     return result;
