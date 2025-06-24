@@ -137,6 +137,7 @@ void str_fmt_fgbg(Str *out, Str text, Color fg, Color bg, bool bold, bool italic
 void str_fmt_fgbga(Str *out, Str text, Color fg, Color bg, bool bold, bool italic, bool underline);
 void str_fmtx(Str *out, StrFmtX fmtx, char *fmt, ...);
 void str_fmt_websafe(Str *out, Str text);
+void str_fmt_expath(Str *out, Str path, bool only_if_exists);
 void str_input(Str *str);
 //Str str_copy(Str str);
 void str_copy(Str *copy, Str str);

@@ -1110,6 +1110,30 @@ void str_fmt_websafe(Str *out, Str text) { /*{{{*/
     }
 } /*}}}*/
 
+#include <unistd.h>
+#include <wordexp.h>
+
+void str_fmt_expath(Str *out, Str path, bool only_if_exists) {
+    Str clean = {0};
+    str_copy(&clean, path); /* TODO create a str_copy_ro .. read-only copy, where it doesn't extend if end == len ... */
+    printff("CLEAN:[%.*s]", STR_F(clean));
+    wordexp_t word = {0};
+    if(wordexp(clean.str, &word, 0)) {
+        goto defer;
+    }
+    if(!word.we_wordv[0]) {
+        goto defer;
+    }
+    str_copy(&clean, str_l(word.we_wordv[0]));
+    if(only_if_exists && (!strlen(clean.str) || access(clean.str, R_OK) == -1)) {
+        goto defer;
+    }
+    str_extend(out, clean);
+defer:
+    str_free(&clean);
+    wordfree(&word);
+}
+
 void str_fmtx(Str *out, StrFmtX fmtx, char *fmt, ...) {
     ASSERT_ARG(out);
     ASSERT_ARG(fmt);
