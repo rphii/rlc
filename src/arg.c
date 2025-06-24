@@ -854,9 +854,19 @@ void arg_config_file(struct Arg *arg, Str filename) {
     Str expanded = {0};
     str_fmt_expath(&expanded, filename, true);
     if(!expanded.len) return;
+    for(size_t i = 0; i < array_len(arg->parse.config_files); ++i) {
+        if(!str_cmp(array_at(arg->parse.config_files, i), expanded)) {
+            str_free(&expanded);
+            return;
+        }
+    }
     array_push(arg->parse.config_files, expanded);
     Str text = {0};
     file_str_read(expanded, &text);
+    if(!text.len) {
+        str_free(&text);
+        return;
+    }
     arg_config(arg, text);
 }
 
