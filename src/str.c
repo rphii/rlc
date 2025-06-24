@@ -1116,7 +1116,6 @@ void str_fmt_websafe(Str *out, Str text) { /*{{{*/
 void str_fmt_expath(Str *out, Str path, bool only_if_exists) {
     Str clean = {0};
     str_copy(&clean, path); /* TODO create a str_copy_ro .. read-only copy, where it doesn't extend if end == len ... */
-    printff("CLEAN:[%.*s]", STR_F(clean));
     wordexp_t word = {0};
     if(wordexp(clean.str, &word, 0)) {
         goto defer;
