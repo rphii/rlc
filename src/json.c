@@ -286,7 +286,6 @@ ErrDecl json_parse_valid(Str input) {
         .settings.verbose = false,
     };
     if(json_parse_value(&q, &v)) goto valid;
-    printff("INVALID INPUT: HEAD @ [%.*s]", STR_F(q.head));
     return -1;
 valid:
     json_parse_ws(&q);
