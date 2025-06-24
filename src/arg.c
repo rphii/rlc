@@ -152,7 +152,7 @@ typedef struct ArgParse {
         Str desc;
         ArgXGroup *pos;
     } rest;
-    StrC config;
+    VStrC config;
 } ArgParse;
 
 typedef enum {
@@ -200,7 +200,7 @@ typedef struct Arg {
 /* FUNCTION PROTOTYPES {{{ */
 
 #define ERR_arg_config_load(...) "failed loading config"
-ErrDecl arg_config_load(struct Arg *arg);
+ErrDecl arg_config_load(struct Arg *arg, StrC text);
 
 /*}}}*/
 
@@ -844,7 +844,7 @@ int arg_help(struct Arg *arg) { /*{{{*/
 
 void arg_config(struct Arg *arg, StrC conf) {
     ASSERT_ARG(arg);
-    arg->parse.config = conf;
+    array_push(arg->parse.config, conf);
 }
 
 /* }}} */
@@ -1153,7 +1153,10 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     unsigned char pfx = arg->base.prefix;
     bool need_help = false;
     /* start parsing */
-    int config_status = arg_config_load(arg);
+    int config_status = 0;
+    for(size_t i = 0; i < array_len(arg->parse.config); ++i) {
+        config_status |= arg_config_load(arg, array_at(arg->parse.config, i));
+    }
     /* check optional arguments */
     while(parse->i < parse->argc) {
         StrC argV = str("");
@@ -1296,11 +1299,11 @@ int arg_config_error(struct Arg *arg, StrC line, size_t line_nb, StrC opt, ArgX 
     return done;
 }
 
-ErrDecl arg_config_load(struct Arg *arg) {
+ErrDecl arg_config_load(struct Arg *arg, StrC text) {
     ASSERT_ARG(arg);
     int err = 0;
     size_t line_nb = 0;
-    StrC line = {0}, opt = {0}, conf = arg->parse.config;
+    StrC line = {0}, opt = {0}, conf = text;
     if(!str_len_raw(conf)) return 0;
     ArgX *argx = 0;
     for(memset(&line, 0, sizeof(line)); str_splice(conf, &line, '\n'); ++line_nb) {
