@@ -62,6 +62,7 @@ struct ArgX *argx_new(struct TArgX *group, const unsigned char c, const Str opt,
 void arg_help_set(struct Arg *arg, struct ArgX *x);
 int arg_help(struct Arg *arg);
 void arg_config(struct Arg *arg, Str conf);
+void arg_config_file(struct Arg *arg, Str filename);
 
 
 #if 0

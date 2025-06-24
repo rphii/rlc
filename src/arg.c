@@ -2,6 +2,7 @@
 #undef SSIZE_MAX
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include "file.h"
 
 /* ENUMS, STRUCTS, VECTORS {{{ */
 
@@ -152,7 +153,8 @@ typedef struct ArgParse {
         Str desc;
         ArgXGroup *pos;
     } rest;
-    VStrC config;
+    VStr config;
+    VStr config_files;
 } ArgParse;
 
 typedef enum {
@@ -847,6 +849,17 @@ void arg_config(struct Arg *arg, StrC conf) {
     array_push(arg->parse.config, conf);
 }
 
+void arg_config_file(struct Arg *arg, Str filename) {
+    ASSERT_ARG(arg);
+    Str expanded = {0};
+    str_fmt_expath(&expanded, filename, true);
+    if(!expanded.len) return;
+    array_push(arg->parse.config_files, expanded);
+    Str text = {0};
+    file_str_read(expanded, &text);
+    arg_config(arg, text);
+}
+
 /* }}} */
 
 #if 0
@@ -1448,6 +1461,10 @@ void arg_free(struct Arg **parg) {
     argx_group_free(&arg->pos);
     str_free(&arg->print.line);
     str_free(&arg->print.buf);
+    vstr_free_set(&arg->parse.config);
+    vstr_free_set(&arg->parse.config_files);
+    array_free(arg->parse.config);
+    array_free(arg->parse.config_files);
     if(arg->base.rest_vec) array_free(*arg->base.rest_vec);
     free(*parg);
     *parg = 0;
