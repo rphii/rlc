@@ -26,18 +26,18 @@ typedef enum {
 
 const char *arglist_str(ArgList id) {
     switch(id) {
-        case ARG_NONE: return "<none>";
-        case ARG_BOOL: return "<bool>";
-        case ARG_FLAG: return "<flag>";
-        case ARG_INT: return "<int>";
-        case ARG_SSZ: return "<int>";
-        case ARG_FLOAT: return "<double>";
-        case ARG_STRING: return "<string>";
-        case ARG_COLOR: return "<color>";
-        case ARG_OPTION: return "<option>";
-        case ARG_HELP: return "<help>";
-        case ARG_FLAGS: return "<flags>";
-        case ARG_VECTOR: return "<string-vec>";
+        case ARG_NONE: return "none";
+        case ARG_BOOL: return "bool";
+        case ARG_FLAG: return "flag";
+        case ARG_INT: return "int";
+        case ARG_SSZ: return "int";
+        case ARG_FLOAT: return "double";
+        case ARG_STRING: return "string";
+        case ARG_COLOR: return "color";
+        case ARG_OPTION: return "option";
+        case ARG_HELP: return "help";
+        case ARG_FLAGS: return "flags";
+        case ARG_VECTOR: return "string-vec";
         //case ARG_EXOTIC: return "<exotic>";
         case ARG__COUNT: return "(internal:count)";
     }
@@ -162,19 +162,6 @@ typedef struct ArgParse {
     VStr config_files;
 } ArgParse;
 
-typedef enum {
-    ARG_PRINT_NONE,
-    /* below */
-    ARG_PRINT_SHORT,
-    ARG_PRINT_LONG,
-    ARG_PRINT_TYPE,
-    ARG_PRINT_DESC,
-    ARG_PRINT_VALUE,
-    /* above */
-    ARG_PRINT__LENGTH,
-    ARG_PRINT__ENDLINE,
-} ArgPrintList;
-
 typedef struct ArgPrint {
     struct {
         int max;    // max width
@@ -182,15 +169,27 @@ typedef struct ArgPrint {
         int c;      // spacing until short option
         int opt;    // spacing until long option
     } bounds;
-    int pad;        // current padding
-    //int progress;   // how many characters already printed on line
-    int relevant;   // 
-    Str line;       // current line
-    Str buf;        // temporary buffer
-    bool wrapped;   // wheter or not the last line was wrapped
-    ArgPrintList prev;  // previous print thing
-    StrPrint p_al;
+    StrAlign p_al2;
 } ArgPrint;
+
+typedef struct ArgFmt {
+    StrFmtX group;
+    StrFmtX type;
+    StrFmtX type_delim;
+    StrFmtX one_of;
+    StrFmtX one_of_set;
+    StrFmtX one_of_delim;
+    StrFmtX flag;
+    StrFmtX flag_set;
+    StrFmtX flag_delim;
+    StrFmtX val;
+    StrFmtX val_delim;
+    StrFmtX c;
+    StrFmtX opt;
+    StrFmtX pos;
+    StrFmtX env;
+    StrFmtX desc;
+} ArgFmt;
 
 typedef struct Arg {
     ArgBase base;
@@ -198,6 +197,7 @@ typedef struct Arg {
     ArgXGroup opt;
     ArgXGroup env;
     ArgX *opt_short[256];
+    ArgFmt fmt;
     ArgParse parse;
     ArgPrint print;
 } Arg;
@@ -497,92 +497,7 @@ void argx_hide_value(struct ArgX *x, bool hide_value) {
 
 /* PRINTING FUNCTIONS {{{ */
 
-void arg_do_print(Arg *arg, int endline) {
-    ASSERT_ARG(arg);
-    Str content = arg->print.line;
-    str_printal(content, &arg->print.p_al, arg->print.pad, arg->print.bounds.max);
-    for(int i = 0; i < endline; ++i) {
-        printf("\n");
-        arg->print.p_al.progress = 0;
-    }
-    str_clear(&arg->print.line);
-}
-
-void arg_handle_print(Arg *arg, ArgPrintList id, const char *format, ...) {
-    ASSERT_ARG(arg);
-    ASSERT_ARG(format);
-    /* start string fmt */
-    str_clear(&arg->print.buf);
-    va_list argp;
-    va_start(argp, format);
-    str_fmt_va(&arg->print.buf, format, argp);
-    va_end(argp);
-    /* do padding */
-    switch(id) {
-        case ARG_PRINT_NONE: {
-            arg->print.pad = 0;
-            str_extend(&arg->print.line, arg->print.buf);
-            arg_do_print(arg, 0);
-            arg->print.p_al.progress = 0;
-        } break;
-        case ARG_PRINT_SHORT: {
-            arg->print.pad = arg->print.bounds.c;
-        } goto ARG_PRINT__KEEPLINE;
-        case ARG_PRINT_LONG: {
-            arg->print.pad = arg->print.bounds.opt;
-        } goto ARG_PRINT__KEEPLINE;
-        /* special cases */
-        case ARG_PRINT_TYPE: {
-            if(arg->print.prev == ARG_PRINT_LONG) {
-                str_copy(&arg->print.line, str(" "));
-                arg_do_print(arg, 0);
-                str_clear(&arg->print.line);
-                arg->print.pad = arg->print.bounds.opt + 2;
-            }
-            str_extend(&arg->print.line, arg->print.buf);
-        } break;
-        case ARG_PRINT_DESC: {
-            if(arg->print.prev == ARG_PRINT_TYPE) {
-                arg_do_print(arg, 0);
-                if(arg->print.p_al.progress + 1 > arg->print.bounds.desc) {
-                    str_copy(&arg->print.line, str(""));
-                    arg_do_print(arg, 1);
-                    arg->print.pad = arg->print.bounds.opt + 4;
-                } else {
-                    str_fmt(&arg->print.line, " ");
-                    arg_do_print(arg, 0);
-                    arg->print.pad = arg->print.bounds.desc;
-                }
-            } else {
-                arg->print.pad = arg->print.bounds.desc;
-            }
-            str_clear(&arg->print.line);
-            str_extend(&arg->print.line, arg->print.buf);
-            arg_do_print(arg, false);
-        } break;
-        case ARG_PRINT_VALUE: {
-            if(arg->print.prev == ARG_PRINT_DESC) {
-                str_copy(&arg->print.line, str(" "));
-                arg_do_print(arg, false);
-                arg->print.pad = arg->print.bounds.desc;
-                str_clear(&arg->print.line);
-            }
-            str_extend(&arg->print.line, arg->print.buf);
-        } break;
-        case ARG_PRINT__ENDLINE: {
-            arg_do_print(arg, 1);
-        } break;
-        ARG_PRINT__KEEPLINE: {
-            str_extend(&arg->print.line, arg->print.buf);
-            arg_do_print(arg, 0);
-        } break;
-        case ARG_PRINT__LENGTH: ABORT(ERR_UNREACHABLE);
-    }
-    arg->print.prev = id;
-    return;
-}
-
-void argx_print_pre(Arg *arg, ArgX *argx) { /*{{{*/
+void argx_fmt_type(Str *out, Arg *arg, ArgX *argx) { /*{{{*/
     switch(argx->id) {
         case ARG_COLOR:
         case ARG_STRING:
@@ -592,217 +507,222 @@ void argx_print_pre(Arg *arg, ArgX *argx) { /*{{{*/
         case ARG_BOOL:
         case ARG_VECTOR:
         case ARG_FLOAT: {
-            if(str_len_raw(argx->type)) {
-                arg_handle_print(arg, ARG_PRINT_TYPE, F("<%.*s>", ARG_TYPE_F), STR_F(argx->type));
-            } else {
-                arg_handle_print(arg, ARG_PRINT_TYPE, F("%s", ARG_TYPE_F), arglist_str(argx->id));
-            }
+            str_fmtx(out, arg->fmt.type_delim, "<");
+            str_fmtx(out, arg->fmt.type, "%.*s", STR_F(argx->type.len ? argx->type : str_l(arglist_str(argx->id))));
+            str_fmtx(out, arg->fmt.type_delim, ">");
         } break;
         case ARG_OPTION: {
             ArgXGroup *g = argx->o;
             if(vargx_length(g->vec)) {
-                arg_handle_print(arg, ARG_PRINT_TYPE, F("<", ARG_OPTION_F));
+                str_fmtx(out, arg->fmt.one_of_delim, "<");
                 for(size_t i = 0; i < vargx_length(g->vec); ++i) {
-                    if(i) arg_handle_print(arg, ARG_PRINT_TYPE, F("|", ARG_OPTION_F));
+                    if(i) str_fmtx(out, arg->fmt.one_of_delim, "|");
                     ArgX *x = vargx_get_at(&g->vec, i);
                     if(g && g->parent && g->parent->val.i && *g->parent->val.i == x->e) {
-                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_OPTION_F UL), STR_F(x->info.opt));
+                        str_fmtx(out, arg->fmt.one_of_set, "%.*s", STR_F(x->info.opt));
                     } else {
-                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_OPTION_F), STR_F(x->info.opt));
+                        str_fmtx(out, arg->fmt.one_of, "%.*s", STR_F(x->info.opt));
                     }
                 }
-                arg_handle_print(arg, ARG_PRINT_TYPE, F(">", ARG_OPTION_F));
+                str_fmtx(out, arg->fmt.one_of_delim, ">");
             }
         } break;
         case ARG_FLAGS: {
             ArgXGroup *g = argx->o;
             if(vargx_length(g->vec)) {
-                arg_handle_print(arg, ARG_PRINT_TYPE, F("<", ARG_FLAG_F));
+                str_fmtx(out, arg->fmt.flag_delim, "<");
                 for(size_t i = 0; i < vargx_length(g->vec); ++i) {
-                    if(i) arg_handle_print(arg, ARG_PRINT_TYPE, F("|", ARG_FLAG_F));
+                    if(i) str_fmtx(out, arg->fmt.flag_delim, "|");
                     ArgX *x = vargx_get_at(&g->vec, i);
                     ASSERT_ARG(x->group);
                     ASSERT_ARG(x->group->parent);
                     ASSERT(x->id == ARG_FLAG, "the option [%.*s] in [--%.*s] should be set as a %s", STR_F(x->info.opt), STR_F(x->group->parent->info.opt), arglist_str(ARG_FLAG));
                     if(*x->val.b) {
-                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_FLAG_F UL), STR_F(x->info.opt));
+                        str_fmtx(out, arg->fmt.flag_set, "%.*s", STR_F(x->info.opt));
                     } else {
-                        arg_handle_print(arg, ARG_PRINT_TYPE, F("%.*s", ARG_FLAG_F), STR_F(x->info.opt));
+                        str_fmtx(out, arg->fmt.flag, "%.*s", STR_F(x->info.opt));
                     }
                 }
-                arg_handle_print(arg, ARG_PRINT_TYPE, F(">", ARG_FLAG_F));
+                str_fmtx(out, arg->fmt.flag_delim, ">");
             }
         } break;
         case ARG_HELP: {
-            arg_handle_print(arg, ARG_PRINT_TYPE, F("<arg>", ARG_TYPE_F));
+            str_fmtx(out, arg->fmt.type_delim, "<");
+            str_fmtx(out, arg->fmt.type, "arg");
+            str_fmtx(out, arg->fmt.type_delim, ">");
         } break;
         case ARG_NONE:
         case ARG__COUNT: break;
     }
-    arg_handle_print(arg, ARG_PRINT_TYPE, " ");
+    //////str_push(out, ' ');
+    //////TODO maybe set??? (above)
 } /*}}}*/
 
-void argx_print_post(Arg *arg, ArgX *argx, ArgXVal *val) { /*{{{*/
-    ASSERT_ARG(argx);
-    ASSERT_ARG(val);
-    ArgXVal out = *val;
-    Str s = {0};
-    if(argx->attr.hide_value) {
-        arg_handle_print(arg, ARG_PRINT_VALUE, "");
-        arg_handle_print(arg, ARG_PRINT__ENDLINE, "");
-        return;
+void arg_help_set(struct Arg *arg, struct ArgX *x) {
+    ASSERT_ARG(arg);
+    ASSERT_ARG(x);
+    if(!arg->parse.help.get) {
+        arg->parse.help.get = true;
+        arg->parse.help.x = x;
     }
-    switch(argx->id) {
-        case ARG_STRING: {
-            if(val->s && str_len_raw(*val->s)) {
-                arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%.*s", ARG_VAL_F), STR_F(*val->s));
-            } else {
-                arg_handle_print(arg, ARG_PRINT_VALUE, "");
-            }
+}
+
+void argx_fmt_val(Str *out, Arg *arg, ArgX *x, ArgXVal val, StrC prefix) {
+    ASSERT_ARG(out);
+    ASSERT_ARG(arg);
+    ASSERT_ARG(x);
+    switch(x->id) {
+        case ARG_NONE: break;
+        case ARG_OPTION: {} break;
+        case ARG_FLAGS: {} break;
+        case ARG_BOOL: {
+            if(!val.b) break;
+            str_fmtx(out, arg->fmt.val_delim, "%.*s", STR_F(prefix));
+            str_fmtx(out, arg->fmt.val, "%s", *val.b ? "true" : "false");
         } break;
         case ARG_COLOR: {
-            Color zero = {0};
-            if(!val->c->rgba) out.c = &zero;
-            color_fmt_rgb(&s, *out.c);
-            arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%.*s", ARG_VAL_F), STR_F(s));
-        } break;
-        case ARG_SSZ: {
-            ssize_t zero = 0;
-            if(!val->c) out.z = &zero;
-            arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%zi", ARG_VAL_F), *out.z);
-        } break;
-        case ARG_INT: {
-            int zero = 0;
-            if(!val->i) out.i = &zero;
-            arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%i", ARG_VAL_F), *out.i);
-        } break;
-        case ARG_VECTOR: {
-            if(val->v && array_len(*val->v)) {
-                arg_handle_print(arg, ARG_PRINT_VALUE, F("=[", ARG_F_SEP));
-                for(size_t i = 0; val->v && i < array_len(*val->v); ++i) {
-                    Str *s = array_it(*val->v, i);
-                    if(i) arg_handle_print(arg, ARG_PRINT_VALUE, F(",", ARG_F_SEP));
-                    arg_handle_print(arg, ARG_PRINT_VALUE, F("%.*s", ARG_VAL_F), STR_F(*s));
-                }
-                arg_handle_print(arg, ARG_PRINT_VALUE, F("]", ARG_F_SEP));
-            } else {
-                arg_handle_print(arg, ARG_PRINT_VALUE, "");
-            }
-        } break;
-        case ARG_FLAG:
-        case ARG_BOOL: {
-            bool zero = 0;
-            if(!val->b) out.b = &zero;
-            arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%s", ARG_VAL_F), *out.b ? "true" : "false");
+            if(!val.c) break;
+            str_fmtx(out, arg->fmt.val_delim, "%.*s", STR_F(prefix));
+            color_fmt_rgb(out, *val.c);
         } break;
         case ARG_FLOAT: {
-            double zero = 0;
-            if(!val->f) out.f = &zero;
-            arg_handle_print(arg, ARG_PRINT_VALUE, F("=", FG_BK_B) F("%f", ARG_VAL_F), *out.f);
+            if(!val.f) break;
+            str_fmtx(out, arg->fmt.val_delim, "%.*s", STR_F(prefix));
+            str_fmtx(out, arg->fmt.val, "%f", *val.f);
         } break;
-        case ARG_HELP:
-        case ARG_OPTION:
-        case ARG_FLAGS: {
+        case ARG_HELP: {
         } break;
-        case ARG_NONE: {
-            arg_handle_print(arg, ARG_PRINT_VALUE, "");
+        case ARG_INT: {
+            if(!val.i) break;
+            str_fmtx(out, arg->fmt.val_delim, "%.*s", STR_F(prefix));
+            str_fmtx(out, arg->fmt.val, "%i", *val.i);
         } break;
-        case ARG__COUNT: break;
+        case ARG_FLAG: {
+            if(!val.b) break;
+            str_fmtx(out, arg->fmt.val_delim, "%.*s", STR_F(prefix));
+            str_fmtx(out, arg->fmt.val, "%s", *val.b ? "true" : "false");
+        } break;
+        case ARG_SSZ: {
+            if(!val.z) break;
+            str_fmtx(out, arg->fmt.val_delim, "%.*s", STR_F(prefix));
+            str_fmtx(out, arg->fmt.val, "%zu", *val.z);
+        } break;
+        case ARG_STRING: {
+            if(!val.s) break;
+            if(!val.s->len) break;
+            str_fmtx(out, arg->fmt.val_delim, "%.*s", STR_F(prefix));
+            str_fmtx(out, arg->fmt.val, "%.*s", STR_F(*val.s));
+        } break;
+        case ARG_VECTOR: {
+            if(!val.v) break;
+            str_fmtx(out, arg->fmt.val_delim, "%.*s", STR_F(prefix));
+            str_fmtx(out, arg->fmt.val_delim, "[");
+            for(size_t i = 0; i < array_len(*val.v); ++i) {
+                if(i) str_fmtx(out, arg->fmt.val_delim, ",");
+                Str s = array_at(*val.v, i);
+                str_fmtx(out, arg->fmt.val, "%.*s", STR_F(s));
+            }
+            str_fmtx(out, arg->fmt.val_delim, "]");
+        } break;
+        case ARG__COUNT:
+        default: THROW("UKNOWN FMT, ID:%u", x->id);
     }
-    arg_handle_print(arg, ARG_PRINT__ENDLINE, "");
-    str_free(&s);
-} /*}}}*/
+error:;
+}
 
-void argx_print(Arg *arg, ArgX *x, bool detailed) { /*{{{*/
-    unsigned char pfx = x->attr.is_env ? 0 : arg->base.prefix;
-    /* print short form */
-    if(x->info.c) {
-        arg_handle_print(arg, ARG_PRINT_SHORT, F("%c%c", BOLD FG_WT_B), pfx, x->info.c);
-    }
-    /* print long form (should always be available) */
-    //printff("[%.*s] %s group %p", STR_F(x->info.opt), arglist_str(x->id), x->group);
-    if(x->group && x->group == &arg->pos) {
-        arg_handle_print(arg, ARG_PRINT_LONG, F("%.*s", IT), STR_F(x->info.opt));
-    } else if(x->attr.is_env) {
-        arg_handle_print(arg, ARG_PRINT_SHORT, F("%.*s", ARG_F_ENV), STR_F(x->info.opt));
-        arg_handle_print(arg, ARG_PRINT_LONG, "");
-    } else if(x->group && x->group->parent) {
-        arg_handle_print(arg, ARG_PRINT_LONG, F("  %.*s", BOLD FG_WT_B), STR_F(x->info.opt));
+void argx_fmt(Str *out, Arg *arg, ArgX *x, bool detailed) {
+    ASSERT_ARG(out);
+    ASSERT_ARG(arg);
+    ASSERT_ARG(x);
+    Str tmp = {0};
+    bool desc = true;
+    if(x->group == &arg->opt) {
+        /* format OPTIONAL value: short option + full option */
+        if(x->info.c) {
+            str_clear(&tmp);
+            str_fmtx(&tmp, arg->fmt.c, "%c%c", arg->base.prefix, x->info.c);
+            str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.c, arg->print.bounds.c, arg->print.bounds.max, "%.*s", STR_F(tmp));
+        }
+        str_clear(&tmp);
+        str_fmtx(&tmp, arg->fmt.opt, "%c%c%.*s", arg->base.prefix, arg->base.prefix, STR_F(x->info.opt));
+        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.opt, arg->print.bounds.opt, arg->print.bounds.max, "%.*s", STR_F(tmp));
+    } else if(x->group == &arg->pos) {
+        /* format POSITIONAL values: full option */
+        str_clear(&tmp);
+        str_fmtx(&tmp, arg->fmt.pos, "%.*s", STR_F(x->info.opt));
+        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.opt, arg->print.bounds.opt, arg->print.bounds.max, "%.*s", STR_F(tmp));
+    } else if(x->group == &arg->env) {
+        /* format ENVIRONMENT values: full option */
+        str_clear(&tmp);
+        str_fmtx(&tmp, arg->fmt.env, "%.*s", STR_F(x->info.opt));
+        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.c, arg->print.bounds.opt, arg->print.bounds.max, "%.*s", STR_F(tmp));
     } else {
-        arg_handle_print(arg, ARG_PRINT_LONG, F("%c%c%.*s", BOLD FG_WT_B), pfx, pfx, STR_F(x->info.opt));
+        ////desc = false;
+        str_clear(&tmp);
+        str_fmtx(&tmp, arg->fmt.env, "%.*s", STR_F(x->info.opt));
+        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.opt, arg->print.bounds.opt, arg->print.bounds.max, "%.*s", STR_F(tmp));
     }
-    //arg_handle_print(arg, ARG_PRINT_DESC, " ");
-    argx_print_pre(arg, x);
-    /* print description */
-    if(str_len_raw(x->info.desc)) {
-        arg_handle_print(arg, ARG_PRINT_DESC, "%.*s", STR_F(x->info.desc));
-    }
-    bool is_detailed_option = false;
-    if(detailed && x->id == ARG_OPTION && x->o) {
-        is_detailed_option = true;
-        arg_do_print(arg, 2);
-        for(size_t i = 0; i < vargx_length(x->o->vec); ++i) {
-            //arg_handle_print(arg, ARG_PRINT_NONE, "\n");
-            ArgX *xx = vargx_get_at(&x->o->vec, i);
-            argx_print(arg, xx, false);
-        }
-    }
-    /* print value */
-    if(detailed) {
-        arg_do_print(arg, 1);
-        if(!is_detailed_option) arg_do_print(arg, 1);
-        arg_handle_print(arg, ARG_PRINT_SHORT, "current value");
-    }
-    if(detailed && x->id == ARG_OPTION && x->o) {
-        int *n = x->val.i;
-        size_t i = 0;
-        for(i = 0; n && i < vargx_length(x->o->vec); ++i) {
-        //printff("HELLO");
-            ArgX *xx = vargx_get_at(&x->o->vec, i);
-            if(xx->e != *n) continue;
-            argx_print(arg, xx, false);
-            break;
-        }
-        if(!n || i >= vargx_length(x->o->vec)) {
-            arg_do_print(arg, 1);
-        }
-    } else {
-        argx_print_post(arg, x, &x->val);
-    }
-    if(detailed) {
-        arg_handle_print(arg, ARG_PRINT_SHORT, "default value");
-        argx_print_post(arg, x, &x->ref);
-        //arg_handle_print(arg, ARG_PRINT_NONE, "\n");
-    }
-    /* done */
-    //rg_handle_print(arg, ARG_PRINT_NONE, "\n");
-} /*}}}*/
+    str_clear(&tmp);
+    argx_fmt_type(&tmp, arg, x);
+    str_fmt_al(out, &arg->print.p_al2, arg->print.p_al2.progress + 1, arg->print.bounds.opt, arg->print.bounds.max, "%.*s", STR_F(tmp));
+    if(desc) {
+        str_clear(&tmp);
+        str_fmtx(&tmp, arg->fmt.desc, "%.*s", STR_F(x->info.desc));
+        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.desc, arg->print.bounds.opt, arg->print.bounds.max, "%.*s", STR_F(tmp));
 
-void argx_print_specific(Arg *arg, ArgParse *parse, ArgX *x) { /*{{{*/
-    if(x->group) {
-        if(x->group->parent) {
-            argx_print_specific(arg, parse, x->group->parent);
-        } else {
-            arg_handle_print(arg, ARG_PRINT_NONE, F("%.*s:", BOLD UL), STR_F(x->group->desc));
-            arg_do_print(arg, 1);
-        }
+        str_clear(&tmp);
+        argx_fmt_val(&tmp, arg, x, x->val, str(" ="));
+        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.desc, arg->print.bounds.opt, arg->print.bounds.max, "%.*s", STR_F(tmp));
     }
-    argx_print(arg, x, (x == parse->help.x));
-    //argx_print(base, x, false);
-} /*}}}*/
+    str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
+    if(detailed) {
+        if(x->id == ARG_OPTION && x->o) {
+            for(size_t i = 0; i < vargx_length(x->o->vec); ++i) {
+                ArgX *argx = vargx_get_at(&x->o->vec, i);
+                argx_fmt(out, arg, argx, false);
+            }
+        } else if(x->id == ARG_FLAGS) {
+            //str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
+            //for(size_t i = 0; i < vargx_length(x->o->vec); ++i) {
+            //    ArgX *argx = vargx_get_at(&x->o->vec, i);
+            //    str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
+            //    argx_fmt(out, arg, argx, false);
+            //}
+        }
+        str_clear(&tmp);
+        argx_fmt_val(out, arg, x, x->val, str("\ncurrent value: "));
+        str_clear(&tmp);
+        argx_fmt_val(&tmp, arg, x, x->ref, str("\ndefault value: "));
+        /* done */
+    }
+    str_free(&tmp);
+}
 
-void argx_group_print(Arg *arg, ArgXGroup *group) { /*{{{*/
+void argx_fmt_group(Str *out, Arg *arg, ArgXGroup *group) {
+    ASSERT_ARG(out);
     ASSERT_ARG(arg);
     ASSERT_ARG(group);
+    /* empty groups we don't care about */
+    Str tmp = {0};
     if(!vargx_length(group->vec) && !(group == &arg->pos)) {
         return;
     }
-    if(str_len_raw(group->desc)) {
-        arg_handle_print(arg, ARG_PRINT_NONE, F("%.*s:", BOLD UL), STR_F(group->desc));
-        arg_do_print(arg, 1);
+    if(group->desc.len) {
+        str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, F("%.*s:", BOLD UL), STR_F(group->desc));
     }
-    if(group == &arg->pos) {
-        arg_handle_print(arg, ARG_PRINT_SHORT, F("%s", BOLD), arg->parse.instream.argv[0]);
+    /* usage / group title */
+    if(group != &arg->pos) {
+        str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
+    } else {
+        str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, " " F("%s", BOLD) " ", arg->parse.instream.argv[0]);
+    }
+    /* each thing */
+    for(size_t i = 0; i < vargx_length(group->vec); ++i) {
+        ArgX *x = vargx_get_at(&group->vec, i);
+        str_clear(&tmp);
+        argx_fmt(out, arg, x, false);
+    }
+#if 0
         for(size_t i = 0; i < vargx_length(group->vec); ++i) {
             ArgX *x = vargx_get_at(&group->vec, i);
             arg_handle_print(arg, ARG_PRINT_SHORT, " %.*s", STR_F(x->info.opt));
@@ -820,34 +740,47 @@ void argx_group_print(Arg *arg, ArgXGroup *group) { /*{{{*/
         ArgX *x = vargx_get_at(&group->vec, i);
         argx_print(arg, x, false);
     }
+#endif
+    str_free(&tmp);
+}
+
+void argx_fmt_specific(Str *out, Arg *arg, ArgParse *parse, ArgX *x) { /*{{{*/
+    Str tmp = {0};
+    if(x->group) {
+        if(x->group->parent) {
+            argx_fmt_specific(out, arg, parse, x->group->parent);
+        } else {
+            str_fmtx(&tmp, arg->fmt.group, "%.*s:", STR_F(x->group->desc));
+            str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "%.*s\n", STR_F(tmp));
+        }
+    }
+    argx_fmt(out, arg, x, (x == parse->help.x));
+    str_free(&tmp);
+    //argx_print(base, x, false);
 } /*}}}*/
 
-void arg_help_set(struct Arg *arg, struct ArgX *x) {
-    ASSERT_ARG(arg);
-    ASSERT_ARG(x);
-    if(!arg->parse.help.get) {
-        arg->parse.help.get = true;
-        arg->parse.help.x = x;
-    }
-}
 
 int arg_help(struct Arg *arg) { /*{{{*/
     ASSERT_ARG(arg);
+    Str out = {0};
     if(arg->parse.help.x && arg->parse.help.get) {
         /* specific help */
-        argx_print_specific(arg, &arg->parse, arg->parse.help.x);
+        argx_fmt_specific(&out, arg, &arg->parse, arg->parse.help.x);
+        //argx_print_specific(arg, &arg->parse, arg->parse.help.x);
     } else {
         /* default help */
-        arg_handle_print(arg, ARG_PRINT_NONE, F("%.*s:", BOLD) " %.*s", STR_F(arg->base.program), STR_F(arg->base.desc));
-        printf("\n");
-        argx_group_print(arg, &arg->pos);
-        argx_group_print(arg, &arg->opt);
-        argx_group_print(arg, &arg->env);
+        str_fmt_al(&out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, F("%.*s:", BOLD) " %.*s\n", STR_F(arg->base.program), STR_F(arg->base.desc));
+        argx_fmt_group(&out, arg, &arg->pos);
+        argx_fmt_group(&out, arg, &arg->opt);
+        argx_fmt_group(&out, arg, &arg->env);
         if(str_len_raw(arg->base.epilog)) {
-            arg_handle_print(arg, ARG_PRINT_NONE, "%.*s", STR_F(arg->base.epilog));
-            printf("\n");
+            //arg_handle_print(arg, ARG_PRINT_NONE, "%.*s", STR_F(arg->base.epilog));
+            //printf("\n");
+            str_fmt_al(&out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "%.*s\n", STR_F(arg->base.epilog));
         }
     }
+    str_print(out);
+    str_free(&out);
     return 0;
 } /*}}}*/
 
@@ -869,12 +802,14 @@ void arg_config_file(struct Arg *arg, Str filename) {
     }
     array_push(arg->parse.config_files, expanded);
     Str text = {0};
-    file_str_read(expanded, &text);
+    if(file_str_read(expanded, &text)) goto error;
     if(!text.len) {
         str_free(&text);
         return;
     }
     arg_config(arg, text);
+error:
+    ERR_PRINTF("failed reading file: '%.*s'", STR_F(expanded));
 }
 
 /* }}} */
@@ -1282,6 +1217,9 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     }
 #endif
 quit_early:
+    //if(arg->base.compgen_wordlist) {
+    //    arg_help(arg);
+    //}
     if((parse->instream.argc < 2 && arg->base.show_help)) {
         arg_help(arg);
         *quit_early = true;
@@ -1484,8 +1422,6 @@ void arg_free(struct Arg **parg) {
     argx_group_free(&arg->opt);
     argx_group_free(&arg->env);
     argx_group_free(&arg->pos);
-    str_free(&arg->print.line);
-    str_free(&arg->print.buf);
     vstr_free_set(&arg->parse.config);
     vstr_free_set(&arg->parse.config_files);
     array_free(arg->parse.config);

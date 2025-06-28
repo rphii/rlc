@@ -129,9 +129,16 @@ size_t str_count_nch(Str str, char c);
 size_t str_count_any(Str str, Str any);
 size_t str_count_nany(Str str, Str any);
 
+typedef struct StrAlign {
+    size_t progress;
+    Str fmt;
+    size_t i0_prev;
+} StrAlign;
+
 void str_clear(Str *str);
 void str_free(Str *str);
 void str_fmt(Str *str, char *format, ...);
+void str_fmt_al(Str *out, StrAlign *p, size_t i0, size_t iNL, size_t iE, char *format, ...);
 void str_fmt_va(Str *str, const char *format, va_list va);
 void str_fmt_fgbg(Str *out, Str text, Color fg, Color bg, bool bold, bool italic, bool underline);
 void str_fmt_fgbga(Str *out, Str text, Color fg, Color bg, bool bold, bool italic, bool underline);
