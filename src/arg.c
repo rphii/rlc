@@ -89,8 +89,8 @@ typedef struct ArgX { /*{{{*/
     ArgXVal ref;
     int e; // enum
     StrC type;
-    struct ArgXGroup *o; // option
-    struct ArgXGroup *group; // required for options / parent group
+    struct ArgXTable *o; // option
+    struct ArgXTable *group; // required for options / parent group
     struct {
         ArgXNumber min;
         ArgXNumber max;
@@ -108,7 +108,7 @@ typedef struct ArgX { /*{{{*/
 } ArgX; /*}}}*/
 
 void argx_free(struct ArgX *argx);
-void argx_group_free(struct ArgXGroup *group);
+void argx_group_free(struct ArgXTable *group);
 
 #include "lut.h"
 LUT_INCLUDE(TArgX, targx, Str, BY_VAL, struct ArgX, BY_REF);
@@ -129,13 +129,13 @@ VEC_IMPLEMENT(VArgX, vargx, ArgX *, BY_VAL, BASE, 0);
 VEC_IMPLEMENT(VArgX, vargx, ArgX *, BY_VAL, ERR);
 VEC_IMPLEMENT(VArgX, vargx, ArgX *, BY_VAL, SORT, argx_cmp_index);
 
-typedef struct ArgXGroup {
+typedef struct ArgXTable {
     VArgX vec;
     TArgX lut;
     StrC desc;
     struct Arg *root; // required literally only for assigning short options
     struct ArgX *parent; // required for options
-} ArgXGroup;
+} ArgXTable;
 
 typedef struct ArgStream {
     char **argv;
@@ -156,7 +156,7 @@ typedef struct ArgParse {
     struct {
         VStr *vec;
         Str desc;
-        ArgXGroup *pos;
+        ArgXTable *pos;
     } rest;
     VStr config;
     VStr config_files;
@@ -193,9 +193,9 @@ typedef struct ArgFmt {
 
 typedef struct Arg {
     ArgBase base;
-    ArgXGroup pos;
-    ArgXGroup opt;
-    ArgXGroup env;
+    ArgXTable pos;
+    ArgXTable opt;
+    ArgXTable env;
     ArgX *opt_short[256];
     ArgFmt fmt;
     ArgParse parse;
@@ -220,16 +220,16 @@ ATTR_NODISCARD struct Arg *arg_new(void) {
     NEW(Arg, result);
     return result;
 }
-ATTR_NODISCARD struct ArgXGroup *wargx_new(void) {
-    ArgXGroup *result = 0;
-    NEW(ArgXGroup, result);
+ATTR_NODISCARD struct ArgXTable *wargx_new(void) {
+    ArgXTable *result = 0;
+    NEW(ArgXTable, result);
     return result;
 }
 
-ArgXGroup *arg_pos(Arg *arg) {
+ArgXTable *arg_pos(Arg *arg) {
     return &arg->pos;
 }
-ArgXGroup *arg_opt(Arg *arg) {
+ArgXTable *arg_opt(Arg *arg) {
     return &arg->opt;
 }
 
@@ -288,7 +288,7 @@ void arg_init_pipe(struct Arg *arg, VStr *out, pthread_mutex_t *mutex) {
 }
 
 #define ERR_argx_group_push(...) "failed adding argument x"
-ErrDecl argx_group_push(ArgXGroup *group, ArgX *in, ArgX **out) {
+ErrDecl argx_group_push(ArgXTable *group, ArgX *in, ArgX **out) {
     ASSERT_ARG(group);
     ASSERT_ARG(in);
     TArgXKV *xkv = targx_once(&group->lut, in->info.opt, in);
@@ -302,7 +302,7 @@ error:
     return -1;
 }
 
-struct ArgX *argx_init(struct ArgXGroup *group, const unsigned char c, StrC optX, StrC descX) {
+struct ArgX *argx_init(struct ArgXTable *group, const unsigned char c, StrC optX, StrC descX) {
     ASSERT_ARG(group);
     Str opt = str_trim(optX);
     Str desc = str_trim(descX);
@@ -398,9 +398,9 @@ void argx_vstr(struct ArgX *x, VStr *val, VStr *ref) {
     x->val.v = val;
     x->ref.v = ref;
 }
-struct ArgXGroup *argx_opt(ArgX *x, int *val, int *ref) {
+struct ArgXTable *argx_opt(ArgX *x, int *val, int *ref) {
     ASSERT_ARG(x);
-    ArgXGroup *options = wargx_new();
+    ArgXTable *options = wargx_new();
     options->desc = x->info.opt;
     options->parent = x;
     x->id = ARG_OPTION;
@@ -410,8 +410,8 @@ struct ArgXGroup *argx_opt(ArgX *x, int *val, int *ref) {
     return options;
 }
 
-struct ArgXGroup *argx_flag(struct ArgX *x) {
-    ArgXGroup *flags = wargx_new();
+struct ArgXTable *argx_flag(struct ArgX *x) {
+    ArgXTable *flags = wargx_new();
     flags->desc = x->info.opt;
     flags->parent = x;
     x->id = ARG_FLAGS;
@@ -512,7 +512,7 @@ void argx_fmt_type(Str *out, Arg *arg, ArgX *argx) { /*{{{*/
             str_fmtx(out, arg->fmt.type_delim, ">");
         } break;
         case ARG_OPTION: {
-            ArgXGroup *g = argx->o;
+            ArgXTable *g = argx->o;
             if(vargx_length(g->vec)) {
                 str_fmtx(out, arg->fmt.one_of_delim, "<");
                 for(size_t i = 0; i < vargx_length(g->vec); ++i) {
@@ -528,7 +528,7 @@ void argx_fmt_type(Str *out, Arg *arg, ArgX *argx) { /*{{{*/
             }
         } break;
         case ARG_FLAGS: {
-            ArgXGroup *g = argx->o;
+            ArgXTable *g = argx->o;
             if(vargx_length(g->vec)) {
                 str_fmtx(out, arg->fmt.flag_delim, "<");
                 for(size_t i = 0; i < vargx_length(g->vec); ++i) {
@@ -698,7 +698,7 @@ void argx_fmt(Str *out, Arg *arg, ArgX *x, bool detailed) {
     str_free(&tmp);
 }
 
-void argx_fmt_group(Str *out, Arg *arg, ArgXGroup *group) {
+void argx_fmt_group(Str *out, Arg *arg, ArgXTable *group) {
     ASSERT_ARG(out);
     ASSERT_ARG(arg);
     ASSERT_ARG(group);
@@ -815,7 +815,7 @@ error:
 /* }}} */
 
 #if 0
-bool arg_group_info_opt(struct ArgXGroup *g, void *x, RStr *found) {
+bool arg_group_info_opt(struct ArgXTable *g, void *x, RStr *found) {
     if(!g) return false;
     if(!x) return false;
     ASSERT_ARG(found);
@@ -835,7 +835,7 @@ RStr arg_info_opt(struct Arg *arg, void *x) {
 /* PARSING FUNCTIONS {{{ */
 
 #define ERR_arg_parse_getopt(group, ...) "failed getting option for " F("[%.*s]", BOLD), STR_F((group)->desc)
-ErrDecl arg_parse_getopt(ArgXGroup *group, ArgX **x, StrC opt) {
+ErrDecl arg_parse_getopt(ArgXTable *group, ArgX **x, StrC opt) {
     ASSERT_ARG(group);
     ASSERT_ARG(x);
     *x = targx_get(&group->lut, opt);
@@ -1046,7 +1046,7 @@ error_skip_help:
     return -1;
 }
 
-void arg_parse_setref_group(struct ArgXGroup *group);
+void arg_parse_setref_group(struct ArgXTable *group);
 
 void arg_parse_setref_argx(struct ArgX *argx) {
     ASSERT_ARG(argx);
@@ -1087,7 +1087,7 @@ void arg_parse_setref_argx(struct ArgX *argx) {
     }
 }
 
-void arg_parse_setref_group(struct ArgXGroup *group) {
+void arg_parse_setref_group(struct ArgXTable *group) {
     ASSERT_ARG(group);
     for(size_t i = 0; i < vargx_length(group->vec); ++i) {
         ArgX *x = vargx_get_at(&group->vec, i);
@@ -1307,7 +1307,7 @@ ErrDecl arg_config_load(struct Arg *arg, StrC text) {
                 //printff("setting value for [%.*s] : %.*s", STR_F(argx->info.opt), STR_F(opt));
                 switch(argx->id) {
                     case ARG_OPTION: {
-                        ArgXGroup *group = argx->o;
+                        ArgXTable *group = argx->o;
                         ArgX *x = 0;
                         TRYC(arg_parse_getopt(group, &x, opt));
                         argx = x;
@@ -1407,7 +1407,7 @@ void argx_free(ArgX *argx) {
     memset(argx, 0, sizeof(*argx));
 };
 
-void argx_group_free(ArgXGroup *group) {
+void argx_group_free(ArgXTable *group) {
     ASSERT_ARG(group);
     targx_free(&group->lut);
     vargx_free(&group->vec);
