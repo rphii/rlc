@@ -78,7 +78,7 @@ int main(const int argc, const char **argv) {
     Config preset = {0};
     Str *rest2 = {0};
     Str *files = {0};
-    Str configuration = STR_DYN;
+    Str configuration = STR_DYN();
     struct Arg *arg = arg_new();
     struct ArgX *x;
     struct ArgXGroup *g;
@@ -95,6 +95,7 @@ int main(const int argc, const char **argv) {
     arg_init(arg, str("test_arg"), str("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), str("github: https://github.com/rphii"));
     arg_init_rest(arg, str("files"), &files);
     arg_init_width(arg, 60, 45);
+    argx_builtin_env_compgen(arg);
     //arg_init_width(arg, 0, 45);
 
     x=argx_init(arg_opt(arg), 'h', str("help"), str("print this help"));
@@ -157,6 +158,7 @@ int main(const int argc, const char **argv) {
           argx_opt_enum(x, CONFIG_MODE_STRING);
         x=argx_init(g, 0, str("bool"), str("set bool"));
           argx_bool(x, &config.mode.b, &preset.mode.b);
+          argx_bool_require_tf(x, true);
           argx_opt_enum(x, CONFIG_MODE_BOOL);
         x=argx_init(g, 0, str("strings"), str("set strings"));
           argx_vstr(x, &rest2, 0);
@@ -166,13 +168,14 @@ int main(const int argc, const char **argv) {
       argx_vstr(x, &config.strings, &preset.strings);
       argx_type(x, str("input-files"));
 
-    argx_env(arg, str("ARG_CONFIG_PATH"), str("config path"), &config.config, &preset.config, false);
+    x=argx_env(arg, str("ARG_CONFIG_PATH"), str("config path"), false);
+      argx_str(x, &config.config, &preset.config);
     /*}}}*/
 
     /* load config {{{ */
     Str filename = STR("test_arg.conf");
     TRYC(file_str_read(filename, &configuration));
-    arg_config(arg, str_ll(configuration.str, str_len(configuration)));
+    arg_config(arg, str_ll(configuration.str, str_len_raw(configuration)));
     /*}}}*/
 
 #if 0

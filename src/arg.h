@@ -37,7 +37,7 @@ void arg_free(struct Arg **arg);
 struct ArgXGroup *arg_opt(struct Arg *arg);
 
 struct ArgX *argx_pos(struct Arg *arg, Str opt, Str desc);
-void argx_env(struct Arg *arg, Str opt, Str desc, Str *val, Str *ref, bool hide_value);
+struct ArgX *argx_env(struct Arg *arg, Str opt, Str desc, bool hide_value);
 struct ArgX *argx_init(struct ArgXGroup *group, const unsigned char c, const Str optX, const Str descX);
 
 void argx_str(struct ArgX *x, Str *val, Str *ref);
@@ -46,6 +46,7 @@ void argx_ssz(struct ArgX *x, ssize_t *val, ssize_t *ref);
 void argx_int(struct ArgX *x, int *val, int *ref);
 void argx_dbl(struct ArgX *x, double *val, double *ref);
 void argx_bool(struct ArgX *x, bool *val, bool *ref);
+void argx_bool_require_tf(struct ArgX *x, bool require_tf);
 void argx_none(struct ArgX *x);
 void argx_vstr(struct ArgX *x, VStr *val, VStr *ref);
 struct ArgXGroup *argx_opt(struct ArgX *x, int *val, int *ref);
@@ -63,6 +64,8 @@ void arg_help_set(struct Arg *arg, struct ArgX *x);
 int arg_help(struct Arg *arg);
 void arg_config(struct Arg *arg, Str conf);
 void arg_config_file(struct Arg *arg, Str filename);
+
+void argx_builtin_env_compgen(struct Arg *arg);
 
 
 #if 0
