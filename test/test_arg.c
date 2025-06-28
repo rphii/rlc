@@ -95,11 +95,10 @@ int main(const int argc, const char **argv) {
     arg_init(arg, str("test_arg"), str("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), str("github: https://github.com/rphii"));
     arg_init_rest(arg, str("files"), &files);
     arg_init_width(arg, 60, 45);
+    argx_builtin_opt_help(arg);
     argx_builtin_env_compgen(arg);
     //arg_init_width(arg, 0, 45);
 
-    x=argx_init(arg_opt(arg), 'h', str("help"), str("print this help"));
-      argx_help(x, arg);
     x=argx_init(arg_opt(arg), 0, str("xyz"), str("nothing"));
     x=argx_init(arg_opt(arg), 'b', str("bool"), str("boolean value and a long description that is"));
       argx_bool(x, &config.boolean, &preset.boolean);
