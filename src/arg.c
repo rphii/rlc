@@ -1506,3 +1506,9 @@ void argx_builtin_env_compgen(struct Arg *arg) {
     //argx_func(x, 0, argx_callback_env_compgen, arg, true);
 }
 
+void argx_builtin_opt_help(struct Arg *arg) {
+    struct ArgX *x = argx_init(arg_opt(arg), 'h', str("help"), str("print this help"));
+    argx_help(x, arg);
+}
+
+
