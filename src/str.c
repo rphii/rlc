@@ -3,13 +3,13 @@
 
 #include "str.h"
 #include "err.h"
+#include "utf8.h"
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <math.h>
 #include <wchar.h>
-#include <rphii/utf8.h>
 
 void str_resize(Str *str, size_t len) {
     ASSERT_ARG(str);
