@@ -14,6 +14,8 @@
 #define ARG_FLAG_F      FG_YL
 #define ARG_F_SEP       FG_BK_B
 
+#define ARG_FMT_ARG     BOLD FG_WT_B
+
 /* types of arguments
  *
  * */
