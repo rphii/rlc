@@ -827,6 +827,13 @@ int arg_help(struct Arg *arg) { /*{{{*/
     ASSERT_ARG(arg);
     Str out = {0};
     Str tmp = {0};
+    /* if term width < min, adjust */
+    struct winsize w;
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    int width_restore = arg->print.bounds.max;
+    int width = w.ws_col < arg->print.bounds.max ? w.ws_col : arg->print.bounds.max;
+    arg->print.bounds.max = width;
+    /* now print */
     if(arg->parse.help.x && arg->parse.help.get) {
         /* specific help */
         argx_fmt_specific(&out, arg, &arg->parse, arg->parse.help.x);
@@ -871,6 +878,7 @@ int arg_help(struct Arg *arg) { /*{{{*/
     str_free(&tmp);
     str_print(out);
     str_free(&out);
+    arg->print.bounds.max = width_restore;
     return 0;
 } /*}}}*/
 
