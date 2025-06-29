@@ -760,9 +760,17 @@ void argx_fmt(Str *out, Arg *arg, ArgX *x, bool detailed) {
             //}
         }
         str_clear(&tmp);
-        argx_fmt_val(out, arg, x, x->val, str("\ncurrent value: "));
+        argx_fmt_val(&tmp, arg, x, x->val, str("current value: "));
+        if(tmp.len) {
+            str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
+            str_fmt_al(out, &arg->print.p_al2, 0, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s\n", STR_F(tmp));
+        }
         str_clear(&tmp);
-        argx_fmt_val(&tmp, arg, x, x->ref, str("\ndefault value: "));
+        argx_fmt_val(&tmp, arg, x, x->ref, str("default value: "));
+        if(tmp.len) {
+            str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
+            str_fmt_al(out, &arg->print.p_al2, 0, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s\n", STR_F(tmp));
+        }
         /* done */
     }
     str_free(&tmp);
