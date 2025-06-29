@@ -92,23 +92,24 @@ int main(const int argc, const char **argv) {
 
     /* set up arguments {{{*/
 
-    arg_init(arg, str("test_arg"), str("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and end correctly! isn't that fascinating..."), str("github: " F("https://github.com/rphii", FG_BL_B UL)));
+    arg_init(arg, str_l(argv[0]), str("this is a test program to verify the functionality of an argument parser. also, this is a very very long and boring description, just so I can check whether or not it wraps and ends correctly! isn't that fascinating..."), str("github: " F("https://github.com/rphii", FG_BL_B UL)));
     arg_init_rest(arg, str("files"), &files);
     arg_init_width(arg, 100, 45);
-    argx_builtin_opt_help(arg);
-    argx_builtin_env_compgen(arg);
+    arg_init_fmt(arg);
     //arg_init_width(arg, 0, 45);
 
-    x=argx_init(arg_opt(arg), 0, str("xyz"), str("nothing"));
-    x=argx_init(arg_opt(arg), 'b', str("bool"), str("boolean value and a long description that is"));
+    struct ArgXGroup *opt = argx_group(arg, str("Options"));
+    argx_builtin_opt_help(opt);
+    x=argx_init(opt, 0, str("xyz"), str("nothing"));
+    x=argx_init(opt, 'b', str("bool"), str("boolean value and a long description that is"));
       argx_bool(x, &config.boolean, &preset.boolean);
-    x=argx_init(arg_opt(arg), 'f', str("double"), str("double value"));
+    x=argx_init(opt, 'f', str("double"), str("double value"));
       argx_dbl(x, &config.number, &preset.number);
-    x=argx_init(arg_opt(arg), 's', str("string"), str("string value"));
+    x=argx_init(opt, 's', str("string"), str("string value"));
       argx_str(x, &config.string, &preset.string);
-    x=argx_init(arg_opt(arg), 'i', str("integer"), str("integer value"));
+    x=argx_init(opt, 'i', str("integer"), str("integer value"));
       argx_int(x, (int *)&config.whole, (int *)&preset.whole);
-    x=argx_init(arg_opt(arg), 'o', str("option"), str("select one option"));
+    x=argx_init(opt, 'o', str("option"), str("select one option"));
       g=argx_opt(x, (int *)&config.id, (int *)&preset.id);
       //g=argx_opt(x, (int *)&config.id, 0);
         //x=argx_init(g, 0, str("none"), str("do nothing"));
@@ -130,7 +131,7 @@ int main(const int argc, const char **argv) {
         x=argx_init(g, 0, str("verbose"), str("what the fuck"));
           argx_opt_enum(x, 8);
     //x=argx_init(arg_opt(arg), n_arg++, 0, str("very-long-option-that-is-very-important-and-cool-but-serves-no-purpose-whatsoever-anyways-how-are-you-doing-today"), str("select another option"));
-    x=argx_init(arg_opt(arg), 'F', str("flags"), str("set different flags"));
+    x=argx_init(opt, 'F', str("flags"), str("set different flags"));
       g=argx_flag(x);
         x=argx_init(g, 0, str("safe"), str("enable safe operation"));
           argx_flag_set(x, &config.flags.safe, &preset.flags.safe);
@@ -163,19 +164,27 @@ int main(const int argc, const char **argv) {
           argx_vstr(x, &rest2, 0);
           argx_opt_enum(x, CONFIG_MODE_STRINGS);
 
-    x=argx_init(arg_opt(arg), 'I', str("input"), str("input files"));
+    x=argx_init(opt, 'I', str("input"), str("input files"));
       argx_vstr(x, &config.strings, &preset.strings);
       argx_type(x, str("input-files"));
 
-    x=argx_env(arg, str("ARG_CONFIG_PATH"), str("config path"), false);
+    struct ArgXGroup *env = argx_group(arg, str("Environment Variables"));
+    argx_builtin_env_compgen(env);
+    x=argx_env(env, str("ARG_CONFIG_PATH"), str("config path"), false);
       argx_str(x, &config.config, &preset.config);
+
+    struct ArgXGroup *rice = argx_group(arg, str("Color Ajustments"));
+    argx_builtin_opt_rice(rice, arg);
+
     /*}}}*/
 
+#if 1
     /* load config {{{ */
     Str filename = STR("test_arg.conf");
     TRYC(file_str_read(filename, &configuration));
     arg_config(arg, str_ll(configuration.str, str_len_raw(configuration)));
     /*}}}*/
+#endif
 
 #if 0
     sleep(1);
