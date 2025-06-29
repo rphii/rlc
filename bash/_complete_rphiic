@@ -1,0 +1,7 @@
+#!/bin/bash
+
+function _complete_rphiic() {
+    local wordlist="$(COMPGEN_WORDLIST=true ${COMP_WORDS[@]} 2>/dev/null | tail -n 1)"
+    COMPREPLY=($(compgen -W "${wordlist}" -- "${COMP_WORDS[COMP_CWORD]}"))
+}
+
