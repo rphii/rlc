@@ -174,7 +174,8 @@ typedef struct ArgParse {
         ArgXGroup *pos;
     } rest;
     VStr config;
-    VStr config_files;
+    VStr config_files_expand;
+    VStr config_files_base;
 } ArgParse;
 
 typedef struct ArgPrint {
@@ -226,7 +227,7 @@ typedef struct Arg {
 /* FUNCTION PROTOTYPES {{{ */
 
 #define ERR_arg_config_load(...) "failed loading config"
-ErrDecl arg_config_load(struct Arg *arg, StrC text);
+ErrDecl arg_config_from_str(struct Arg *arg, StrC text);
 
 /*}}}*/
 
@@ -949,28 +950,29 @@ void arg_config(struct Arg *arg, StrC conf) {
     array_push(arg->parse.config, conf);
 }
 
-void arg_config_file(struct Arg *arg, Str filename) {
+int arg_config_from_file(struct Arg *arg, Str filename) {
     ASSERT_ARG(arg);
     Str expanded = {0};
     str_fmt_expath(&expanded, filename, true);
-    if(!expanded.len) return;
-    for(size_t i = 0; i < array_len(arg->parse.config_files); ++i) {
-        if(!str_cmp(array_at(arg->parse.config_files, i), expanded)) {
+    if(!expanded.len) return 0;
+    for(size_t i = 0; i < array_len(arg->parse.config_files_expand); ++i) {
+        if(!str_cmp(array_at(arg->parse.config_files_expand, i), expanded)) {
             str_free(&expanded);
-            return;
+            return 0;
         }
     }
-    array_push(arg->parse.config_files, expanded);
+    array_push(arg->parse.config_files_expand, expanded);
     Str text = {0};
     if(file_str_read(expanded, &text)) goto error;
     if(!text.len) {
         str_free(&text);
-        return;
+        return 0;
     }
-    arg_config(arg, text);
-    return;
+    arg_config_from_str(arg, text);
+    return 0;
 error:
     ERR_PRINTF("failed reading file: '%.*s'", STR_F(expanded));
+    return -1;
 }
 
 /* }}} */
@@ -1296,8 +1298,8 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     bool need_help = false;
     /* start parsing */
     int config_status = 0;
-    for(size_t i = 0; i < array_len(arg->parse.config); ++i) {
-        config_status |= arg_config_load(arg, array_at(arg->parse.config, i));
+    for(size_t i = 0; i < array_len(arg->parse.config_files_base); ++i) {
+        config_status |= arg_config_from_file(arg, array_at(arg->parse.config_files_base, i));
     }
     /* gather environment variables */
     TArgXKV **kv = 0;
@@ -1460,7 +1462,7 @@ int arg_config_error(struct Arg *arg, StrC line, size_t line_nb, StrC opt, ArgX 
     return done;
 }
 
-ErrDecl arg_config_load(struct Arg *arg, StrC text) {
+ErrDecl arg_config_from_str(struct Arg *arg, StrC text) {
     ASSERT_ARG(arg);
     int err = 0;
     size_t line_nb = 0;
@@ -1629,9 +1631,11 @@ void arg_free(struct Arg **parg) {
     argx_table_free(&arg->tables.pos);
 
     vstr_free_set(&arg->parse.config);
-    vstr_free_set(&arg->parse.config_files);
+    vstr_free_set(&arg->parse.config_files_base);
+    vstr_free_set(&arg->parse.config_files_expand);
     array_free(arg->parse.config);
-    array_free(arg->parse.config_files);
+    array_free(arg->parse.config_files_base);
+    array_free(arg->parse.config_files_expand);
     if(arg->base.rest_vec) array_free(*arg->base.rest_vec);
     free(*parg);
     *parg = 0;
@@ -1669,9 +1673,10 @@ void argx_builtin_opt_fmtx(ArgX *x, StrFmtX *fmt) {
         argx_bool(x, &fmt->underline, 0);
 }
 
-void argx_builtin_opt_rice(ArgXGroup *group, Arg *arg) {
+void argx_builtin_opt_rice(ArgXGroup *group) {
     ASSERT_ARG(group);
 
+    struct Arg *arg = group->root;
     struct ArgXGroup *g = 0;
     struct ArgX *x = 0;
     x=argx_init(group, 0, str("fmt-program"), str("program formatting"));
@@ -1714,8 +1719,16 @@ void argx_builtin_opt_rice(ArgXGroup *group, Arg *arg) {
       argx_builtin_opt_fmtx(x, &arg->fmt.val);
     x=argx_init(group, 0, str("fmt-val-delim"), str("value delimiter formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.val_delim);
-
-
 }
 
+void argx_builtin_opt_source(struct ArgXGroup *group, Str source) {
+    ASSERT_ARG(group);
+    struct Arg *arg = group->root;
+    array_push(arg->parse.config_files_base, source);
+    struct ArgX *x = targx_get(&group->table->lut, str("source"));
+    if(!x) {
+        x=argx_init(group, 0, str("source"), str("source other config files"));
+          argx_vstr(x, &arg->parse.config_files_base, 0);
+    }
+}
 

@@ -64,11 +64,11 @@ struct ArgX *argx_new(struct TArgX *group, const unsigned char c, const Str opt,
 void arg_help_set(struct Arg *arg, struct ArgX *x);
 int arg_help(struct Arg *arg);
 void arg_config(struct Arg *arg, Str conf);
-void arg_config_file(struct Arg *arg, Str filename);
 
-void argx_builtin_env_compgen(struct ArgXGroup *arg);
-void argx_builtin_opt_help(struct ArgXGroup *arg);
-void argx_builtin_opt_rice(struct ArgXGroup *group, struct Arg *arg);
+void argx_builtin_env_compgen(struct ArgXGroup *group);
+void argx_builtin_opt_help(struct ArgXGroup *group);
+void argx_builtin_opt_rice(struct ArgXGroup *group);
+void argx_builtin_opt_source(struct ArgXGroup *group, Str source);
 void argx_builtin_opt_fmtx(struct ArgX *x, StrFmtX *fmt);
 
 
