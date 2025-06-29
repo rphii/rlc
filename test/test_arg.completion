@@ -1,12 +1,3 @@
 #!/bin/bash
-
-function _complete_rphiic() {
-    local wordlist=$(COMPGEN_WORDLIST=true ${COMP_WORDS[@]} 2>/dev/null)
-    wordlist="$(echo "${wordlist}"|tail -n 1)"
-    #if [ -n "${wordlist}" ]; then
-        COMPREPLY=($(compgen -W "${wordlist}" -- "${COMP_WORDS[COMP_CWORD]}"))
-    #fi
-}
-
 complete -F _complete_rphiic ./test_arg
 
