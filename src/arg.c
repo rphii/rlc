@@ -638,6 +638,7 @@ void argx_fmt_val(Str *out, Arg *arg, ArgX *x, ArgXVal val, StrC prefix) {
     ASSERT_ARG(out);
     ASSERT_ARG(arg);
     ASSERT_ARG(x);
+    if(x->attr.hide_value) return;
     switch(x->id) {
         case ARG_NONE: break;
         case ARG_OPTION: {} break;
