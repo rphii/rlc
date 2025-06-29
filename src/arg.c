@@ -824,24 +824,61 @@ void argx_fmt_specific(Str *out, Arg *arg, ArgParse *parse, ArgX *x) { /*{{{*/
     //argx_print(base, x, false);
 } /*}}}*/
 
+void argx_compgen(struct Arg *arg, struct ArgX *x) {
+    ASSERT_ARG(arg);
+    ASSERT_ARG(x);
+    switch(x->id) {
+        case ARG_OPTION:
+        case ARG_FLAGS: {
+            if(!x->o) break;
+            for(size_t i = 0; i < array_len(x->o->list); ++i) {
+                ArgX *argx = array_at(x->o->list, i);
+                printf("%.*s ", STR_F(argx->info.opt));
+            }
+        } break;
+        case ARG_BOOL: {
+            printf("true false");
+        } break;
+        default: break;
+    }
+}
 
 void arg_compgen(struct Arg *arg) {
+    ASSERT_ARG(arg);
     if(arg->parse.done_compgen) return;
     arg->parse.done_compgen = true;
-    printff("COMPREPLY:");
+    //printff("COMPREPLY:");
+    /* optional help */
     TArgXKV **kv = 0;
-    TArgXKV **kv2 = 0;
     ArgXTable *opt_table = &arg->tables.opt;
     if(arg->parse.help.get && arg->parse.help.x) {
         ArgX *x = arg->parse.help.x;
+        //printff("X: %.*s",STR_F(x->info.opt));
         opt_table = x->o ? x->o->table : 0;
     }
     if(opt_table) {
         while((kv = targx_iter_all(&opt_table->lut, kv))) {
             ArgX *x = (*kv)->val;
-            printf("%c%c%.*s ", arg->base.prefix, arg->base.prefix, STR_F(x->info.opt));
+            if(x->attr.is_env) continue;
+            if(x->group && x->group->parent) {
+                printf("%.*s ", STR_F(x->info.opt));
+            } else {
+                int len = arg->parse.instream.argc;
+                if(len > 1 && *arg->parse.instream.argv[len - 1] == '-') {
+                    printf("%c%c%.*s ", arg->base.prefix, arg->base.prefix, STR_F(x->info.opt));
+                }
+            }
         }
     }
+    if(!arg->parse.help.x) {
+        /* positional help */
+        size_t i = arg->parse.instream.n_pos_parsed;
+        if(i < array_len(arg->pos.list)) {
+            ArgX *x = array_at(arg->pos.list, i);
+            argx_compgen(arg, x);
+        }
+    }
+    printf("\n");
 }
 
 int arg_help(struct Arg *arg) { /*{{{*/
@@ -985,6 +1022,7 @@ ErrDecl arg_parse_getv(ArgParse *parse, ArgStream *stream, Str *argV, bool *need
     ASSERT_ARG(parse);
     ASSERT_ARG(parse->instream.argv);
     ASSERT_ARG(argV);
+    /* parse->compgen? */
     unsigned int pfx = parse->base->prefix;
     StrC result;
 repeat:
@@ -999,6 +1037,8 @@ repeat:
         //printff("GOT ARGUMENT %.*s", STR_F(*argV));
     } else {
         if(parse->force_done_parsing) {
+        } else if(parse->base->compgen_wordlist) {
+            *need_help = true;
         } else if(!parse->help.get) {
             THROW("no arguments left");
         } else {
@@ -1160,11 +1200,17 @@ ErrDecl argx_parse(ArgParse *parse, ArgStream *stream, ArgX *argx, bool *quit_ea
         *quit_early = argx->attr.callback.quit_early;
         //if(*quit_early) break;
     }
-    return 0;
+    if(!(parse->base->compgen_wordlist && need_help)) {
+        return 0;
+    }
 error:
     if(!parse->help.get) {
+        //printff("HELP GET X: %.*s", STR_F(argx->info.opt));
         parse->help.get = true;
         parse->help.x = argx;
+    }
+    if(parse->base->compgen_wordlist) {
+        return 0;
     }
 error_skip_help:
     return -1;
@@ -1253,6 +1299,21 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     for(size_t i = 0; i < array_len(arg->parse.config); ++i) {
         config_status |= arg_config_load(arg, array_at(arg->parse.config, i));
     }
+    /* gather environment variables */
+    TArgXKV **kv = 0;
+    while((kv = targx_iter_all(&arg->tables.opt.lut, kv))) {
+        ArgX *x = (*kv)->val;
+        if(!x->attr.is_env) continue;
+        str_copy(&temp_clean_env, x->info.opt);
+        char *cenv = getenv(temp_clean_env.str);
+        ArgStream stream = {
+            .argc = 1,
+            .argv = &cenv,
+        };
+        if(!cenv) continue;
+        TRYC(argx_parse(parse, &stream, x, quit_early));
+        //if(parse->help.get) goto error;
+    }
     /* check optional arguments */
     while(parse->instream.i < parse->instream.argc) {
         StrC argV = str("");
@@ -1300,6 +1361,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         }
         /* in case of trying to get help, also search pos and then env */
         if(parse->help.get && !parse->help.x && parse->instream.i < parse->instream.argc) {
+            //printff("GET HELP");
             (void)arg_parse_getv(parse, &parse->instream, &argV, &need_help);
             ArgX *x = targx_get(&arg->tables.opt.lut, argV);
             if(x) {
@@ -1308,21 +1370,6 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
                 arg_parse_getv_undo(parse, &parse->instream);
             }
         }
-    }
-    /* gather environment variables */
-    TArgXKV **kv = 0;
-    while((kv = targx_iter_all(&arg->tables.opt.lut, kv))) {
-        ArgX *x = (*kv)->val;
-        if(!x->attr.is_env) continue;
-        str_copy(&temp_clean_env, x->info.opt);
-        char *cenv = getenv(temp_clean_env.str);
-        ArgStream stream = {
-            .argc = 1,
-            .argv = &cenv,
-        };
-        if(!cenv) continue;
-        TRYC(argx_parse(parse, &stream, x, quit_early));
-        //if(parse->help.get) goto error;
     }
     if(config_status) {
         if(parse->help.get) {
@@ -1353,6 +1400,8 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
 quit_early:
     if(arg->base.compgen_wordlist) {
         arg_help(arg);
+        *quit_early = true;
+        goto clean;
     }
     if((parse->instream.argc < 2 && arg->base.show_help)) {
         arg_help(arg);
@@ -1381,6 +1430,7 @@ error_skip_help:
 int arg_config_error(struct Arg *arg, StrC line, size_t line_nb, StrC opt, ArgX *argx) {
     ASSERT_ARG(arg);
     int done = 0;
+    if(arg->base.compgen_wordlist) return 0;
     if(line.str) {
         THROW_PRINT("config error on " F("line %zu", BOLD FG_MG_B) ":\n", line_nb);
         if(!opt.str) {
