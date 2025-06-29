@@ -1239,21 +1239,6 @@ void str_fmtx(Str *out, StrFmtX fmtx, char *fmt, ...) {
         str_fmt_fgbgx(out, tmp, fmtx.fg, fmtx.bg, fmtx.bold, fmtx.italic, fmtx.underline, fmtx.bashsafe);
     }
     str_free(&tmp);
-#if 0
-    size_t len_new = out->len;
-    if(fmtx.nocolor && *fmtx.nocolor) {
-        str_extend(out, str_i0(*out, len_old));
-    } else {
-        str_fmt_fgbgx(out, str_i0(*out, len_old), fmtx.fg, fmtx.bg, fmtx.bold, fmtx.italic, fmtx.underline, fmtx.bashsafe);
-    }
-    size_t len_diff = out->len - len_new;
-    //printff("len old %zu, new %zu, diff %zu", len_old, len_new, len_diff);
-    //printff("PART STRING:[%.*s]:%zu", STR_F(*out), out->len);
-    //printff("MOVE: %p -> %p x %zu", str_it(*out, len_new), str_it(*out, len_old), len_diff);
-    memmove(str_it(*out, len_old), str_it(*out, len_new), len_diff);
-    str_resize(out, out->len - (len_new - len_old));
-#endif
-    //printff("FINAL STRING:[%.*s]:%zu", STR_F(*out), out->len);
 }
 
 void str_input(Str *str) { /*{{{*/
