@@ -889,6 +889,7 @@ void arg_config_file(struct Arg *arg, Str filename) {
         return;
     }
     arg_config(arg, text);
+    return;
 error:
     ERR_PRINTF("failed reading file: '%.*s'", STR_F(expanded));
 }
