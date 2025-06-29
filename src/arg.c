@@ -142,6 +142,7 @@ typedef struct ArgXGroup {
     struct Arg *root; // required literally only for assigning short options
     struct ArgX *parent; // required for options
     struct ArgX **list;
+    bool explicit_help;
 } ArgXGroup;
 
 VEC_INCLUDE(VArgXGroup, vargxgroup, ArgXGroup *, BY_REF, BASE);
@@ -167,6 +168,7 @@ typedef struct ArgParse {
     struct {
         bool get;
         ArgX *x;
+        ArgXGroup *group;
     } help;
     struct {
         VStr *vec;
@@ -190,6 +192,7 @@ typedef struct ArgPrint {
 
 typedef struct ArgFmt {
     StrFmtX group;
+    StrFmtX group_delim;
     StrFmtX type;
     StrFmtX type_delim;
     StrFmtX one_of;
@@ -226,7 +229,7 @@ typedef struct Arg {
 
 /* FUNCTION PROTOTYPES {{{ */
 
-#define ERR_arg_config_load(...) "failed loading config"
+#define ERR_arg_config_from_str(...) "failed loading config"
 ErrDecl arg_config_from_str(struct Arg *arg, StrC text);
 
 /*}}}*/
@@ -249,7 +252,7 @@ ATTR_NODISCARD struct ArgXGroup *wargx_new(void) {
     return group;
 }
 
-ArgXGroup *argx_group(struct Arg *arg, Str desc) {
+struct ArgXGroup *argx_group(struct Arg *arg, Str desc, bool explicit_help) {
     size_t len = vargxgroup_length(arg->groups);
     (void)vargxgroup_resize(&arg->groups, len + 1);
     //array_resize(arg->groups, len + 1);
@@ -257,6 +260,7 @@ ArgXGroup *argx_group(struct Arg *arg, Str desc) {
     *result = malloc(sizeof(**result));
     ASSERT_ARG(*result);
     memset(*result, 0, sizeof(**result));
+    (*result)->explicit_help = explicit_help;
     (*result)->table = &arg->tables.opt;
     (*result)->root = arg;
     (*result)->desc = desc;
@@ -789,10 +793,24 @@ void argx_fmt_group(Str *out, Arg *arg, ArgXGroup *group) {
     if(!array_len(group->list) && !(group == &arg->pos)) {
         return;
     }
+    /* group title */
     if(group->desc.len) {
         str_clear(&tmp);
         str_fmtx(&tmp, arg->fmt.group, "%.*s:", STR_F(group->desc));
-        str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "%.*s ", STR_F(tmp));
+        str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "%.*s", STR_F(tmp));
+    }
+    if(arg->parse.help.get && arg->parse.help.group) {
+        if(arg->parse.help.group != group) {
+            str_clear(&tmp);
+            str_fmtx(&tmp, arg->fmt.group_delim, "<collapsed>", STR_F(group->desc));
+            str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, " %.*s\n", STR_F(tmp));
+            return;
+        }
+    } else if(group->explicit_help) {
+        str_clear(&tmp);
+        str_fmtx(&tmp, arg->fmt.group_delim, "--help '%.*s:'", STR_F(group->desc), STR_F(group->desc));
+        str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, " %.*s\n", STR_F(tmp));
+        return;
     }
     /* usage / group title */
     if(group != &arg->pos) {
@@ -965,11 +983,12 @@ int arg_config_from_file(struct Arg *arg, Str filename) {
     array_push(arg->parse.config_files_expand, expanded);
     Str text = {0};
     if(file_str_read(expanded, &text)) goto error;
+    array_push(arg->parse.config, text);
     if(!text.len) {
         str_free(&text);
         return 0;
     }
-    arg_config_from_str(arg, text);
+    TRYC(arg_config_from_str(arg, text));
     return 0;
 error:
     ERR_PRINTF("failed reading file: '%.*s'", STR_F(expanded));
@@ -1362,14 +1381,23 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
             /* no argument, push rest */
             array_push(*parse->rest.vec, argV);
         }
-        /* in case of trying to get help, also search pos and then env */
+        /* in case of trying to get help, also search pos and then env and then group */
         if(parse->help.get && !parse->help.x && parse->instream.i < parse->instream.argc) {
-            //printff("GET HELP");
             (void)arg_parse_getv(parse, &parse->instream, &argV, &need_help);
             ArgX *x = targx_get(&arg->tables.opt.lut, argV);
+            //printff("GET HELP [%.*s]", STR_F(argV));
+            if(argV.len && str_at(argV, argV.len - 1) == ':') {
+                for(size_t j = 0; j < vargxgroup_length(arg->groups); ++j) {
+                    ArgXGroup **group = vargxgroup_get_at(&arg->groups, j);
+                    if(!str_cmp0(argV, (*group)->desc)) {
+                        arg->parse.help.group = *group;
+                    }
+                }
+            }
             if(x) {
                 arg->parse.help.x = x;
-            } else {
+            }
+            if(!x && !arg->parse.help.group) {
                 arg_parse_getv_undo(parse, &parse->instream);
             }
         }
@@ -1678,13 +1706,14 @@ void argx_builtin_opt_rice(ArgXGroup *group) {
     ASSERT_ARG(group);
 
     struct Arg *arg = group->root;
-    struct ArgXGroup *g = 0;
     struct ArgX *x = 0;
     x=argx_init(group, 0, str("fmt-program"), str("program formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.program);
 
     x=argx_init(group, 0, str("fmt-group"), str("group formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.group);
+    x=argx_init(group, 0, str("fmt-group-delim"), str("group delimiter formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.group_delim);
 
     x=argx_init(group, 0, str("fmt-pos"), str("positional formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.pos);

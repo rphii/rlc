@@ -34,6 +34,10 @@ arg.c
     (if user has something in a vector supplied by a config,
      either add or delete template values..)
 
+    OPTION to hide groups, add with e.g. --help "Options:"
+
+    SAFE CHECKS on adding argx, e.g. no newline as C nor within OPT
+
 str.c
     str_as_color: rgb() rgba() rgb( ) ...
 
