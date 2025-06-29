@@ -640,11 +640,11 @@ void arg_help_set(struct Arg *arg, struct ArgX *x) {
     }
 }
 
-void argx_fmt_val(Str *out, Arg *arg, ArgX *x, ArgXVal val, StrC prefix) {
+bool argx_fmt_val(Str *out, Arg *arg, ArgX *x, ArgXVal val, StrC prefix) {
     ASSERT_ARG(out);
     ASSERT_ARG(arg);
     ASSERT_ARG(x);
-    if(x->attr.hide_value) return;
+    if(x->attr.hide_value) return false;
     switch(x->id) {
         case ARG_NONE: break;
         case ARG_OPTION: {} break;
@@ -702,7 +702,9 @@ void argx_fmt_val(Str *out, Arg *arg, ArgX *x, ArgXVal val, StrC prefix) {
         case ARG__COUNT:
         default: THROW("UKNOWN FMT, ID:%u", x->id);
     }
-error:;
+    return true;
+error:
+    return false;
 }
 
 void argx_fmt(Str *out, Arg *arg, ArgX *x, bool detailed) {
@@ -748,7 +750,9 @@ void argx_fmt(Str *out, Arg *arg, ArgX *x, bool detailed) {
         str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.desc, arg->print.bounds.opt + 4, arg->print.bounds.max, "%.*s", STR_F(tmp));
 
         str_clear(&tmp);
-        argx_fmt_val(&tmp, arg, x, x->val, str(" ="));
+        if(argx_fmt_val(&tmp, arg, x, x->val, str("="))) {
+            str_fmt_al(out, &arg->print.p_al2, arg->print.p_al2.progress, arg->print.bounds.opt + 4, arg->print.bounds.max, " ");
+        }
         str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.desc, arg->print.bounds.opt + 4, arg->print.bounds.max, "%.*s", STR_F(tmp));
     }
     str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
@@ -767,14 +771,12 @@ void argx_fmt(Str *out, Arg *arg, ArgX *x, bool detailed) {
             //}
         }
         str_clear(&tmp);
-        argx_fmt_val(&tmp, arg, x, x->val, str("current value: "));
-        if(tmp.len) {
+        if(argx_fmt_val(&tmp, arg, x, x->val, str("current value: "))) {
             str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
             str_fmt_al(out, &arg->print.p_al2, 0, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
         }
         str_clear(&tmp);
-        argx_fmt_val(&tmp, arg, x, x->ref, str("default value: "));
-        if(tmp.len) {
+        if(argx_fmt_val(&tmp, arg, x, x->ref, str("default value: "))) {
             str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
             str_fmt_al(out, &arg->print.p_al2, 0, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
         }
