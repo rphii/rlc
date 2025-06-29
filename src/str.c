@@ -1046,6 +1046,7 @@ void str_fmt_al(Str *out, StrAlign *p, size_t i0, size_t iNL, size_t iE, char *f
         str_fmt(out, "\n%*s", (int)iNL, "");
         p->progress = iNL;
         nl_pending = false;
+        w0 = iE - iNL;
     }
     //bool nl_pending = false;
     //printff(".");getchar();
@@ -1084,7 +1085,7 @@ void str_fmt_al(Str *out, StrAlign *p, size_t i0, size_t iNL, size_t iE, char *f
         }
         str_extend(out, p->fmt);
         str_extend(out, buf);
-        ////printff("BUF[%.*s]", STR_F(buf));
+        ////printff("BUF[%.*s]%u:%zu:%zu %zu:%zu:%zu", STR_F(buf), first, w0, w, i0,iNL,iE);
         if(str_len_raw(fmt) || str_len_raw(p->fmt)) str_extend(out, str("\033[0m"));
         //printf("]");
         p->progress += lnof;
@@ -1096,6 +1097,7 @@ void str_fmt_al(Str *out, StrAlign *p, size_t i0, size_t iNL, size_t iE, char *f
         }
         j0 += jE;
         first = false;
+        w = iE - iNL;
     }
     if(nl_pending) {
         p->progress = 0;
