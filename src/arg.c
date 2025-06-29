@@ -738,11 +738,11 @@ void argx_fmt(Str *out, Arg *arg, ArgX *x, bool detailed) {
     if(!no_type) {
         str_clear(&tmp);
         str_fmtx(&tmp, arg->fmt.desc, "%.*s", STR_F(x->info.desc));
-        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.desc, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
+        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.desc, arg->print.bounds.opt + 4, arg->print.bounds.max, "%.*s", STR_F(tmp));
 
         str_clear(&tmp);
         argx_fmt_val(&tmp, arg, x, x->val, str(" ="));
-        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.desc, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
+        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.desc, arg->print.bounds.opt + 4, arg->print.bounds.max, "%.*s", STR_F(tmp));
     }
     str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
     if(detailed) {
