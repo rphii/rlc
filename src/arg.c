@@ -159,6 +159,7 @@ typedef struct ArgStream {
 } ArgStream;
 
 typedef struct ArgParse {
+    bool done_compgen;
     bool force_done_parsing;
     ArgStream instream;
     VArgX queue;
@@ -763,14 +764,15 @@ void argx_fmt(Str *out, Arg *arg, ArgX *x, bool detailed) {
         argx_fmt_val(&tmp, arg, x, x->val, str("current value: "));
         if(tmp.len) {
             str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
-            str_fmt_al(out, &arg->print.p_al2, 0, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s\n", STR_F(tmp));
+            str_fmt_al(out, &arg->print.p_al2, 0, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
         }
         str_clear(&tmp);
         argx_fmt_val(&tmp, arg, x, x->ref, str("default value: "));
         if(tmp.len) {
             str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
-            str_fmt_al(out, &arg->print.p_al2, 0, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s\n", STR_F(tmp));
+            str_fmt_al(out, &arg->print.p_al2, 0, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
         }
+        str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
         /* done */
     }
     str_free(&tmp);
@@ -823,7 +825,30 @@ void argx_fmt_specific(Str *out, Arg *arg, ArgParse *parse, ArgX *x) { /*{{{*/
 } /*}}}*/
 
 
+void arg_compgen(struct Arg *arg) {
+    if(arg->parse.done_compgen) return;
+    arg->parse.done_compgen = true;
+    printff("COMPREPLY:");
+    TArgXKV **kv = 0;
+    TArgXKV **kv2 = 0;
+    ArgXTable *opt_table = &arg->tables.opt;
+    if(arg->parse.help.get && arg->parse.help.x) {
+        ArgX *x = arg->parse.help.x;
+        opt_table = x->o ? x->o->table : 0;
+    }
+    if(opt_table) {
+        while((kv = targx_iter_all(&opt_table->lut, kv))) {
+            ArgX *x = (*kv)->val;
+            printf("%c%c%.*s ", arg->base.prefix, arg->base.prefix, STR_F(x->info.opt));
+        }
+    }
+}
+
 int arg_help(struct Arg *arg) { /*{{{*/
+    if(arg->base.compgen_wordlist) {
+        arg_compgen(arg);
+        return 0;
+    }
     ASSERT_ARG(arg);
     Str out = {0};
     Str tmp = {0};
@@ -1326,9 +1351,9 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     }
 #endif
 quit_early:
-    //if(arg->base.compgen_wordlist) {
-    //    arg_help(arg);
-    //}
+    if(arg->base.compgen_wordlist) {
+        arg_help(arg);
+    }
     if((parse->instream.argc < 2 && arg->base.show_help)) {
         arg_help(arg);
         *quit_early = true;
