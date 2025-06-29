@@ -37,7 +37,7 @@ void arg_init_fmt(struct Arg *arg);
 
 void arg_free(struct Arg **arg);
 
-struct ArgXGroup *argx_group(struct Arg *arg, Str desc);
+struct ArgXGroup *argx_group(struct Arg *arg, Str desc, bool explicit_help);
 struct ArgX *argx_pos(struct Arg *arg, Str opt, Str desc);
 struct ArgX *argx_init(struct ArgXGroup *group, const unsigned char c, const Str optX, const Str descX);
 struct ArgX *argx_env(struct ArgXGroup *group, Str opt, Str desc, bool hide_value);

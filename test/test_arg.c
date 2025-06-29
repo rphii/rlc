@@ -98,8 +98,9 @@ int main(const int argc, const char **argv) {
     arg_init_fmt(arg);
     //arg_init_width(arg, 0, 45);
 
-    struct ArgXGroup *opt = argx_group(arg, str("Options"));
+    struct ArgXGroup *opt = argx_group(arg, str("Options"), false);
     argx_builtin_opt_help(opt);
+    argx_builtin_opt_source(opt, str("$HOME/.config/rphiic/colors.conf"));
     x=argx_init(opt, 0, str("xyz"), str("nothing"));
     x=argx_init(opt, 'b', str("bool"), str("boolean value and a long description that is"));
       argx_bool(x, &config.boolean, &preset.boolean);
@@ -168,13 +169,13 @@ int main(const int argc, const char **argv) {
       argx_vstr(x, &config.strings, &preset.strings);
       argx_type(x, str("input-files"));
 
-    struct ArgXGroup *env = argx_group(arg, str("Environment Variables"));
+    struct ArgXGroup *env = argx_group(arg, str("Environment Variables"), false);
     argx_builtin_env_compgen(env);
     x=argx_env(env, str("ARG_CONFIG_PATH"), str("config path"), false);
       argx_str(x, &config.config, &preset.config);
 
-    struct ArgXGroup *rice = argx_group(arg, str("Color Ajustments"));
-    argx_builtin_opt_rice(rice, arg);
+    struct ArgXGroup *rice = argx_group(arg, str("Color Adjustments"), true);
+    argx_builtin_opt_rice(rice);
 
     /*}}}*/
 
