@@ -707,7 +707,7 @@ void argx_fmt(Str *out, Arg *arg, ArgX *x, bool detailed) {
         /* format POSITIONAL values: full option */
         str_clear(&tmp);
         str_fmtx(&tmp, arg->fmt.pos, "%.*s", STR_F(x->info.opt));
-        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.c, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
+        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.opt, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
         //no_type = true;
     } else if(x->group->table == &arg->tables.opt && !x->attr.is_env) {
         /* format OPTIONAL value: short option + full option */
@@ -830,11 +830,11 @@ int arg_help(struct Arg *arg) { /*{{{*/
         str_fmt_al(&out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "%.*s", STR_F(tmp));
 
         str_clear(&tmp);
-        str_fmtx(&tmp, arg->fmt.group, "%.*s", STR_F(arg->pos.desc));
+        str_fmtx(&tmp, arg->fmt.group, "%.*s:", STR_F(arg->pos.desc));
         str_fmt_al(&out, &arg->print.p_al2, 0, arg->print.bounds.c, arg->print.bounds.max, "%.*s\n", STR_F(tmp));
         str_clear(&tmp);
         str_fmtx(&tmp, arg->fmt.program, "%.*s", STR_F(arg->base.program));
-        str_fmt_al(&out, &arg->print.p_al2, 0, arg->print.bounds.c, arg->print.bounds.max, "%.*s", STR_F(tmp));
+        str_fmt_al(&out, &arg->print.p_al2, arg->print.bounds.c, arg->print.bounds.c + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
 
         for(size_t i = 0; i < array_len(arg->pos.list); ++i) {
             ArgX *argx = array_at(arg->pos.list, i);
