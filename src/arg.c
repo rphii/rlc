@@ -732,7 +732,7 @@ void argx_fmt(Str *out, Arg *arg, ArgX *x, bool detailed) {
     if(!no_type) {
         str_clear(&tmp);
         argx_fmt_type(&tmp, arg, x);
-        str_fmt_al(out, &arg->print.p_al2, arg->print.p_al2.progress, arg->print.bounds.opt + 2, arg->print.bounds.max, " %.*s", STR_F(tmp));
+        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.opt, arg->print.bounds.opt + 2, arg->print.bounds.max, " %.*s", STR_F(tmp));
     }
     if(!no_type) {
         str_clear(&tmp);
