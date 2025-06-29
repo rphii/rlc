@@ -1687,19 +1687,19 @@ void argx_builtin_opt_help(ArgXGroup *group) {
     argx_help(x, group->root);
 }
 
-void argx_builtin_opt_fmtx(ArgX *x, StrFmtX *fmt) {
+void argx_builtin_opt_fmtx(ArgX *x, StrFmtX *fmt, StrFmtX *ref) {
     struct ArgXGroup *g = 0;
     g=argx_opt(x, 0, 0);
       x=argx_init(g, 0, str("fg"), str("foreground"));
-        argx_col(x, &fmt->fg, 0);
+        argx_col(x, &fmt->fg, ref ? &ref->fg : 0);
       x=argx_init(g, 0, str("bg"), str("background"));
-        argx_col(x, &fmt->bg, 0);
+        argx_col(x, &fmt->bg, ref ? &ref->bg : 0);
       x=argx_init(g, 0, str("bold"), str("bold"));
-        argx_bool(x, &fmt->bold, 0);
+        argx_bool(x, &fmt->bold, ref ? &ref->bold : 0);
       x=argx_init(g, 0, str("it"), str("italic"));
-        argx_bool(x, &fmt->italic, 0);
+        argx_bool(x, &fmt->italic, ref ? &ref->italic : 0);
       x=argx_init(g, 0, str("ul"), str("underline"));
-        argx_bool(x, &fmt->underline, 0);
+        argx_bool(x, &fmt->underline, ref ? &ref->underline : 0);
 }
 
 void argx_builtin_opt_rice(ArgXGroup *group) {
@@ -1708,47 +1708,47 @@ void argx_builtin_opt_rice(ArgXGroup *group) {
     struct Arg *arg = group->root;
     struct ArgX *x = 0;
     x=argx_init(group, 0, str("fmt-program"), str("program formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.program);
+      argx_builtin_opt_fmtx(x, &arg->fmt.program, 0);
 
     x=argx_init(group, 0, str("fmt-group"), str("group formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.group);
+      argx_builtin_opt_fmtx(x, &arg->fmt.group, 0);
     x=argx_init(group, 0, str("fmt-group-delim"), str("group delimiter formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.group_delim);
+      argx_builtin_opt_fmtx(x, &arg->fmt.group_delim, 0);
 
     x=argx_init(group, 0, str("fmt-pos"), str("positional formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.pos);
+      argx_builtin_opt_fmtx(x, &arg->fmt.pos, 0);
     x=argx_init(group, 0, str("fmt-short"), str("short option formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.c);
+      argx_builtin_opt_fmtx(x, &arg->fmt.c, 0);
     x=argx_init(group, 0, str("fmt-long"), str("long option formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.opt);
+      argx_builtin_opt_fmtx(x, &arg->fmt.opt, 0);
     x=argx_init(group, 0, str("fmt-env"), str("environmental formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.env);
+      argx_builtin_opt_fmtx(x, &arg->fmt.env, 0);
     x=argx_init(group, 0, str("fmt-desc"), str("description formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.desc);
+      argx_builtin_opt_fmtx(x, &arg->fmt.desc, 0);
 
     x=argx_init(group, 0, str("fmt-one"), str("one-of formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.one_of);
+      argx_builtin_opt_fmtx(x, &arg->fmt.one_of, 0);
     x=argx_init(group, 0, str("fmt-one-set"), str("one-of set formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.one_of_set);
+      argx_builtin_opt_fmtx(x, &arg->fmt.one_of_set, 0);
     x=argx_init(group, 0, str("fmt-one-delim"), str("one-of delimiter formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.one_of_delim);
+      argx_builtin_opt_fmtx(x, &arg->fmt.one_of_delim, 0);
 
     x=argx_init(group, 0, str("fmt-flag"), str("flag formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.flag);
+      argx_builtin_opt_fmtx(x, &arg->fmt.flag, 0);
     x=argx_init(group, 0, str("fmt-flag-set"), str("flag set formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.flag_set);
+      argx_builtin_opt_fmtx(x, &arg->fmt.flag_set, 0);
     x=argx_init(group, 0, str("fmt-flag-delim"), str("flag delimiter formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.flag_delim);
+      argx_builtin_opt_fmtx(x, &arg->fmt.flag_delim, 0);
 
     x=argx_init(group, 0, str("fmt-type"), str("type formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.type);
+      argx_builtin_opt_fmtx(x, &arg->fmt.type, 0);
     x=argx_init(group, 0, str("fmt-type-delim"), str("type delimiter formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.type_delim);
+      argx_builtin_opt_fmtx(x, &arg->fmt.type_delim, 0);
 
     x=argx_init(group, 0, str("fmt-val"), str("value formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.val);
+      argx_builtin_opt_fmtx(x, &arg->fmt.val, 0);
     x=argx_init(group, 0, str("fmt-val-delim"), str("value delimiter formatting"));
-      argx_builtin_opt_fmtx(x, &arg->fmt.val_delim);
+      argx_builtin_opt_fmtx(x, &arg->fmt.val_delim, 0);
 }
 
 void argx_builtin_opt_source(struct ArgXGroup *group, Str source) {
