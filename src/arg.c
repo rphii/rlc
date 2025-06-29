@@ -89,8 +89,9 @@ typedef struct ArgX { /*{{{*/
     ArgXVal ref;
     int e; // enum
     StrC type;
-    struct ArgXTable *o; // option
-    struct ArgXTable *group; // required for options / parent group
+    struct ArgXTable *table; // table for below
+    struct ArgXGroup *o; // options, flags
+    struct ArgXGroup *group; // required for options / parent group
     struct {
         ArgXNumber min;
         ArgXNumber max;
@@ -108,7 +109,7 @@ typedef struct ArgX { /*{{{*/
 } ArgX; /*}}}*/
 
 void argx_free(struct ArgX *argx);
-void argx_group_free(struct ArgXTable *group);
+void argx_group_free_array(struct ArgXGroup **group);
 
 #include "lut.h"
 LUT_INCLUDE(TArgX, targx, Str, BY_VAL, struct ArgX, BY_REF);
@@ -122,6 +123,7 @@ int argx_cmp_index(ArgX *a, ArgX *b) {
 }
 
 #include "vec.h"
+
 VEC_INCLUDE(VArgX, vargx, ArgX *, BY_VAL, BASE);
 VEC_INCLUDE(VArgX, vargx, ArgX *, BY_VAL, ERR);
 VEC_INCLUDE(VArgX, vargx, ArgX *, BY_VAL, SORT);
@@ -130,12 +132,24 @@ VEC_IMPLEMENT(VArgX, vargx, ArgX *, BY_VAL, ERR);
 VEC_IMPLEMENT(VArgX, vargx, ArgX *, BY_VAL, SORT, argx_cmp_index);
 
 typedef struct ArgXTable {
-    VArgX vec;
-    TArgX lut;
     StrC desc;
+    TArgX lut;
+} ArgXTable;
+
+typedef struct ArgXGroup {
+    StrC desc;
+    ArgXTable *table;
     struct Arg *root; // required literally only for assigning short options
     struct ArgX *parent; // required for options
-} ArgXTable;
+    struct ArgX **list;
+} ArgXGroup;
+
+VEC_INCLUDE(VArgXGroup, vargxgroup, ArgXGroup *, BY_REF, BASE);
+VEC_INCLUDE(VArgXGroup, vargxgroup, ArgXGroup *, BY_REF, ERR);
+VEC_INCLUDE(VArgXGroup, vargxgroup, ArgXGroup *, BY_REF, SORT);
+VEC_IMPLEMENT(VArgXGroup, vargxgroup, ArgXGroup *, BY_REF, BASE, argx_group_free_array);
+VEC_IMPLEMENT(VArgXGroup, vargxgroup, ArgXGroup *, BY_REF, ERR);
+//VEC_IMPLEMENT(VArgXGroup, vargxgroup, ArgXGroup *, BY_REF, SORT, argx_group_free_array);
 
 typedef struct ArgStream {
     char **argv;
@@ -156,7 +170,7 @@ typedef struct ArgParse {
     struct {
         VStr *vec;
         Str desc;
-        ArgXTable *pos;
+        ArgXGroup *pos;
     } rest;
     VStr config;
     VStr config_files;
@@ -189,14 +203,18 @@ typedef struct ArgFmt {
     StrFmtX pos;
     StrFmtX env;
     StrFmtX desc;
+    StrFmtX program;
 } ArgFmt;
 
 typedef struct Arg {
     ArgBase base;
-    ArgXTable pos;
-    ArgXTable opt;
-    ArgXTable env;
+    struct {
+        ArgXTable pos;
+        ArgXTable opt;
+    } tables;
     ArgX *opt_short[256];
+    ArgXGroup pos;
+    VArgXGroup groups;
     ArgFmt fmt;
     ArgParse parse;
     ArgPrint print;
@@ -220,17 +238,31 @@ ATTR_NODISCARD struct Arg *arg_new(void) {
     NEW(Arg, result);
     return result;
 }
-ATTR_NODISCARD struct ArgXTable *wargx_new(void) {
-    ArgXTable *result = 0;
-    NEW(ArgXTable, result);
-    return result;
+ATTR_NODISCARD struct ArgXGroup *wargx_new(void) {
+    ArgXGroup *group = 0;
+    NEW(ArgXGroup, group);
+    ArgXTable *table = 0;
+    NEW(ArgXTable, table);
+    group->table = table;
+    return group;
 }
 
-ArgXTable *arg_pos(Arg *arg) {
-    return &arg->pos;
+ArgXGroup *argx_group(struct Arg *arg, Str desc) {
+    size_t len = vargxgroup_length(arg->groups);
+    (void)vargxgroup_resize(&arg->groups, len + 1);
+    //array_resize(arg->groups, len + 1);
+    ArgXGroup **result = vargxgroup_get_at(&arg->groups, len);
+    *result = malloc(sizeof(**result));
+    ASSERT_ARG(*result);
+    memset(*result, 0, sizeof(**result));
+    (*result)->table = &arg->tables.opt;
+    (*result)->root = arg;
+    (*result)->desc = desc;
+    return *result;
 }
-ArgXTable *arg_opt(Arg *arg) {
-    return &arg->opt;
+
+ArgXGroup *arg_pos(Arg *arg) {
+    return &arg->pos;
 }
 
 void arg_init(struct Arg *arg, Str program, Str description, Str epilog) {
@@ -242,9 +274,9 @@ void arg_init(struct Arg *arg, Str program, Str description, Str epilog) {
     arg->base.show_help = ARG_INIT_DEFAULT_SHOW_HELP;
     arg->base.flag_sep = ARG_INIT_DEFAULT_FLAG_SEP;
     arg->pos.desc = str("Usage");
-    arg->opt.desc = str("Options");
-    arg->env.desc = str("Environment Variables");
-    arg->opt.root = arg;
+    arg->pos.root = arg;
+    arg->pos.table = &arg->tables.pos;
+    arg->pos.desc = str("Usage");
     arg->parse.base = &arg->base;
     arg->print.bounds.c = 2;
     arg->print.bounds.opt = 6;
@@ -287,13 +319,45 @@ void arg_init_pipe(struct Arg *arg, VStr *out, pthread_mutex_t *mutex) {
     ASSERT_ARG(mutex);
 }
 
+void arg_init_fmt(struct Arg *arg) {
+    ASSERT_ARG(arg);
+    arg->fmt.program.fg = COLOR_WHITE;
+    arg->fmt.program.bold = true;
+    arg->fmt.group.fg = COLOR_WHITE;
+    arg->fmt.group.bold = true;
+    arg->fmt.group.underline = true;
+    arg->fmt.opt.fg = COLOR_WHITE;
+    arg->fmt.opt.bold = true;
+    arg->fmt.pos.italic = true;
+    arg->fmt.val_delim.fg = COLOR_GRAY;
+    arg->fmt.val.fg = COLOR_GREEN;
+    arg->fmt.flag_delim.fg = COLOR_GRAY;
+    arg->fmt.flag.fg = COLOR_YELLOW;
+    arg->fmt.flag_set.fg = COLOR_YELLOW;
+    arg->fmt.flag_set.bold = true;
+    arg->fmt.flag_set.underline = true;
+    arg->fmt.flag_delim.fg = COLOR_GRAY;
+    arg->fmt.c.fg = COLOR_WHITE;
+    arg->fmt.c.bold = true;
+    arg->fmt.env.fg = COLOR_WHITE;
+    arg->fmt.env.bold = true;
+    arg->fmt.one_of.fg = COLOR_BLUE;
+    arg->fmt.one_of_set.fg = COLOR_BLUE;
+    arg->fmt.one_of_set.bold = true;
+    arg->fmt.one_of_set.underline = true;
+    arg->fmt.one_of_delim.fg = COLOR_GRAY;
+    arg->fmt.type_delim.fg = COLOR_GRAY;
+    arg->fmt.type.fg = COLOR_GREEN;
+}
+
 #define ERR_argx_group_push(...) "failed adding argument x"
-ErrDecl argx_group_push(ArgXTable *group, ArgX *in, ArgX **out) {
+ErrDecl argx_group_push(ArgXGroup *group, ArgX *in, ArgX **out) {
     ASSERT_ARG(group);
     ASSERT_ARG(in);
-    TArgXKV *xkv = targx_once(&group->lut, in->info.opt, in);
+    //ASSERT_ARG(group->table);
+    TArgXKV *xkv = targx_once(&group->table->lut, in->info.opt, in);
     if(!xkv) THROW("option '%.*s' already exists!", STR_F(in->info.opt));
-    TRYG(vargx_push_back(&group->vec, xkv->val));
+    array_push(group->list, xkv->val);
     //return xkv->val;
     if(out) *out = xkv->val;
     return 0;
@@ -302,7 +366,7 @@ error:
     return -1;
 }
 
-struct ArgX *argx_init(struct ArgXTable *group, const unsigned char c, StrC optX, StrC descX) {
+struct ArgX *argx_init(struct ArgXGroup *group, const unsigned char c, StrC optX, StrC descX) {
     ASSERT_ARG(group);
     Str opt = str_trim(optX);
     Str desc = str_trim(descX);
@@ -310,6 +374,7 @@ struct ArgX *argx_init(struct ArgXTable *group, const unsigned char c, StrC optX
     ArgX x = {
         .info = {c, opt, desc},
         .group = group,
+        .table = group->table,
     };
     ArgX *argx = 0;
     TRYC(argx_group_push(group, &x, &argx));
@@ -379,6 +444,7 @@ void argx_bool_require_tf(ArgX *x, bool require_tf) {
 void argx_flag_set(ArgX *x, bool *val, bool *ref) {
     ASSERT_ARG(x);
     ASSERT_ARG(val);
+    ASSERT(x->group && x->group->parent && x->group->parent->id == ARG_FLAGS, "expect flags");
     x->id = ARG_FLAG;
     x->val.b = val;
     x->ref.b = ref;
@@ -398,9 +464,9 @@ void argx_vstr(struct ArgX *x, VStr *val, VStr *ref) {
     x->val.v = val;
     x->ref.v = ref;
 }
-struct ArgXTable *argx_opt(ArgX *x, int *val, int *ref) {
+struct ArgXGroup *argx_opt(ArgX *x, int *val, int *ref) {
     ASSERT_ARG(x);
-    ArgXTable *options = wargx_new();
+    ArgXGroup *options = wargx_new();
     options->desc = x->info.opt;
     options->parent = x;
     x->id = ARG_OPTION;
@@ -410,8 +476,8 @@ struct ArgXTable *argx_opt(ArgX *x, int *val, int *ref) {
     return options;
 }
 
-struct ArgXTable *argx_flag(struct ArgX *x) {
-    ArgXTable *flags = wargx_new();
+struct ArgXGroup *argx_flag(struct ArgX *x) {
+    ArgXGroup *flags = wargx_new();
     flags->desc = x->info.opt;
     flags->parent = x;
     x->id = ARG_FLAGS;
@@ -434,9 +500,9 @@ struct ArgX *argx_pos(struct Arg *arg, Str opt, Str desc) {
     return x;
 }
 
-struct ArgX *argx_env(struct Arg *arg, StrC opt, StrC desc, bool hide_value) {
-    ASSERT_ARG(arg);
-    ArgX *x = argx_init(&arg->env, 0, opt, desc);
+struct ArgX *argx_env(struct ArgXGroup *group, StrC opt, StrC desc, bool hide_value) {
+    ASSERT_ARG(group);
+    ArgX *x = argx_init(group, 0, opt, desc);
     x->attr.is_env = true;
     x->attr.hide_value = hide_value;
     return x;
@@ -477,6 +543,7 @@ void argx_func(struct ArgX *x, ssize_t priority, void *func, void *data, bool qu
 }
 void argx_opt_enum(struct ArgX *x, int val) {
     ASSERT_ARG(x);
+    /* TODO: order of this thing below (the || ... ) ? */
     if(!(x->group && x->group->parent) || x->group->parent->id != ARG_OPTION) {
         ABORT("can only set enums to child nodes of options " F("[%.*s]", BOLD), STR_F(x->info.opt));
     }
@@ -512,12 +579,12 @@ void argx_fmt_type(Str *out, Arg *arg, ArgX *argx) { /*{{{*/
             str_fmtx(out, arg->fmt.type_delim, ">");
         } break;
         case ARG_OPTION: {
-            ArgXTable *g = argx->o;
-            if(vargx_length(g->vec)) {
+            ArgXGroup *g = argx->o;
+            if(array_len(g->list)) {
                 str_fmtx(out, arg->fmt.one_of_delim, "<");
-                for(size_t i = 0; i < vargx_length(g->vec); ++i) {
+                for(size_t i = 0; i < array_len(g->list); ++i) {
                     if(i) str_fmtx(out, arg->fmt.one_of_delim, "|");
-                    ArgX *x = vargx_get_at(&g->vec, i);
+                    ArgX *x = array_at(g->list, i);
                     if(g && g->parent && g->parent->val.i && *g->parent->val.i == x->e) {
                         str_fmtx(out, arg->fmt.one_of_set, "%.*s", STR_F(x->info.opt));
                     } else {
@@ -528,12 +595,12 @@ void argx_fmt_type(Str *out, Arg *arg, ArgX *argx) { /*{{{*/
             }
         } break;
         case ARG_FLAGS: {
-            ArgXTable *g = argx->o;
-            if(vargx_length(g->vec)) {
+            ArgXGroup *g = argx->o;
+            if(array_len(g->list)) {
                 str_fmtx(out, arg->fmt.flag_delim, "<");
-                for(size_t i = 0; i < vargx_length(g->vec); ++i) {
+                for(size_t i = 0; i < array_len(g->list); ++i) {
                     if(i) str_fmtx(out, arg->fmt.flag_delim, "|");
-                    ArgX *x = vargx_get_at(&g->vec, i);
+                    ArgX *x = array_at(g->list, i);
                     ASSERT_ARG(x->group);
                     ASSERT_ARG(x->group->parent);
                     ASSERT(x->id == ARG_FLAG, "the option [%.*s] in [--%.*s] should be set as a %s", STR_F(x->info.opt), STR_F(x->group->parent->info.opt), arglist_str(ARG_FLAG));
@@ -635,50 +702,52 @@ void argx_fmt(Str *out, Arg *arg, ArgX *x, bool detailed) {
     ASSERT_ARG(arg);
     ASSERT_ARG(x);
     Str tmp = {0};
-    bool desc = true;
-    if(x->group == &arg->opt) {
+    bool no_type = false;
+    if(x->group == &arg->pos) {
+        /* format POSITIONAL values: full option */
+        str_clear(&tmp);
+        str_fmtx(&tmp, arg->fmt.pos, "%.*s", STR_F(x->info.opt));
+        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.c, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
+        //no_type = true;
+    } else if(x->group->table == &arg->tables.opt && !x->attr.is_env) {
         /* format OPTIONAL value: short option + full option */
         if(x->info.c) {
             str_clear(&tmp);
             str_fmtx(&tmp, arg->fmt.c, "%c%c", arg->base.prefix, x->info.c);
-            str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.c, arg->print.bounds.c, arg->print.bounds.max, "%.*s", STR_F(tmp));
+            str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.c, arg->print.bounds.c + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
         }
         str_clear(&tmp);
         str_fmtx(&tmp, arg->fmt.opt, "%c%c%.*s", arg->base.prefix, arg->base.prefix, STR_F(x->info.opt));
-        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.opt, arg->print.bounds.opt, arg->print.bounds.max, "%.*s", STR_F(tmp));
-    } else if(x->group == &arg->pos) {
-        /* format POSITIONAL values: full option */
-        str_clear(&tmp);
-        str_fmtx(&tmp, arg->fmt.pos, "%.*s", STR_F(x->info.opt));
-        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.opt, arg->print.bounds.opt, arg->print.bounds.max, "%.*s", STR_F(tmp));
-    } else if(x->group == &arg->env) {
-        /* format ENVIRONMENT values: full option */
-        str_clear(&tmp);
-        str_fmtx(&tmp, arg->fmt.env, "%.*s", STR_F(x->info.opt));
-        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.c, arg->print.bounds.opt, arg->print.bounds.max, "%.*s", STR_F(tmp));
+        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.opt, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
     } else {
         ////desc = false;
+        //size_t i0 = x->group && x->group.parent ? 
         str_clear(&tmp);
-        str_fmtx(&tmp, arg->fmt.env, "%.*s", STR_F(x->info.opt));
-        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.opt, arg->print.bounds.opt, arg->print.bounds.max, "%.*s", STR_F(tmp));
+        //StrFmtX fmt = x->attr.is_env ? arg->fmt.env : arg->fmt.pos;
+        StrFmtX fmt = x->attr.is_env ? arg->fmt.env : arg->fmt.one_of;
+        size_t i0 = x->attr.is_env ? arg->print.bounds.c : arg->print.bounds.opt + 2;
+        str_fmtx(&tmp, fmt, "%.*s", STR_F(x->info.opt));
+        str_fmt_al(out, &arg->print.p_al2, i0, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
     }
-    str_clear(&tmp);
-    argx_fmt_type(&tmp, arg, x);
-    str_fmt_al(out, &arg->print.p_al2, arg->print.p_al2.progress + 1, arg->print.bounds.opt, arg->print.bounds.max, "%.*s", STR_F(tmp));
-    if(desc) {
+    if(!no_type) {
+        str_clear(&tmp);
+        argx_fmt_type(&tmp, arg, x);
+        str_fmt_al(out, &arg->print.p_al2, arg->print.p_al2.progress, arg->print.bounds.opt + 2, arg->print.bounds.max, " %.*s", STR_F(tmp));
+    }
+    if(!no_type) {
         str_clear(&tmp);
         str_fmtx(&tmp, arg->fmt.desc, "%.*s", STR_F(x->info.desc));
-        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.desc, arg->print.bounds.opt, arg->print.bounds.max, "%.*s", STR_F(tmp));
+        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.desc, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
 
         str_clear(&tmp);
         argx_fmt_val(&tmp, arg, x, x->val, str(" ="));
-        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.desc, arg->print.bounds.opt, arg->print.bounds.max, "%.*s", STR_F(tmp));
+        str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.desc, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
     }
     str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
     if(detailed) {
         if(x->id == ARG_OPTION && x->o) {
-            for(size_t i = 0; i < vargx_length(x->o->vec); ++i) {
-                ArgX *argx = vargx_get_at(&x->o->vec, i);
+            for(size_t i = 0; i < array_len(x->o->list); ++i) {
+                ArgX *argx = array_at(x->o->list, i);
                 argx_fmt(out, arg, argx, false);
             }
         } else if(x->id == ARG_FLAGS) {
@@ -698,49 +767,34 @@ void argx_fmt(Str *out, Arg *arg, ArgX *x, bool detailed) {
     str_free(&tmp);
 }
 
-void argx_fmt_group(Str *out, Arg *arg, ArgXTable *group) {
+void argx_fmt_group(Str *out, Arg *arg, ArgXGroup *group) {
     ASSERT_ARG(out);
     ASSERT_ARG(arg);
     ASSERT_ARG(group);
     /* empty groups we don't care about */
     Str tmp = {0};
-    if(!vargx_length(group->vec) && !(group == &arg->pos)) {
+    if(!array_len(group->list) && !(group == &arg->pos)) {
         return;
     }
     if(group->desc.len) {
-        str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, F("%.*s:", BOLD UL), STR_F(group->desc));
+        str_clear(&tmp);
+        str_fmtx(&tmp, arg->fmt.group, "%.*s:", STR_F(group->desc));
+        str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "%.*s ", STR_F(tmp));
     }
     /* usage / group title */
     if(group != &arg->pos) {
         str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
     } else {
-        str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, " " F("%s", BOLD) " ", arg->parse.instream.argv[0]);
+        str_clear(&tmp);
+        str_fmtx(&tmp, arg->fmt.program, "%s ", arg->parse.instream.argv[0]);
+        str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "%.*s", STR_F(tmp));
     }
     /* each thing */
-    for(size_t i = 0; i < vargx_length(group->vec); ++i) {
-        ArgX *x = vargx_get_at(&group->vec, i);
+    for(size_t i = 0; i < array_len(group->list); ++i) {
+        ArgX *x = array_at(group->list, i);
         str_clear(&tmp);
         argx_fmt(out, arg, x, false);
     }
-#if 0
-        for(size_t i = 0; i < vargx_length(group->vec); ++i) {
-            ArgX *x = vargx_get_at(&group->vec, i);
-            arg_handle_print(arg, ARG_PRINT_SHORT, " %.*s", STR_F(x->info.opt));
-            //argx_print(arg, x, false);
-        }
-        if(vargx_length(arg->opt.vec)) {
-            arg_handle_print(arg, ARG_PRINT_SHORT, " " F("[options]", BOLD FG_CY));
-        }
-        if(str_len_raw(arg->base.rest_desc)) {
-            arg_handle_print(arg, ARG_PRINT_SHORT, " " F("%.*s", BOLD FG_MG_B), STR_F(arg->base.rest_desc));
-        }
-        arg_do_print(arg, 1);
-    }
-    for(size_t i = 0; i < vargx_length(group->vec); ++i) {
-        ArgX *x = vargx_get_at(&group->vec, i);
-        argx_print(arg, x, false);
-    }
-#endif
     str_free(&tmp);
 }
 
@@ -763,22 +817,49 @@ void argx_fmt_specific(Str *out, Arg *arg, ArgParse *parse, ArgX *x) { /*{{{*/
 int arg_help(struct Arg *arg) { /*{{{*/
     ASSERT_ARG(arg);
     Str out = {0};
+    Str tmp = {0};
     if(arg->parse.help.x && arg->parse.help.get) {
         /* specific help */
         argx_fmt_specific(&out, arg, &arg->parse, arg->parse.help.x);
         //argx_print_specific(arg, &arg->parse, arg->parse.help.x);
     } else {
         /* default help */
-        str_fmt_al(&out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, F("%.*s:", BOLD) " %.*s\n", STR_F(arg->base.program), STR_F(arg->base.desc));
-        argx_fmt_group(&out, arg, &arg->pos);
-        argx_fmt_group(&out, arg, &arg->opt);
-        argx_fmt_group(&out, arg, &arg->env);
+        str_clear(&tmp);
+        str_fmtx(&tmp, arg->fmt.program, "%.*s:", STR_F(arg->base.program));
+        str_fmtx(&tmp, (StrFmtX){0}, " %.*s\n", STR_F(arg->base.desc));
+        str_fmt_al(&out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "%.*s", STR_F(tmp));
+
+        str_clear(&tmp);
+        str_fmtx(&tmp, arg->fmt.group, "%.*s", STR_F(arg->pos.desc));
+        str_fmt_al(&out, &arg->print.p_al2, 0, arg->print.bounds.c, arg->print.bounds.max, "%.*s\n", STR_F(tmp));
+        str_clear(&tmp);
+        str_fmtx(&tmp, arg->fmt.program, "%.*s", STR_F(arg->base.program));
+        str_fmt_al(&out, &arg->print.p_al2, 0, arg->print.bounds.c, arg->print.bounds.max, "%.*s", STR_F(tmp));
+
+        for(size_t i = 0; i < array_len(arg->pos.list); ++i) {
+            ArgX *argx = array_at(arg->pos.list, i);
+            str_clear(&tmp);
+            str_fmtx(&tmp, arg->fmt.pos, "%.*s", STR_F(argx->info.opt));
+            str_fmt_al(&out, &arg->print.p_al2, 0, arg->print.bounds.c, arg->print.bounds.max, " %.*s", STR_F(tmp));
+        }
+        /*  */
+        str_fmt_al(&out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
+        for(size_t i = 0; i < array_len(arg->pos.list); ++i) {
+            ArgX *argx = array_at(arg->pos.list, i);
+            argx_fmt(&out, arg, argx, false);
+        }
+        /* all other stuff */
+        for(size_t i = 0; i < vargxgroup_length(arg->groups); ++i) {
+            ArgXGroup **group = vargxgroup_get_at(&arg->groups, i);
+            argx_fmt_group(&out, arg, *group);
+        }
         if(str_len_raw(arg->base.epilog)) {
             //arg_handle_print(arg, ARG_PRINT_NONE, "%.*s", STR_F(arg->base.epilog));
             //printf("\n");
             str_fmt_al(&out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "%.*s\n", STR_F(arg->base.epilog));
         }
     }
+    str_free(&tmp);
     str_print(out);
     str_free(&out);
     return 0;
@@ -834,11 +915,11 @@ RStr arg_info_opt(struct Arg *arg, void *x) {
 
 /* PARSING FUNCTIONS {{{ */
 
-#define ERR_arg_parse_getopt(group, ...) "failed getting option for " F("[%.*s]", BOLD), STR_F((group)->desc)
-ErrDecl arg_parse_getopt(ArgXTable *group, ArgX **x, StrC opt) {
-    ASSERT_ARG(group);
+#define ERR_arg_parse_getopt(table, ...) "failed getting option for " F("[%.*s]", BOLD), STR_F((table)->desc)
+ErrDecl arg_parse_getopt(ArgXTable *table, ArgX **x, StrC opt) {
+    ASSERT_ARG(table);
     ASSERT_ARG(x);
-    *x = targx_get(&group->lut, opt);
+    *x = targx_get(&table->lut, opt);
     if(!*x) THROW("value " F("%.*s", FG_BL_B) " is not a valid option", STR_F(opt));
     return 0;
 error:
@@ -998,7 +1079,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgStream *stream, ArgX *argx, bool *quit_ea
             TRYC(arg_parse_getv(parse, stream, &argV, &need_help));
             if(need_help) break;
             ArgX *x = 0;
-            TRYC(arg_parse_getopt(argx->o, &x, argV));
+            TRYC(arg_parse_getopt(argx->o->table, &x, argV));
             TRYC(argx_parse(parse, stream, x, quit_early));
             ++argx->count;
         } break;
@@ -1007,15 +1088,15 @@ ErrDecl argx_parse(ArgParse *parse, ArgStream *stream, ArgX *argx, bool *quit_ea
             if(need_help) break;
             ASSERT(argx->o, ERR_NULLPTR);
             if(!argx->count) {
-                for(size_t i = 0; i < vargx_length(argx->o->vec); ++i) {
-                    ArgX *x = vargx_get_at(&argx->o->vec, i);
+                for(size_t i = 0; i < array_len(argx->o->list); ++i) {
+                    ArgX *x = array_at(argx->o->list, i);
                     *x->val.b = false;
                 }
             }
             for(Str flag = {0}; str_splice(argV, &flag, parse->base->flag_sep); ) {
                 if(!flag.str) continue;
                 ArgX *x = 0;
-                TRYC(arg_parse_getopt(argx->o, &x, flag));
+                TRYC(arg_parse_getopt(argx->o->table, &x, flag));
                 TRYC(argx_parse(parse, stream, x, quit_early));
                 ++argx->count;
             }
@@ -1046,7 +1127,7 @@ error_skip_help:
     return -1;
 }
 
-void arg_parse_setref_group(struct ArgXTable *group);
+void arg_parse_setref_table(struct ArgXTable *table);
 
 void arg_parse_setref_argx(struct ArgX *argx) {
     ASSERT_ARG(argx);
@@ -1076,10 +1157,10 @@ void arg_parse_setref_argx(struct ArgX *argx) {
         } break;
         case ARG_OPTION: {
             if(argx->ref.i) *argx->val.i = *argx->ref.i;
-            if(argx->o) arg_parse_setref_group(argx->o);
+            if(argx->o) arg_parse_setref_table(argx->o->table);
         } break;
         case ARG_FLAGS: {
-            if(argx->o) arg_parse_setref_group(argx->o);
+            if(argx->o) arg_parse_setref_table(argx->o->table);
         } break;
         case ARG_HELP:
         case ARG_NONE:
@@ -1087,10 +1168,11 @@ void arg_parse_setref_argx(struct ArgX *argx) {
     }
 }
 
-void arg_parse_setref_group(struct ArgXTable *group) {
-    ASSERT_ARG(group);
-    for(size_t i = 0; i < vargx_length(group->vec); ++i) {
-        ArgX *x = vargx_get_at(&group->vec, i);
+void arg_parse_setref_table(struct ArgXTable *table) {
+    ASSERT_ARG(table);
+    TArgXKV **kv = 0;
+    while((kv = targx_iter_all(&table->lut, kv))) {
+        ArgX *x = (*kv)->val;
         arg_parse_setref_argx(x);
     }
 }
@@ -1099,8 +1181,9 @@ void arg_parse_setref(struct Arg *arg) {
     ASSERT_ARG(arg);
     /* first verify some things */
     /* finally assign */
-    arg_parse_setref_group(&arg->opt);
-    arg_parse_setref_group(&arg->env);
+    arg_parse_setref_table(&arg->tables.opt);
+    arg_parse_setref_table(&arg->tables.pos);
+    //arg_parse_setref_group(&arg->pos);
 }
 
 ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, bool *quit_early) {
@@ -1141,23 +1224,31 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
                 ASSERT(str_len_raw(argV) > 2, ERR_UNREACHABLE);
                 StrC arg_query = str_i0(argV, 2);
                 /* long option */
-                TRYC(arg_parse_getopt(&arg->opt, &argx, arg_query));
-                TRYC(argx_parse(parse, &parse->instream, argx, quit_early));
+                TRYC(arg_parse_getopt(&arg->tables.opt, &argx, arg_query));
+                if(!argx->attr.is_env) {
+                    TRYC(argx_parse(parse, &parse->instream, argx, quit_early));
+                } else {
+                    ASSERT_ARG(0);
+                }
             } else {
                 StrC arg_queries = str_i0(argV, 1);
                 /* short option */
                 for(size_t i = 0; i < str_len_raw(arg_queries); ++i) {
                     const unsigned char query = str_at(arg_queries, i);
                     TRYC(arg_parse_getopt_short(arg, &argx, query));
-                    TRYC(argx_parse(parse, &parse->instream, argx, quit_early));
+                    if(!argx->attr.is_env) {
+                        TRYC(argx_parse(parse, &parse->instream, argx, quit_early));
+                    } else {
+                        ASSERT_ARG(0);
+                    }
                     //printff("SHORT OPTION! %.*s", STR_F(arg_queries));
                 }
                 //ArgX *argx = arg->opt_short[
             }
-        } else if(parse->instream.n_pos_parsed < vargx_length(arg->pos.vec)) {
+        } else if(parse->instream.n_pos_parsed < array_len(arg->pos.list)) {
             /* check for positional */
             arg_parse_getv_undo(parse, &parse->instream);
-            ArgX *x = vargx_get_at(&arg->pos.vec, parse->instream.n_pos_parsed);
+            ArgX *x = array_at(arg->pos.list, parse->instream.n_pos_parsed);
             TRYC(argx_parse(parse, &parse->instream, x, quit_early));
             ++parse->instream.n_pos_parsed;
         } else if(parse->rest.vec) {
@@ -1167,9 +1258,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         /* in case of trying to get help, also search pos and then env */
         if(parse->help.get && !parse->help.x && parse->instream.i < parse->instream.argc) {
             (void)arg_parse_getv(parse, &parse->instream, &argV, &need_help);
-            ArgX *x1 = targx_get(&arg->pos.lut, argV);
-            ArgX *x2 = targx_get(&arg->env.lut, argV);
-            ArgX *x = x1 ? x1 : x2;
+            ArgX *x = targx_get(&arg->tables.opt.lut, argV);
             if(x) {
                 arg->parse.help.x = x;
             } else {
@@ -1178,8 +1267,10 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         }
     }
     /* gather environment variables */
-    for(size_t i = 0; i < vargx_length(arg->env.vec); ++i) {
-        ArgX *x = vargx_get_at(&arg->env.vec, i);
+    TArgXKV **kv = 0;
+    while((kv = targx_iter_all(&arg->tables.opt.lut, kv))) {
+        ArgX *x = (*kv)->val;
+        if(!x->attr.is_env) continue;
         str_copy(&temp_clean_env, x->info.opt);
         char *cenv = getenv(temp_clean_env.str);
         ArgStream stream = {
@@ -1223,8 +1314,8 @@ quit_early:
     if((parse->instream.argc < 2 && arg->base.show_help)) {
         arg_help(arg);
         *quit_early = true;
-    } else if(!arg->parse.help.get && parse->instream.n_pos_parsed < vargx_length(arg->pos.vec)) {
-        THROW("missing %zu positional arguments", vargx_length(arg->pos.vec) - parse->instream.n_pos_parsed);
+    } else if(!arg->parse.help.get && parse->instream.n_pos_parsed < array_len(arg->pos.list)) {
+        THROW("missing %zu positional arguments", array_len(arg->pos.list) - parse->instream.n_pos_parsed);
     }
 clean:
     str_free(&temp_clean_env);
@@ -1295,7 +1386,7 @@ ErrDecl arg_config_load(struct Arg *arg, StrC text) {
             opt = str_trim(opt);
             //printff(" OPT:%.*s",STR_F(opt));
             if(!argx) {
-                TRYC(arg_parse_getopt(&arg->opt, &argx, opt));
+                TRYC(arg_parse_getopt(&arg->tables.opt, &argx, opt));
                 if(argx->id == ARG_HELP) {
                     THROW("cannot configure help");
                 } else if(argx->attr.is_env) {
@@ -1307,9 +1398,10 @@ ErrDecl arg_config_load(struct Arg *arg, StrC text) {
                 //printff("setting value for [%.*s] : %.*s", STR_F(argx->info.opt), STR_F(opt));
                 switch(argx->id) {
                     case ARG_OPTION: {
-                        ArgXTable *group = argx->o;
+                        ASSERT_ARG(argx->o);
+                        ArgXTable *table = argx->o->table;
                         ArgX *x = 0;
-                        TRYC(arg_parse_getopt(group, &x, opt));
+                        TRYC(arg_parse_getopt(table, &x, opt));
                         argx = x;
                     } break;
                     case ARG_BOOL: {
@@ -1347,15 +1439,15 @@ ErrDecl arg_config_load(struct Arg *arg, StrC text) {
                     } break;
                     case ARG_FLAGS: {
                         ASSERT(argx->o, ERR_NULLPTR);
-                        for(size_t i = 0; i < vargx_length(argx->o->vec); ++i) {
-                            ArgX *x = vargx_get_at(&argx->o->vec, i);
+                        for(size_t i = 0; i < array_len(argx->o->list); ++i) {
+                            ArgX *x = array_at(argx->o->list, i);
                             bool *b = x->ref.b ? x->ref.b : x->val.b;
                             *b = false;
                         }
                         for(Str flag = {0}; str_splice(opt, &flag, arg->base.flag_sep); ) {
                             if(!flag.str) continue;
                             ArgX *x = 0;
-                            TRYC(arg_parse_getopt(argx->o, &x, flag));
+                            TRYC(arg_parse_getopt(argx->o->table, &x, flag));
                             bool *b = x->ref.b ? x->ref.b : x->val.b;
                             *b = true;
                         }
@@ -1372,7 +1464,7 @@ ErrDecl arg_config_load(struct Arg *arg, StrC text) {
                 //printff(" ID %s", argx->group ? argx->group->parent ? arglist_str(argx->group->parent->id) : "" : 0);
             }
             /* check enum / option; TODO DRY */
-            if(argx->group && argx->group->parent && argx->group->parent->id == ARG_OPTION) {
+            if(argx->group && argx->group && argx->group->parent && argx->group->parent->id == ARG_OPTION) {
                 if(argx->group->parent->ref.i) {
                     *argx->group->parent->ref.i = argx->e;
                 } else if(argx->group->parent->val.i) {
@@ -1394,34 +1486,55 @@ error:
 
 /* FREEING FUNCTIONS {{{ */
 
+void argx_table_free(ArgXTable *table) {
+    ASSERT_ARG(table);
+    targx_free(&table->lut);
+    memset(table, 0, sizeof(*table));
+}
+
+void argx_group_free(ArgXGroup *group) {
+    ASSERT_ARG(group);
+    argx_table_free(group->table);
+    array_free(group->list);
+    if(group->parent) free(group->table);
+    memset(group, 0, sizeof(*group));
+}
+
+void argx_group_free_array(ArgXGroup **group) {
+    ASSERT_ARG(group);
+    if(*group) {
+        argx_group_free(*group);
+        free(*group);
+    }
+    memset(group, 0, sizeof(*group));
+}
+
 void argx_free(ArgX *argx) {
     ASSERT_ARG(argx);
-    if(argx->id == ARG_OPTION || argx->id == ARG_FLAGS) {
-        vargx_free(&argx->o->vec);
-        targx_free(&argx->o->lut);
+    if((argx->id == ARG_OPTION || argx->id == ARG_FLAGS)) {
+        argx_group_free(argx->o);
+        if(argx->group && argx->group->parent) free(argx->table);
         free(argx->o);
     }
     if(argx->id == ARG_VECTOR) {
         array_free(*argx->val.v);
     }
-    memset(argx, 0, sizeof(*argx));
 };
-
-void argx_group_free(ArgXTable *group) {
-    ASSERT_ARG(group);
-    targx_free(&group->lut);
-    vargx_free(&group->vec);
-    memset(group, 0, sizeof(*group));
-}
 
 
 void arg_free(struct Arg **parg) {
     //printff("FREE ARGS");
     ASSERT_ARG(parg);
     Arg *arg = *parg;
-    argx_group_free(&arg->opt);
-    argx_group_free(&arg->env);
+
+    vargxgroup_free(&arg->groups);
+    //array_free_set(arg->groups, ArgXGroup, (ArrayFree)argx_group_free_array);
+    //array_free(arg->groups);
     argx_group_free(&arg->pos);
+
+    argx_table_free(&arg->tables.opt);
+    argx_table_free(&arg->tables.pos);
+
     vstr_free_set(&arg->parse.config);
     vstr_free_set(&arg->parse.config_files);
     array_free(arg->parse.config);
@@ -1434,17 +1547,82 @@ void arg_free(struct Arg **parg) {
 
 /*}}}*/
 
-void argx_builtin_env_compgen(struct Arg *arg) {
-    ASSERT_ARG(arg);
-    struct ArgX *x = argx_env(arg, str("COMPGEN_WORDLIST"), str("Generate input for autocompletion"), false);
-    argx_bool(x, &arg->base.compgen_wordlist, 0);
+void argx_builtin_env_compgen(ArgXGroup *group) {
+    ASSERT_ARG(group);
+    struct ArgX *x = argx_env(group, str("COMPGEN_WORDLIST"), str("Generate input for autocompletion"), false);
+    argx_bool(x, &group->root->base.compgen_wordlist, 0);
     argx_bool_require_tf(x, true);
     //argx_func(x, 0, argx_callback_env_compgen, arg, true);
 }
 
-void argx_builtin_opt_help(struct Arg *arg) {
-    struct ArgX *x = argx_init(arg_opt(arg), 'h', str("help"), str("print this help"));
-    argx_help(x, arg);
+void argx_builtin_opt_help(ArgXGroup *group) {
+    ASSERT_ARG(group);
+    struct ArgX *x = argx_init(group, 'h', str("help"), str("print this help"));
+    argx_help(x, group->root);
+}
+
+void argx_builtin_opt_fmtx(ArgX *x, StrFmtX *fmt) {
+    struct ArgXGroup *g = 0;
+    g=argx_opt(x, 0, 0);
+      x=argx_init(g, 0, str("fg"), str("foreground"));
+        argx_col(x, &fmt->fg, 0);
+      x=argx_init(g, 0, str("bg"), str("background"));
+        argx_col(x, &fmt->bg, 0);
+      x=argx_init(g, 0, str("bold"), str("bold"));
+        argx_bool(x, &fmt->bold, 0);
+      x=argx_init(g, 0, str("it"), str("italic"));
+        argx_bool(x, &fmt->italic, 0);
+      x=argx_init(g, 0, str("ul"), str("underline"));
+        argx_bool(x, &fmt->underline, 0);
+}
+
+void argx_builtin_opt_rice(ArgXGroup *group, Arg *arg) {
+    ASSERT_ARG(group);
+
+    struct ArgXGroup *g = 0;
+    struct ArgX *x = 0;
+    x=argx_init(group, 0, str("fmt-program"), str("program formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.program);
+
+    x=argx_init(group, 0, str("fmt-group"), str("group formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.group);
+
+    x=argx_init(group, 0, str("fmt-pos"), str("positional formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.pos);
+    x=argx_init(group, 0, str("fmt-short"), str("short option formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.c);
+    x=argx_init(group, 0, str("fmt-long"), str("long option formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.opt);
+    x=argx_init(group, 0, str("fmt-env"), str("environmental formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.env);
+    x=argx_init(group, 0, str("fmt-desc"), str("description formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.desc);
+
+    x=argx_init(group, 0, str("fmt-one"), str("one-of formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.one_of);
+    x=argx_init(group, 0, str("fmt-one-set"), str("one-of set formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.one_of_set);
+    x=argx_init(group, 0, str("fmt-one-delim"), str("one-of delimiter formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.one_of_delim);
+
+    x=argx_init(group, 0, str("fmt-flag"), str("flag formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.flag);
+    x=argx_init(group, 0, str("fmt-flag-set"), str("flag set formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.flag_set);
+    x=argx_init(group, 0, str("fmt-flag-delim"), str("flag delimiter formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.flag_delim);
+
+    x=argx_init(group, 0, str("fmt-type"), str("type formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.type);
+    x=argx_init(group, 0, str("fmt-type-delim"), str("type delimiter formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.type_delim);
+
+    x=argx_init(group, 0, str("fmt-val"), str("value formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.val);
+    x=argx_init(group, 0, str("fmt-val-delim"), str("value delimiter formatting"));
+      argx_builtin_opt_fmtx(x, &arg->fmt.val_delim);
+
+
 }
 
 

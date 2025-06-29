@@ -1227,11 +1227,19 @@ defer:
 void str_fmtx(Str *out, StrFmtX fmtx, char *fmt, ...) {
     ASSERT_ARG(out);
     ASSERT_ARG(fmt);
-    size_t len_old = out->len;
+    //size_t len_old = out->len;
     va_list va;
+    Str tmp = {0};
     va_start(va, fmt);
-    str_fmt_va(out, fmt, va);
+    str_fmt_va(&tmp, fmt, va);
     va_end(va);
+    if(fmtx.nocolor && *fmtx.nocolor) {
+        str_extend(out, tmp);
+    } else {
+        str_fmt_fgbgx(out, tmp, fmtx.fg, fmtx.bg, fmtx.bold, fmtx.italic, fmtx.underline, fmtx.bashsafe);
+    }
+    str_free(&tmp);
+#if 0
     size_t len_new = out->len;
     if(fmtx.nocolor && *fmtx.nocolor) {
         str_extend(out, str_i0(*out, len_old));
@@ -1244,6 +1252,7 @@ void str_fmtx(Str *out, StrFmtX fmtx, char *fmt, ...) {
     //printff("MOVE: %p -> %p x %zu", str_it(*out, len_new), str_it(*out, len_old), len_diff);
     memmove(str_it(*out, len_old), str_it(*out, len_new), len_diff);
     str_resize(out, out->len - (len_new - len_old));
+#endif
     //printff("FINAL STRING:[%.*s]:%zu", STR_F(*out), out->len);
 }
 
