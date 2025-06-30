@@ -907,10 +907,10 @@ void arg_compgen(struct Arg *arg) {
                 if(len > 1 && *arg->parse.instream.argv[len - 1] == '-') {
                     argx_print_opt(&arg->print.compgen_nfirst, "%c%c%.*s", arg->base.prefix, arg->base.prefix, STR_F(x->info.opt));
                 }
-                if(arg->parse.help.get && x->id == ARG_HELP) {
-                    argx_compgen(arg, arg->parse.help.helpx);
-                }
             }
+        }
+        if(arg->parse.help.get) {
+            argx_compgen(arg, arg->parse.help.helpx);
         }
     }
     if(!arg->parse.help.x) {
