@@ -169,6 +169,7 @@ typedef struct ArgParse {
         bool get;
         ArgX *x;
         ArgXGroup *group;
+        ArgX *helpx;
     } help;
     struct {
         VStr *vec;
@@ -188,6 +189,7 @@ typedef struct ArgPrint {
         int opt;    // spacing until long option
     } bounds;
     StrAlign p_al2;
+    bool compgen_nfirst;
 } ArgPrint;
 
 typedef struct ArgFmt {
@@ -498,6 +500,7 @@ void argx_help(struct ArgX *x, struct Arg *arg) {
     x->attr.callback.data = arg;
     x->attr.callback.quit_early = true;
     x->attr.callback.priority = -(ssize_t)1;
+    arg->parse.help.helpx = x;
 }
 
 struct ArgX *argx_pos(struct Arg *arg, Str opt, Str desc) {
@@ -846,20 +849,35 @@ void argx_fmt_specific(Str *out, Arg *arg, ArgParse *parse, ArgX *x) { /*{{{*/
     //argx_print(base, x, false);
 } /*}}}*/
 
+void argx_print_opt(bool *re, const char *fmt, ...) {
+    va_list args;
+    if(*re) printf("%c", 0);
+    va_start(args, fmt);
+    vprintf(fmt, args);
+    va_end(args);
+    *re = true;
+}
+
 void argx_compgen(struct Arg *arg, struct ArgX *x) {
     ASSERT_ARG(arg);
-    ASSERT_ARG(x);
+    if(!x) return;
     switch(x->id) {
         case ARG_OPTION:
         case ARG_FLAGS: {
             if(!x->o) break;
             for(size_t i = 0; i < array_len(x->o->list); ++i) {
                 ArgX *argx = array_at(x->o->list, i);
-                printf("%.*s ", STR_F(argx->info.opt));
+                argx_print_opt(&arg->print.compgen_nfirst, "%.*s", STR_F(argx->info.opt));
             }
         } break;
         case ARG_BOOL: {
-            printf("true false");
+            printf("true%cfalse", 0);
+        } break;
+        case ARG_HELP: {
+            for(size_t i = 0; i < vargxgroup_length(arg->groups); ++i) {
+                ArgXGroup *group = *vargxgroup_get_at(&arg->groups, i);
+                argx_print_opt(&arg->print.compgen_nfirst, "%.*s:", STR_F(group->desc));
+            }
         } break;
         default: break;
     }
@@ -875,19 +893,22 @@ void arg_compgen(struct Arg *arg) {
     ArgXTable *opt_table = &arg->tables.opt;
     if(arg->parse.help.get && arg->parse.help.x) {
         ArgX *x = arg->parse.help.x;
-        //printff("X: %.*s",STR_F(x->info.opt));
         opt_table = x->o ? x->o->table : 0;
+        if(!opt_table && x->id != ARG_HELP) argx_compgen(arg, x);
     }
     if(opt_table) {
         while((kv = targx_iter_all(&opt_table->lut, kv))) {
             ArgX *x = (*kv)->val;
             if(x->attr.is_env) continue;
             if(x->group && x->group->parent) {
-                printf("%.*s ", STR_F(x->info.opt));
+                argx_print_opt(&arg->print.compgen_nfirst, "%.*s", STR_F(x->info.opt));
             } else {
                 int len = arg->parse.instream.argc;
                 if(len > 1 && *arg->parse.instream.argv[len - 1] == '-') {
-                    printf("%c%c%.*s ", arg->base.prefix, arg->base.prefix, STR_F(x->info.opt));
+                    argx_print_opt(&arg->print.compgen_nfirst, "%c%c%.*s", arg->base.prefix, arg->base.prefix, STR_F(x->info.opt));
+                }
+                if(arg->parse.help.get && x->id == ARG_HELP) {
+                    argx_compgen(arg, arg->parse.help.helpx);
                 }
             }
         }
@@ -897,6 +918,7 @@ void arg_compgen(struct Arg *arg) {
         size_t i = arg->parse.instream.n_pos_parsed;
         if(i < array_len(arg->pos.list)) {
             ArgX *x = array_at(arg->pos.list, i);
+            //printff("X = %.*s", STR_F(x->info.opt));
             argx_compgen(arg, x);
         }
     }

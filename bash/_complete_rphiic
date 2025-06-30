@@ -1,7 +1,19 @@
 #!/bin/bash
 
 function _complete_rphiic() {
-    local wordlist="$(COMPGEN_WORDLIST=true ${COMP_WORDS[@]} 2>/dev/null | tail -n 1)"
-    COMPREPLY=($(compgen -W "${wordlist}" -- "${COMP_WORDS[COMP_CWORD]}"))
+    # current word
+    local CWORD="${COMP_WORDS[COMP_CWORD]}"
+    # split strings on null character into newline into array (wordlist)
+    local IFS=$'\0'
+    local wordlist=("$(echo -n $(COMPGEN_WORDLIST=true ${COMP_WORDS[@]} 2>/dev/null | tail -n 1 | tr '\0' '\n'))")
+    if [[ -n "${wordlist}" ]]; then
+        # from provided wordlist, get remaining possible solutions
+        local IFS=$'\n'
+        local candidates=($(compgen -W "${wordlist[*]}" -- "${CWORD}"))
+        # on each candidate, convert into space-safe (' ' -> '\ ') reply
+        if [[ "${#candidates[@]}" -gt 0 ]]; then
+            COMPREPLY=($(printf '%q\n' "${candidates[@]}"))
+        fi
+    fi
 }
 
