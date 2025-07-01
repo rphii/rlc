@@ -1,5 +1,8 @@
-project('rphiic', 'c')
+project('rphiic', 'c',
+  meson_version: '>=1.1')
+
 subdir('src')
+subdir('bash')
 
 pkg = import('pkgconfig')
 pkg.generate(
