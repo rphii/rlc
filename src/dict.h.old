@@ -1,0 +1,36 @@
+#ifndef DICT_H
+
+#include <stdint.h>
+#include <stddef.h>
+
+typedef void    (*DictFree)(uintptr_t);
+typedef size_t  (*DictHash)(uintptr_t);
+typedef int     (*DictCmp)(uintptr_t, uintptr_t);
+
+typedef struct DictMeta {
+    size_t size;
+    DictFree free;
+    DictHash hash;
+    DictCmp cmp;
+} DictMeta;
+
+typedef struct DictElement {
+    size_t hash;
+    void *key;
+    void *val;
+} DictElement, *DictElements;
+
+typedef struct Dict {
+    DictMeta key;
+    DictMeta val;
+    DictElements elements;
+    size_t width;
+} Dict;
+
+DictElement *dict_set(Dict *dict, void *key, void *val);
+int dict_get(Dict dict, uintptr_t key, uintptr_t *val);
+size_t dict_len(Dict dict);
+
+#define DICT_H
+#endif
+
