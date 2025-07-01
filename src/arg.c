@@ -73,6 +73,7 @@ typedef struct ArgXCallback {
     ArgFunction func;
     void *data;
     bool quit_early;
+    bool allow_compgen;
     ssize_t priority;
 } ArgXCallback;
 
@@ -544,12 +545,13 @@ void argx_dbl_mm(ArgX *x, double min, double max) {
     x->attr.max.f = max;
 }
 
-void argx_func(struct ArgX *x, ssize_t priority, void *func, void *data, bool quit_early) {
+void argx_func(struct ArgX *x, ssize_t priority, void *func, void *data, bool allow_compgen, bool quit_early) {
     ASSERT_ARG(x);
     ASSERT_ARG(func);
     x->attr.callback.priority = priority;
     x->attr.callback.func = func;
     x->attr.callback.data = data;
+    x->attr.callback.allow_compgen = allow_compgen;
     x->attr.callback.quit_early = quit_early;
 }
 void argx_opt_enum(struct ArgX *x, int val) {
@@ -1246,12 +1248,14 @@ ErrDecl argx_parse(ArgParse *parse, ArgStream *stream, ArgX *argx, bool *quit_ea
     }
     /* TODO DRY */
     if(argx && argx->attr.callback.func && !argx->attr.callback.priority) {
-        if(argx->attr.callback.func(argx->attr.callback.data)) {
-            THROW_PRINT("failed executing function for " F("[%.*s]", BOLD) "\n", STR_F(argx->info.opt));
-            goto error_skip_help;
+        if(!(parse->base->compgen_wordlist && !argx->attr.callback.allow_compgen)) {
+            if(argx->attr.callback.func(argx->attr.callback.data)) {
+                THROW_PRINT("failed executing function for " F("[%.*s]", BOLD) "\n", STR_F(argx->info.opt));
+                goto error_skip_help;
+            }
+            *quit_early = argx->attr.callback.quit_early;
+            //if(*quit_early) break;
         }
-        *quit_early = argx->attr.callback.quit_early;
-        //if(*quit_early) break;
     }
     if(!(parse->base->compgen_wordlist && need_help)) {
         return 0;
@@ -1450,6 +1454,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         if(!x->attr.callback.priority) continue;
         //printff("CHECK QUEUE [%.*s]", STR_F(x->info.opt));
         if(x && x->attr.callback.func) {
+            if(parse->base->compgen_wordlist && !x->attr.callback.allow_compgen) continue;
             if(x->attr.callback.func(x->attr.callback.data)) {
                 THROW_PRINT("failed executing function for " F("[%.*s]", BOLD) "\n", STR_F(x->info.opt));
                 goto error_skip_help;
