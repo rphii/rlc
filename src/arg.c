@@ -52,6 +52,7 @@ typedef struct ArgBase {
     unsigned char flag_sep; // default: ,
     bool show_help;         // display help if no arguments provided
     bool compgen_wordlist; // generate compgen wordlist
+    bool source_check;     // display config errors or not
     VStr *rest_vec;
     Str rest_desc;
 } ArgBase;
@@ -889,26 +890,19 @@ void arg_compgen(struct Arg *arg) {
     if(arg->parse.done_compgen) return;
     arg->parse.done_compgen = true;
     if(arg->parse.help.group) return;
-    //printf("%p", arg->parse.help.group);
-    //return;
     arg->parse.done_compgen = true;
-    //printff("COMPREPLY:");
     /* optional help */
     TArgXKV **kv = 0;
     ArgXTable *opt_table = &arg->tables.opt;
-    //printff("get %u x %p", arg->parse.help.get, arg->parse.help.x);
     if(arg->parse.help.get) {
         ArgX *x = arg->parse.help.x;
         if(x) {
             opt_table = x->o ? x->o->table : 0;
             if(!opt_table && x->id != ARG_HELP) argx_compgen(arg, x);
         }
-        //printff("GET EXPLICIT %u", arg->parse.help.get_explicit);
         if(arg->parse.help.get_explicit) {
             if(!x || (x && x->id != ARG_HELP)) {
-                //printff("GROUP: %.*s", STR_F(arg->parse.help.group->desc));
                 argx_compgen(arg, arg->parse.help.helpx);
-                //return;
             }
         }
     }
@@ -956,7 +950,6 @@ int arg_help(struct Arg *arg) { /*{{{*/
     if(arg->parse.help.x && arg->parse.help.get) {
         /* specific help */
         argx_fmt_specific(&out, arg, &arg->parse, arg->parse.help.x);
-        //argx_print_specific(arg, &arg->parse, arg->parse.help.x);
     } else {
         /* default help */
         str_clear(&tmp);
@@ -1498,6 +1491,7 @@ error_skip_help:
 
 int arg_config_error(struct Arg *arg, StrC line, size_t line_nb, StrC opt, ArgX *argx) {
     ASSERT_ARG(arg);
+    //if(!arg->base.source_check) return 0;
     int done = 0;
     if(arg->base.compgen_wordlist) return 0;
     if(line.str) {
@@ -1797,6 +1791,9 @@ void argx_builtin_opt_source(struct ArgXGroup *group, Str source) {
     if(!x) {
         x=argx_init(group, 0, str("source"), str("source other config files"));
           argx_vstr(x, &arg->parse.config_files_base, 0);
+        // TODO: need better error handling!
+        //x=argx_init(group, 0, str("source-check"), str("check sources for validity"));
+        //  argx_bool(x, &arg->base.source_check, 0);
     }
 }
 
