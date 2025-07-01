@@ -1,3 +1,3 @@
 
-install_data('_complete_rphiic', install_dir: get_option('completion_dir'))
+install_data('rphiic', install_dir: get_option('completion_dir'))
 
