@@ -651,6 +651,7 @@ bool argx_fmt_val(Str *out, Arg *arg, ArgX *x, ArgXVal val, StrC prefix) {
     ASSERT_ARG(out);
     ASSERT_ARG(arg);
     ASSERT_ARG(x);
+    bool did_fmt = false;
     if(x->attr.hide_value) return false;
     switch(x->id) {
         case ARG_NONE: break;
@@ -660,16 +661,19 @@ bool argx_fmt_val(Str *out, Arg *arg, ArgX *x, ArgXVal val, StrC prefix) {
             if(!val.b) break;
             str_fmtx(out, arg->fmt.val_delim, "%.*s", STR_F(prefix));
             str_fmtx(out, arg->fmt.val, "%s", *val.b ? "true" : "false");
+            did_fmt = true;
         } break;
         case ARG_COLOR: {
             if(!val.c) break;
             str_fmtx(out, arg->fmt.val_delim, "%.*s", STR_F(prefix));
             color_fmt_rgb(out, *val.c);
+            did_fmt = true;
         } break;
         case ARG_FLOAT: {
             if(!val.f) break;
             str_fmtx(out, arg->fmt.val_delim, "%.*s", STR_F(prefix));
             str_fmtx(out, arg->fmt.val, "%f", *val.f);
+            did_fmt = true;
         } break;
         case ARG_HELP: {
         } break;
@@ -677,22 +681,26 @@ bool argx_fmt_val(Str *out, Arg *arg, ArgX *x, ArgXVal val, StrC prefix) {
             if(!val.i) break;
             str_fmtx(out, arg->fmt.val_delim, "%.*s", STR_F(prefix));
             str_fmtx(out, arg->fmt.val, "%i", *val.i);
+            did_fmt = true;
         } break;
         case ARG_FLAG: {
             if(!val.b) break;
             str_fmtx(out, arg->fmt.val_delim, "%.*s", STR_F(prefix));
             str_fmtx(out, arg->fmt.val, "%s", *val.b ? "true" : "false");
+            did_fmt = true;
         } break;
         case ARG_SSZ: {
             if(!val.z) break;
             str_fmtx(out, arg->fmt.val_delim, "%.*s", STR_F(prefix));
             str_fmtx(out, arg->fmt.val, "%zu", *val.z);
+            did_fmt = true;
         } break;
         case ARG_STRING: {
             if(!val.s) break;
             if(!val.s->len) break;
             str_fmtx(out, arg->fmt.val_delim, "%.*s", STR_F(prefix));
             str_fmtx(out, arg->fmt.val, "%.*s", STR_F(*val.s));
+            did_fmt = true;
         } break;
         case ARG_VECTOR: {
             if(!val.v) break;
@@ -705,11 +713,12 @@ bool argx_fmt_val(Str *out, Arg *arg, ArgX *x, ArgXVal val, StrC prefix) {
                 str_fmtx(out, arg->fmt.val, "%.*s", STR_F(s));
             }
             str_fmtx(out, arg->fmt.val_delim, "]");
+            did_fmt = true;
         } break;
         case ARG__COUNT:
         default: THROW("UKNOWN FMT, ID:%u", x->id);
     }
-    return true;
+    return did_fmt;
 error:
     return false;
 }
