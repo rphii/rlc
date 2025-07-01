@@ -167,6 +167,7 @@ typedef struct ArgParse {
     ArgBase *base;  // need the info of prefix...
     struct {
         bool get;
+        bool get_explicit;
         ArgX *x;
         ArgXGroup *group;
         ArgX *helpx;
@@ -813,7 +814,7 @@ void argx_fmt_group(Str *out, Arg *arg, ArgXGroup *group) {
         }
     } else if(group->explicit_help) {
         str_clear(&tmp);
-        str_fmtx(&tmp, arg->fmt.group_delim, "--help '%.*s:'", STR_F(group->desc), STR_F(group->desc));
+        str_fmtx(&tmp, arg->fmt.group_delim, "--help '%.*s'", STR_F(group->desc), STR_F(group->desc));
         str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, " %.*s\n", STR_F(tmp));
         return;
     }
@@ -876,7 +877,7 @@ void argx_compgen(struct Arg *arg, struct ArgX *x) {
         case ARG_HELP: {
             for(size_t i = 0; i < vargxgroup_length(arg->groups); ++i) {
                 ArgXGroup *group = *vargxgroup_get_at(&arg->groups, i);
-                argx_print_opt(&arg->print.compgen_nfirst, "%.*s:", STR_F(group->desc));
+                argx_print_opt(&arg->print.compgen_nfirst, "%.*s", STR_F(group->desc));
             }
         } break;
         default: break;
@@ -887,14 +888,29 @@ void arg_compgen(struct Arg *arg) {
     ASSERT_ARG(arg);
     if(arg->parse.done_compgen) return;
     arg->parse.done_compgen = true;
+    if(arg->parse.help.group) return;
+    //printf("%p", arg->parse.help.group);
+    //return;
+    arg->parse.done_compgen = true;
     //printff("COMPREPLY:");
     /* optional help */
     TArgXKV **kv = 0;
     ArgXTable *opt_table = &arg->tables.opt;
-    if(arg->parse.help.get && arg->parse.help.x) {
+    //printff("get %u x %p", arg->parse.help.get, arg->parse.help.x);
+    if(arg->parse.help.get) {
         ArgX *x = arg->parse.help.x;
-        opt_table = x->o ? x->o->table : 0;
-        if(!opt_table && x->id != ARG_HELP) argx_compgen(arg, x);
+        if(x) {
+            opt_table = x->o ? x->o->table : 0;
+            if(!opt_table && x->id != ARG_HELP) argx_compgen(arg, x);
+        }
+        //printff("GET EXPLICIT %u", arg->parse.help.get_explicit);
+        if(arg->parse.help.get_explicit) {
+            if(!x || (x && x->id != ARG_HELP)) {
+                //printff("GROUP: %.*s", STR_F(arg->parse.help.group->desc));
+                argx_compgen(arg, arg->parse.help.helpx);
+                //return;
+            }
+        }
     }
     if(opt_table) {
         while((kv = targx_iter_all(&opt_table->lut, kv))) {
@@ -908,9 +924,6 @@ void arg_compgen(struct Arg *arg) {
                     argx_print_opt(&arg->print.compgen_nfirst, "%c%c%.*s", arg->base.prefix, arg->base.prefix, STR_F(x->info.opt));
                 }
             }
-        }
-        if(arg->parse.help.get) {
-            argx_compgen(arg, arg->parse.help.helpx);
         }
     }
     if(!arg->parse.help.x) {
@@ -1231,6 +1244,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgStream *stream, ArgX *argx, bool *quit_ea
             }
         } break;
         case ARG_HELP: {
+            parse->help.get_explicit = true;
             parse->help.get = true;
         } break;
         /* above */
@@ -1406,14 +1420,14 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
             array_push(*parse->rest.vec, argV);
         }
         /* in case of trying to get help, also search pos and then env and then group */
-        if(parse->help.get && !parse->help.x && parse->instream.i < parse->instream.argc) {
+        if(parse->help.get_explicit && parse->instream.i < parse->instream.argc) {
             (void)arg_parse_getv(parse, &parse->instream, &argV, &need_help);
             ArgX *x = targx_get(&arg->tables.opt.lut, argV);
             //printff("GET HELP [%.*s]", STR_F(argV));
-            if(argV.len && str_at(argV, argV.len - 1) == ':') {
+            if(argV.len) {
                 for(size_t j = 0; j < vargxgroup_length(arg->groups); ++j) {
                     ArgXGroup **group = vargxgroup_get_at(&arg->groups, j);
-                    if(!str_cmp0(argV, (*group)->desc)) {
+                    if(!str_cmp(argV, (*group)->desc)) {
                         arg->parse.help.group = *group;
                     }
                 }
