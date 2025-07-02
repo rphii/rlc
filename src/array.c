@@ -113,6 +113,7 @@ void *_array_pop(void *array ARRAY_DEBUG_DEFS, size_t size) {
 }
 
 void _array_free_index(Array *v, size_t index) {
+    if(!v->size) return;
     array_assert_arg(v->size);
     void *val = (void *)&v->data + v->size * index;
     if(!val) return;

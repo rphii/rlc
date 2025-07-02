@@ -1754,13 +1754,10 @@ void arg_free(struct Arg **parg) {
     argx_table_free(&arg->tables.opt);
     argx_table_free(&arg->tables.pos);
 
-    vstr_free_set(&arg->parse.config);
-    vstr_free_set(&arg->parse.config_files_base);
-    vstr_free_set(&arg->parse.config_files_expand);
-    array_free(arg->parse.config);
-    array_free(arg->parse.config_files_base);
-    array_free(arg->parse.config_files_expand);
-    if(arg->base.rest_vec) array_free(*arg->base.rest_vec);
+    vstr_free(&arg->parse.config);
+    vstr_free(&arg->parse.config_files_base);
+    vstr_free(&arg->parse.config_files_expand);
+    if(arg->base.rest_vec) vstr_free(arg->base.rest_vec);
     free(*parg);
     *parg = 0;
     //printff("FREED ARGS");
