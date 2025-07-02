@@ -1301,7 +1301,16 @@ size_t str_writefunc(void *ptr, size_t size, size_t nmemb, Str *str) { /*{{{*/
 
 void vstr_free_set(VStr *vstr) { /*{{{*/
     ASSERT_ARG(vstr);
+    if(!*vstr) return;
     array_free_set(*vstr, Str, (ArrayFree)str_free);
+} /*}}}*/
+
+void vstr_free(VStr *vstr) { /*{{{*/
+    ASSERT_ARG(vstr);
+    if(!*vstr) return;
+    vstr_free_set(vstr);
+    array_free(*vstr);
+    memset(vstr, 0, sizeof(*vstr));
 } /*}}}*/
 
 void str_print(Str str) { /*{{{*/

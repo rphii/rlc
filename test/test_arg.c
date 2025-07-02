@@ -124,7 +124,7 @@ int main(const int argc, const char **argv) {
         x=argx_init(g, 0, str("lmao"), str("what the fuck"));
           argx_opt_enum(x, CONFIG_LMAO);
           argx_ssz(x, &nfuck, 0);
-          argx_func(x, ++n_arg, hello_world, &nfuck, false);
+          argx_func(x, ++n_arg, hello_world, &nfuck, false, false);
         x=argx_init(g, 0, str("test"), str("what the fuck"));
           argx_opt_enum(x, 6);
         x=argx_init(g, 0, str("useless"), str("what the fuck"));
@@ -146,7 +146,7 @@ int main(const int argc, const char **argv) {
         x=argx_init(g, 0, str("none"), str("do nothing"));
           argx_opt_enum(x, CONFIG_MODE_NONE);
         x=argx_init(g, 0, str("hello"), str("print hello"));
-          argx_func(x, ++n_arg, hello_world, &nfuck, true);
+          argx_func(x, ++n_arg, hello_world, &nfuck, false, true);
           argx_opt_enum(x, CONFIG_MODE_HELLO);
         x=argx_init(g, 0, str("int"), str("set int"));
           argx_ssz(x, &config.mode.z, &preset.mode.z);

@@ -166,6 +166,7 @@ void str_printal(Str str, StrPrint *p, size_t i0, size_t iE);
 void str_printraw(Str str);
 
 void vstr_free_set(VStr *vstr);
+void vstr_free(VStr *vstr);
 
 #if 0
 #define str_freeall(...) do { \
