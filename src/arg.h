@@ -67,7 +67,7 @@ void arg_config(struct Arg *arg, Str conf);
 
 void argx_builtin_env_compgen(struct ArgXGroup *group);
 void argx_builtin_opt_help(struct ArgXGroup *group);
-struct ArgX *argx_builtin_opt_rice(struct ArgXGroup *group);
+struct ArgXGroup *argx_builtin_opt_rice(struct ArgXGroup *group);
 void argx_builtin_opt_source(struct ArgXGroup *group, Str source);
 void argx_builtin_opt_fmtx(struct ArgX *x, StrFmtX *fmt, StrFmtX *ref);
 
