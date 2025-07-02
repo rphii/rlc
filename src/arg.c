@@ -830,12 +830,14 @@ void argx_fmt_group(Str *out, Arg *arg, ArgXGroup *group) {
             str_clear(&tmp);
             str_fmtx(&tmp, arg->fmt.group_delim, "<collapsed>", STR_F(group->desc));
             str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, " %.*s\n", STR_F(tmp));
+            str_free(&tmp);
             return;
         }
     } else if(group->explicit_help) {
         str_clear(&tmp);
         str_fmtx(&tmp, arg->fmt.group_delim, "--help '%.*s'", STR_F(group->desc), STR_F(group->desc));
         str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, " %.*s\n", STR_F(tmp));
+        str_free(&tmp);
         return;
     }
     /* usage / group title */
@@ -1705,9 +1707,12 @@ void argx_table_free(ArgXTable *table) {
 
 void argx_group_free(ArgXGroup *group) {
     ASSERT_ARG(group);
-    argx_table_free(group->table);
     array_free(group->list);
-    if(group->parent) free(group->table);
+    //if(group->parent) free(group->table);
+    if(group->parent) {
+        argx_table_free(group->table);
+        free(group->table);
+    }
     memset(group, 0, sizeof(*group));
 }
 
@@ -1721,15 +1726,18 @@ void argx_group_free_array(ArgXGroup **group) {
 }
 
 void argx_free(ArgX *argx) {
+    if(!argx) return;
+    //if(argx->id == ARG_OPTION) printff("free [%.*s]", STR_F(argx->info.opt));
     ASSERT_ARG(argx);
     if((argx->id == ARG_OPTION || argx->id == ARG_FLAGS)) {
         argx_group_free(argx->o);
-        if(argx->group && argx->group->parent) free(argx->table);
         free(argx->o);
     }
     if(argx->id == ARG_VECTOR) {
         array_free(*argx->val.v);
     }
+    //if(argx->id == ARG_OPTION) printff("done [%.*s]", STR_F(argx->info.opt));
+    memset(argx, 0, sizeof(*argx));
 };
 
 
@@ -1789,55 +1797,62 @@ void argx_builtin_opt_fmtx(ArgX *x, StrFmtX *fmt, StrFmtX *ref) {
         argx_bool(x, &fmt->underline, ref ? &ref->underline : 0);
 }
 
-ArgX *argx_builtin_opt_rice(ArgXGroup *group) {
+ArgXGroup *argx_builtin_opt_rice(ArgXGroup *group) {
     ASSERT_ARG(group);
 
     struct Arg *arg = group->root;
     struct ArgX *x = 0;
-    x=argx_init(group, 0, str("fmt-program"), str("program formatting"));
+    struct ArgXGroup *g = 0, *o = 0;
+    x=argx_init(group, 0, str("rice"), str("program formatting"));
+      g=argx_opt(x, false, false);
+
+    x=argx_init(g, 0, str("arg"), str("program formatting"));
+      o=argx_opt(x, false, false);
+
+    x=argx_init(o, 0, str("program"), str("program formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.program, 0);
 
-    x=argx_init(group, 0, str("fmt-group"), str("group formatting"));
+    x=argx_init(o, 0, str("group"), str("group formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.group, 0);
-    x=argx_init(group, 0, str("fmt-group-delim"), str("group delimiter formatting"));
+    x=argx_init(o, 0, str("group-delim"), str("group delimiter formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.group_delim, 0);
 
-    x=argx_init(group, 0, str("fmt-pos"), str("positional formatting"));
+    x=argx_init(o, 0, str("pos"), str("positional formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.pos, 0);
-    x=argx_init(group, 0, str("fmt-short"), str("short option formatting"));
+    x=argx_init(o, 0, str("short"), str("short option formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.c, 0);
-    x=argx_init(group, 0, str("fmt-long"), str("long option formatting"));
+    x=argx_init(o, 0, str("long"), str("long option formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.opt, 0);
-    x=argx_init(group, 0, str("fmt-env"), str("environmental formatting"));
+    x=argx_init(o, 0, str("env"), str("environmental formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.env, 0);
-    x=argx_init(group, 0, str("fmt-desc"), str("description formatting"));
+    x=argx_init(o, 0, str("desc"), str("description formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.desc, 0);
 
-    x=argx_init(group, 0, str("fmt-one"), str("one-of formatting"));
+    x=argx_init(o, 0, str("one"), str("one-of formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.one_of, 0);
-    x=argx_init(group, 0, str("fmt-one-set"), str("one-of set formatting"));
+    x=argx_init(o, 0, str("one-set"), str("one-of set formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.one_of_set, 0);
-    x=argx_init(group, 0, str("fmt-one-delim"), str("one-of delimiter formatting"));
+    x=argx_init(o, 0, str("one-delim"), str("one-of delimiter formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.one_of_delim, 0);
 
-    x=argx_init(group, 0, str("fmt-flag"), str("flag formatting"));
+    x=argx_init(o, 0, str("flag"), str("flag formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.flag, 0);
-    x=argx_init(group, 0, str("fmt-flag-set"), str("flag set formatting"));
+    x=argx_init(o, 0, str("flag-set"), str("flag set formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.flag_set, 0);
-    x=argx_init(group, 0, str("fmt-flag-delim"), str("flag delimiter formatting"));
+    x=argx_init(o, 0, str("flag-delim"), str("flag delimiter formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.flag_delim, 0);
 
-    x=argx_init(group, 0, str("fmt-type"), str("type formatting"));
+    x=argx_init(o, 0, str("type"), str("type formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.type, 0);
-    x=argx_init(group, 0, str("fmt-type-delim"), str("type delimiter formatting"));
+    x=argx_init(o, 0, str("type-delim"), str("type delimiter formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.type_delim, 0);
 
-    x=argx_init(group, 0, str("fmt-val"), str("value formatting"));
+    x=argx_init(o, 0, str("val"), str("value formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.val, 0);
-    x=argx_init(group, 0, str("fmt-val-delim"), str("value delimiter formatting"));
+    x=argx_init(o, 0, str("val-delim"), str("value delimiter formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.val_delim, 0);
 
-    return 0;
+    return g;
 }
 
 void argx_builtin_opt_source(struct ArgXGroup *group, Str source) {
