@@ -167,6 +167,7 @@ void str_printraw(Str str);
 
 void vstr_free_set(VStr *vstr);
 void vstr_free(VStr *vstr);
+void vstr_sort(VStr vstr);
 
 #if 0
 #define str_freeall(...) do { \
