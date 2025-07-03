@@ -1313,6 +1313,24 @@ void vstr_free(VStr *vstr) { /*{{{*/
     memset(vstr, 0, sizeof(*vstr));
 } /*}}}*/
 
+void vstr_sort(VStr vstr) {
+    size_t h, i, j, n = array_len(vstr);
+    Str temp;
+    for (h = n; h /= 2;) {
+        for (i = h; i < n; i++) {
+            /*t = a[i]; */
+            temp = array_at(vstr, i);
+            /*for (j = i; j >= h && t < a[j - h]; j -= h) { */
+            for (j = i; j >= h && str_cmp_sortable(temp, array_at(vstr, j-h)) < 0; j -= h) {
+                *array_it(vstr, j) = array_at(vstr, j-h);
+                /*a[j] = a[j - h]; */
+            }
+            /*a[j] = t; */
+            *array_it(vstr, j) = temp;
+        }
+    }
+}
+
 void str_print(Str str) { /*{{{*/
     printf("%.*s", STR_F(str));
 } /*}}}*/
