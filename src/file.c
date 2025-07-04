@@ -178,7 +178,7 @@ ErrDecl file_exec(Str path, VStr *subdirs, bool recursive, bool hidden, FileFunc
         Str filename = {0};
         str_extend(&filename, path);
         int n = scandir(filename.str, &namelist, NULL, alphasort);
-        if(n == -1) return -1;
+        if(n == -1) goto error;
         for(size_t i = 0; i < n; ++i) {
             struct dirent *x = namelist[i];
             Str xn = str_l(x->d_name);
