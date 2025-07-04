@@ -166,6 +166,59 @@ ErrDecl file_exec(Str path, VStr *subdirs, bool recursive, bool hidden, FileFunc
     DIR *dir = 0;
     Str dot = str(".");
     Str dotdot = str("..");
+
+#if 1
+    VStr rev = {0};
+    if(!path.len) return 0;
+    FileTypeList type = file_get_type(path);
+    vstr_free_set(subdirs);
+    Str filename = {0};
+    struct dirent **namelist = 0;
+    if(type == FILE_TYPE_DIR) {
+        Str filename = {0};
+        str_extend(&filename, path);
+        int n = scandir(filename.str, &namelist, NULL, alphasort);
+        if(n == -1) return -1;
+        for(size_t i = 0; i < n; ++i) {
+            struct dirent *x = namelist[i];
+            Str xn = str_l(x->d_name);
+            //printff("XN %.*s", STR_F(xn));
+            if(!str_cmp(dot, xn) || !str_cmp(dotdot, xn)) continue;
+            str_clear(&filename);
+            str_extend(&filename, path);
+            if(str_at(path, path.len - 1) != PLATFORM_CH_SUBDIR) str_push(&filename, PLATFORM_CH_SUBDIR);
+            str_extend(&filename, xn);
+            FileTypeList type2 = file_get_type(filename);
+            if(type2 == FILE_TYPE_DIR) {
+                array_push(rev, filename);
+                str_zero(&filename);
+            } else if(type2 == FILE_TYPE_FILE) {
+                TRY(exec(filename, args), "an error occured while executing the function");
+                str_clear(&filename);
+            } else {
+                str_clear(&filename);
+                //info(INFO_skipping_nofile_nodir, "skipping '%.*s' since no regular file nor directory", STR_F(*path));
+            }
+        }
+    } else if(type == FILE_TYPE_FILE) {
+        TRY(exec(path, args), "an error occured while executing the function");
+    } else if(type == FILE_TYPE_ERROR) {
+        THROW("failed checking type of '%.*s' (maybe it doesn't exist?)", STR_F(path));
+    } else {
+        //info(INFO_skipping_nofile_nodir, "skipping '%.*s' since no regular file nor directory", STR_F(*path));
+    }
+    size_t len = array_len(rev);
+    for(size_t i = 0; i < len; ++i) {
+        array_push(*subdirs, array_pop(rev));
+    }
+clean:
+    free(namelist);
+    str_free(&filename);
+    if(dir) closedir(dir);
+    return err;
+error: ERR_CLEAN;
+
+#else
     if(!str_len_raw(path)) return 0;
     FileTypeList type = file_get_type(path);
     vstr_free_set(subdirs);
@@ -218,6 +271,7 @@ clean:
     if(dir) closedir(dir);
     return err;
 error: ERR_CLEAN;
+#endif
 }
 
 ErrDecl file_dir_read(Str dirname, VStr *files) {
