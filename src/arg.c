@@ -408,13 +408,6 @@ error:
 
 /* 1) ASSIGN MAIN ID {{{ */
 
-void argx_str(ArgX *x, Str *val, Str *ref) {
-    ASSERT_ARG(x);
-    ASSERT_ARG(val);
-    x->id = ARG_STRING;
-    x->val.s = val;
-    x->ref.s = ref;
-}
 void argx_col(ArgX *x, Color *val, Color *ref) {
     ASSERT_ARG(x);
     ASSERT_ARG(val);
@@ -1800,13 +1793,13 @@ ArgXGroup *argx_builtin_opt_rice(ArgXGroup *group) {
     struct Arg *arg = group->root;
     struct ArgX *x = 0;
     struct ArgXGroup *g = 0, *o = 0;
-    x=argx_init(group, 0, str("rice"), str("program formatting"));
+    x=argx_init(group, 0, str("rice"), str("change the look & feel"));
       g=argx_opt(x, false, false);
 
-    x=argx_init(g, 0, str("arg"), str("program formatting"));
+    x=argx_init(g, 0, str("arg"), str("argument parser formatting"));
       o=argx_opt(x, false, false);
 
-    x=argx_init(o, 0, str("program"), str("program formatting"));
+    x=argx_init(o, 0, str("program"), str("program name formatting"));
       argx_builtin_opt_fmtx(x, &arg->fmt.program, 0);
 
     x=argx_init(o, 0, str("group"), str("group formatting"));
