@@ -162,11 +162,11 @@ typedef struct ArgStream {
     size_t i;
     size_t n_pos_parsed;
     bool force_done_parsing;
+    VArgX queue;
 } ArgStream;
 
 typedef struct ArgParse {
     bool try_parse;
-    VArgX queue;
     ArgBase *base;  // need the info of prefix...
     struct {
         bool get;
@@ -1147,7 +1147,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgStream *stream, ArgX *argx, bool *quit_ea
     //printff("PARSE [%.*s]", STR_F(argx->info.opt));
     /* add to queue for post processing */
     bool pe = !parse->try_parse;
-    TRYG(vargx_push_back(&parse->queue, argx));
+    TRYG(vargx_push_back(&stream->queue, argx));
     StrC argV = str("");
     /* check if we want to get help for this */
     if(parse->help.get && !argx->attr.is_env) {
@@ -1489,9 +1489,9 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     arg_help(arg);
 #else
     /* now go over the queue and do post processing */
-    vargx_sort(&parse->queue);
-    for(size_t i = 0; i < vargx_length(parse->queue); ++i) {
-        ArgX *x = vargx_get_at(&parse->queue, i);
+    vargx_sort(&arg->instream.queue);
+    for(size_t i = 0; i < vargx_length(arg->instream.queue); ++i) {
+        ArgX *x = vargx_get_at(&arg->instream.queue, i);
         if(!x->attr.callback.priority) continue;
         //printff("CHECK QUEUE [%.*s]", STR_F(x->info.opt));
         if(x && x->attr.callback.func) {
@@ -1519,7 +1519,7 @@ quit_early:
     }
 clean:
     str_free(&temp_clean_env);
-    vargx_free(&parse->queue);
+    vargx_free(&arg->instream.queue);
     //DO THIS OUTSIDE:
     //if(*quit_early) {
     //    arg_free(&arg);
