@@ -6,15 +6,7 @@
 #define ARG_INIT_DEFAULT_PREFIX     '-'
 #define ARG_INIT_DEFAULT_SHOW_HELP  true
 #define ARG_INIT_DEFAULT_FLAG_SEP   ','
-
-#define ARG_F_ENV       BOLD FG_WT_B
-#define ARG_VAL_F       FG_GN
 #define ARG_TYPE_F      FG_CY
-#define ARG_OPTION_F    FG_BL
-#define ARG_FLAG_F      FG_YL
-#define ARG_F_SEP       FG_BK_B
-
-#define ARG_FMT_ARG     BOLD FG_WT_B
 
 /* types of arguments
  *
