@@ -160,7 +160,6 @@ typedef struct ArgStream {
     char **argv;
     int argc;
     size_t i;
-    size_t n_pos_parsed;
     bool force_done_parsing;
     bool try_parse;
     VArgX queue;
@@ -231,6 +230,7 @@ typedef struct Arg {
     ArgParse parse;
     ArgPrint print;
     bool done_compgen;
+    size_t n_pos_parsed;
 } Arg;
 
 /*}}}*/
@@ -943,7 +943,7 @@ void arg_compgen(struct Arg *arg) {
     }
     if(!arg->parse.help.x) {
         /* positional help */
-        size_t i = arg->instream.n_pos_parsed;
+        size_t i = arg->n_pos_parsed;
         if(i < array_len(arg->pos.list)) {
             ArgX *x = array_at(arg->pos.list, i);
             //printff("X = %.*s", STR_F(x->info.opt));
@@ -1448,12 +1448,12 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
                 }
                 //ArgX *argx = arg->opt_short[
             }
-        } else if(arg->instream.n_pos_parsed < array_len(arg->pos.list)) {
+        } else if(arg->n_pos_parsed < array_len(arg->pos.list)) {
             /* check for positional */
             arg_parse_getv_undo(parse, &arg->instream);
-            ArgX *x = array_at(arg->pos.list, arg->instream.n_pos_parsed);
+            ArgX *x = array_at(arg->pos.list, arg->n_pos_parsed);
             TRYC(argx_parse(parse, &arg->instream, x, quit_early));
-            ++arg->instream.n_pos_parsed;
+            ++arg->n_pos_parsed;
         } else if(parse->rest.vec) {
             /* no argument, push rest */
             array_push(*parse->rest.vec, argV);
@@ -1515,8 +1515,8 @@ quit_early:
     if((arg->instream.argc < 2 && arg->base.show_help)) {
         arg_help(arg);
         *quit_early = true;
-    } else if(!arg->parse.help.get && arg->instream.n_pos_parsed < array_len(arg->pos.list)) {
-        THROW("missing %zu positional arguments", array_len(arg->pos.list) - arg->instream.n_pos_parsed);
+    } else if(!arg->parse.help.get && arg->n_pos_parsed < array_len(arg->pos.list)) {
+        THROW("missing %zu positional arguments", array_len(arg->pos.list) - arg->n_pos_parsed);
     }
 clean:
     str_free(&temp_clean_env);
