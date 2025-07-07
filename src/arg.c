@@ -162,6 +162,7 @@ typedef struct ArgStream {
     VArgX queue;
     bool force_done_parsing;
     bool try_parse;
+    bool is_config;
 } ArgStream;
 
 typedef struct ArgParse {
@@ -860,6 +861,14 @@ void argx_fmt_group(Str *out, Arg *arg, ArgXGroup *group) {
         str_clear(&tmp);
         argx_fmt(out, arg, x, false);
     }
+#if 0
+    /* rest */
+    if(arg->parse.rest.vec) {
+        str_clear(&tmp);
+        str_fmtx(&tmp, arg->fmt.pos, "%.*s ", STR_F(arg->parse.rest.desc));
+        str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "%.*s", STR_F(tmp));
+    }
+#endif
     str_free(&tmp);
 }
 
@@ -1172,7 +1181,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgStream *stream, ArgX *argx, bool *quit_ea
     }
     /* actually begin parsing */
     bool need_help = false;
-    //printff("SETTING VALUE FOR %.*s", STR_F(argx->info.opt));
+    //printff("SETTING VALUE FOR %.*s ID %u", STR_F(argx->info.opt), argx->id);
     switch(argx->id) {
         case ARG_BOOL: { //printff("GET VALUE FOR BOOL");
             if(stream->i < array_len(stream->vals)) {
@@ -1278,10 +1287,17 @@ ErrDecl argx_parse(ArgParse *parse, ArgStream *stream, ArgX *argx, bool *quit_ea
             if(arg_parse_getv(parse, &s, &argv, &discard_quit)) goto arg_try_opt_error;
             ArgX *x = 0;
             char pfx = parse->base->prefix;
-            if(!(argv.len > 2 && str_at(argv, 0) == pfx && str_at(argv, 1) == pfx)) goto arg_try_opt_error;
-            if(arg_parse_getopt_long(argx->table, &x, str_i0(argv, 2))) goto arg_try_opt_error;
+            if(stream->is_config) {
+                if(arg_parse_getopt_long(argx->table, &x, argv)) goto arg_try_opt_error;
+            } else {
+                if(!(argv.len > 2 && str_at(argv, 0) == pfx && str_at(argv, 1) == pfx)) goto arg_try_opt_error;
+                if(arg_parse_getopt_long(argx->table, &x, str_i0(argv, 2))) goto arg_try_opt_error;
+            }
             if(argx_parse(parse, &s, x, &discard_quit)) goto arg_try_opt_error;
+            goto arg_try_opt_done;
 arg_try_opt_error:
+            if(stream->is_config) stream->i = array_len(stream->vals);
+arg_try_opt_done:
             /* restore parse state */
             s.try_parse = false;
             *stream = s;
@@ -1298,7 +1314,7 @@ arg_try_opt_error:
     if(argx && argx->attr.callback.func && !argx->attr.callback.priority) {
         if(!(parse->base->compgen_wordlist && !argx->attr.callback.allow_compgen)) {
             if(argx->attr.callback.func(argx->attr.callback.data)) {
-                if(!pe) {
+                if(!(pe || stream->is_config)) {
                     THROW_PRINT("failed executing function for " F("[%.*s]", BOLD) "\n", STR_F(argx->info.opt));
                 }
                 goto error_skip_help;
@@ -1383,6 +1399,119 @@ void arg_parse_setref(struct Arg *arg) {
     //arg_parse_setref_group(&arg->pos);
 }
 
+#define ERR_argstream_parse(...) "failed parsing argument stream"
+int argstream_parse(struct Arg *arg, ArgStream *stream, bool *quit_early) {
+    ASSERT_ARG(arg);
+    ASSERT_ARG(stream);
+    ASSERT_ARG(quit_early);
+    int err = 0;
+    int config_status = false;
+    bool need_help = false;
+    char pfx = arg->base.prefix;
+    ArgX *argx = 0;
+    ArgParse *parse = &arg->parse;
+    /* check optional arguments */
+    while(stream->i < array_len(stream->vals)) {
+        StrC argV = str("");
+        TRYC(arg_parse_getv(parse, stream, &argV, &need_help));
+        if(need_help) break;
+        if(*quit_early) goto quit_early;
+        if(!str_len_raw(argV)) continue;
+        //printff(" [%.*s] %zu / %zu : config %u", STR_F(argV), stream->i, array_len(stream->vals), stream->is_config);
+        if(!stream->force_done_parsing && (stream->is_config || (str_len_raw(argV) >= 1 && str_at(argV, 0) == pfx))) {
+            /* regular checking for options */
+            if(stream->is_config || (str_len_raw(argV) >= 2 && str_at(argV, 1) == pfx)) {
+                StrC arg_query = stream->is_config ? argV : str_i0(argV, 2);
+                /* long option */
+                TRYC(arg_parse_getopt_long(&arg->tables.opt, &argx, arg_query));
+                if(!argx->attr.is_env) {
+                    TRYC(argx_parse(parse, stream, argx, quit_early));
+                } else {
+                    ASSERT_ARG(0);
+                }
+            } else {
+                StrC arg_queries = str_i0(argV, 1);
+                /* short option */
+                for(size_t i = 0; i < str_len_raw(arg_queries); ++i) {
+                    const unsigned char query = str_at(arg_queries, i);
+                    TRYC(arg_parse_getopt_short(arg, &argx, query));
+                    if(!argx->attr.is_env) {
+                        TRYC(argx_parse(parse, stream, argx, quit_early));
+                    } else {
+                        ASSERT_ARG(0);
+                    }
+                    //printff("SHORT OPTION! %.*s", STR_F(arg_queries));
+                }
+                //ArgX *argx = arg->opt_short[
+            }
+        } else if((arg->n_pos_parsed < array_len(arg->pos.list)) && !stream->is_config) {
+            /* check for positional */
+            arg_parse_getv_undo(parse, stream);
+            ArgX *x = array_at(arg->pos.list, arg->n_pos_parsed);
+            TRYC(argx_parse(parse, stream, x, quit_early));
+            ++arg->n_pos_parsed;
+        } else if(parse->rest.vec) {
+            /* no argument, push rest */
+            array_push(*parse->rest.vec, argV);
+        }
+        /* in case of trying to get help, also search pos and then env and then group */
+        if(parse->help.get_explicit && stream->i < array_len(stream->vals)) {
+            (void)arg_parse_getv(parse, stream, &argV, &need_help);
+            ArgX *x = targx_get(&arg->tables.opt.lut, argV);
+            //printff("GET HELP [%.*s]", STR_F(argV));
+            if(argV.len) {
+                for(size_t j = 0; j < vargxgroup_length(arg->groups); ++j) {
+                    ArgXGroup **group = vargxgroup_get_at(&arg->groups, j);
+                    if(!str_cmp(argV, (*group)->desc)) {
+                        arg->parse.help.group = *group;
+                    }
+                }
+            }
+            if(x) {
+                arg->parse.help.x = x;
+            }
+            if(!x && !arg->parse.help.group) {
+                arg_parse_getv_undo(parse, stream);
+            }
+        }
+    }
+    //printff(" argstream done (%zu/%zu), forced? %u, quit? %u", stream->i, array_len(stream->vals), stream->force_done_parsing, *quit_early);
+    if(config_status) {
+        if(parse->help.get) {
+            printf("\n");
+        } else {
+            goto error_skip_help;
+        }
+    }
+    /* now go over the queue and do post processing */
+    vargx_sort(&stream->queue);
+    for(size_t i = 0; i < vargx_length(stream->queue); ++i) {
+        ArgX *x = vargx_get_at(&stream->queue, i);
+        if(!x->attr.callback.priority) continue;
+        //printff("CHECK QUEUE [%.*s]", STR_F(x->info.opt));
+        if(x && x->attr.callback.func) {
+            if(parse->base->compgen_wordlist && !x->attr.callback.allow_compgen) continue;
+            if(x->attr.callback.func(x->attr.callback.data)) {
+                if(!(stream->is_config)) {
+                    THROW_PRINT("failed executing function for " F("[%.*s]", BOLD) "\n", STR_F(x->info.opt));
+                }
+                goto error_skip_help;
+            }
+            *quit_early = x->attr.callback.quit_early;
+            if(*quit_early) goto quit_early;
+        }
+    }
+clean:
+    return err;
+quit_early:
+    *quit_early = true;
+    goto clean;
+error_skip_help:
+    return 0;
+error:
+    ERR_CLEAN;
+}
+
 ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, bool *quit_early) {
     ASSERT_ARG(arg);
     ASSERT_ARG(arg->parse.base);
@@ -1397,12 +1526,10 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     parse->rest.desc = arg->base.rest_desc;
     parse->rest.pos = &arg->pos;
     Str temp_clean_env = {0};
-    ArgX *argx = 0;
     int err = 0;
     /* prepare parsing */
     ArgStream tmpstream = {0};
     unsigned char pfx = arg->base.prefix;
-    bool need_help = false;
     /* start parsing */
     int config_status = 0;
     for(size_t i = 0; i < array_len(arg->parse.config_files_base); ++i) {
@@ -1421,102 +1548,16 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         TRYC(argx_parse(parse, &tmpstream, x, quit_early));
         //if(parse->help.get) goto error;
     }
-    /* check optional arguments */
-    while(arg->instream.i < array_len(arg->instream.vals)) {
-        StrC argV = str("");
-        TRYC(arg_parse_getv(parse, &arg->instream, &argV, &need_help));
-        if(need_help) break;
-        if(*quit_early) goto quit_early;
-        if(!str_len_raw(argV)) continue;
-        //printff(" [%.*s] %zu / %zu", STR_F(argV), parse->i, parse->argc);
-        if(!arg->instream.force_done_parsing && str_len_raw(argV) >= 1 && str_at(argV, 0) == pfx) {
-            /* regular checking for options */
-            if(str_len_raw(argV) >= 2 && str_at(argV, 1) == pfx) {
-                ASSERT(str_len_raw(argV) > 2, ERR_UNREACHABLE);
-                StrC arg_query = str_i0(argV, 2);
-                /* long option */
-                TRYC(arg_parse_getopt_long(&arg->tables.opt, &argx, arg_query));
-                if(!argx->attr.is_env) {
-                    TRYC(argx_parse(parse, &arg->instream, argx, quit_early));
-                } else {
-                    ASSERT_ARG(0);
-                }
-            } else {
-                StrC arg_queries = str_i0(argV, 1);
-                /* short option */
-                for(size_t i = 0; i < str_len_raw(arg_queries); ++i) {
-                    const unsigned char query = str_at(arg_queries, i);
-                    TRYC(arg_parse_getopt_short(arg, &argx, query));
-                    if(!argx->attr.is_env) {
-                        TRYC(argx_parse(parse, &arg->instream, argx, quit_early));
-                    } else {
-                        ASSERT_ARG(0);
-                    }
-                    //printff("SHORT OPTION! %.*s", STR_F(arg_queries));
-                }
-                //ArgX *argx = arg->opt_short[
-            }
-        } else if(arg->n_pos_parsed < array_len(arg->pos.list)) {
-            /* check for positional */
-            arg_parse_getv_undo(parse, &arg->instream);
-            ArgX *x = array_at(arg->pos.list, arg->n_pos_parsed);
-            TRYC(argx_parse(parse, &arg->instream, x, quit_early));
-            ++arg->n_pos_parsed;
-        } else if(parse->rest.vec) {
-            /* no argument, push rest */
-            array_push(*parse->rest.vec, argV);
-        }
-        /* in case of trying to get help, also search pos and then env and then group */
-        if(parse->help.get_explicit && arg->instream.i < array_len(arg->instream.vals)) {
-            (void)arg_parse_getv(parse, &arg->instream, &argV, &need_help);
-            ArgX *x = targx_get(&arg->tables.opt.lut, argV);
-            //printff("GET HELP [%.*s]", STR_F(argV));
-            if(argV.len) {
-                for(size_t j = 0; j < vargxgroup_length(arg->groups); ++j) {
-                    ArgXGroup **group = vargxgroup_get_at(&arg->groups, j);
-                    if(!str_cmp(argV, (*group)->desc)) {
-                        arg->parse.help.group = *group;
-                    }
-                }
-            }
-            if(x) {
-                arg->parse.help.x = x;
-            }
-            if(!x && !arg->parse.help.group) {
-                arg_parse_getv_undo(parse, &arg->instream);
-            }
-        }
-    }
-    if(config_status) {
-        if(parse->help.get) {
-            printf("\n");
-        } else {
-            goto error_skip_help;
-        }
-    }
-    /* now go over the queue and do post processing */
-    vargx_sort(&arg->instream.queue);
-    for(size_t i = 0; i < vargx_length(arg->instream.queue); ++i) {
-        ArgX *x = vargx_get_at(&arg->instream.queue, i);
-        if(!x->attr.callback.priority) continue;
-        //printff("CHECK QUEUE [%.*s]", STR_F(x->info.opt));
-        if(x && x->attr.callback.func) {
-            if(parse->base->compgen_wordlist && !x->attr.callback.allow_compgen) continue;
-            if(x->attr.callback.func(x->attr.callback.data)) {
-                THROW_PRINT("failed executing function for " F("[%.*s]", BOLD) "\n", STR_F(x->info.opt));
-                goto error_skip_help;
-            }
-            *quit_early = x->attr.callback.quit_early;
-            if(*quit_early) goto quit_early;
-        }
-    }
-quit_early:
+    /* parse instream */
+    arg->instream.is_config = false;
+    TRYC(argstream_parse(arg, &arg->instream, quit_early));
+    /* other stuff */
     if(arg->base.compgen_wordlist) {
         arg_help(arg);
         *quit_early = true;
         goto clean;
     }
-    if(array_len(arg->instream.vals) < 2 && arg->base.show_help && !arg->parse.help.get_explicit) {
+    if(array_len(arg->instream.vals) < 1 && arg->base.show_help && !arg->parse.help.get_explicit) {
         arg_help(arg);
         *quit_early = true;
     } else if(!arg->parse.help.get && arg->n_pos_parsed < array_len(arg->pos.list)) {
@@ -1526,14 +1567,16 @@ clean:
     argstream_free(&arg->instream);
     vstr_free(&tmpstream.vals);
     str_free(&temp_clean_env);
-    //DO THIS OUTSIDE:
-    //if(*quit_early) {
-    //    arg_free(&arg);
-    //}
+    /** NOTE: DO THIS OUTSIDE:
+       if(*quit_early) {
+           arg_free(&arg);
+       }
+    *************************/
+    //printff("done argparse [%.*s]", STR_F(arg->base.program));
     return err;
 error:
+    //printff("error");
     arg_help(arg);
-error_skip_help:
     ERR_CLEAN;
 }
 
@@ -1543,11 +1586,9 @@ error_skip_help:
 
 void arg_config_error(struct Arg *arg, StrC line, size_t line_nb, StrC opt, ArgX *argx) {
     ASSERT_ARG(arg);
-    //if(!arg->base.source_check) return 0;
-    int done = 0;
     if(arg->base.compgen_wordlist) return ; //0;
     if(line.str) {
-        THROW_PRINT("config error on " F("line %zu", BOLD FG_MG_B) ":\n", line_nb + 0);
+        THROW_PRINT("config error on " F("line %zu", BOLD FG_MG_B) ":\n", line_nb + 1);
         if(!opt.str) {
             ERR_PRINTF("        %.*s:\n", STR_F(line));
             ERR_PRINTF("        ^");
@@ -1558,11 +1599,10 @@ void arg_config_error(struct Arg *arg, StrC line, size_t line_nb, StrC opt, ArgX
             ERR_PRINTF("        %.*s" F("%.*s", BOLD FG_RD_B) "%.*s\n", STR_F(pre), STR_F(at), STR_F(post));
             ERR_PRINTF("        %*s", (int)(opt.str - line.str), "");
             for(size_t i = 0; i < str_len_raw(opt); ++i) {
-                ERR_PRINTF(F("~", BOLD FG_RD_B));
+            ERR_PRINTF(F("~", BOLD FG_RD_B));
             }
         }
         ERR_PRINTF("\n");
-        ++done;
     }
     if(argx) {
         arg->parse.help.get = true;
@@ -1570,9 +1610,7 @@ void arg_config_error(struct Arg *arg, StrC line, size_t line_nb, StrC opt, ArgX
         arg_help(arg);
         arg->parse.help.get = false;
         arg->parse.help.x = 0;
-        ++done;
     }
-    return ; //done;
 }
 
 ErrDecl arg_config_from_str(struct Arg *arg, StrC text) {
@@ -1581,15 +1619,26 @@ ErrDecl arg_config_from_str(struct Arg *arg, StrC text) {
     size_t line_nb = 0;
     StrC line = {0}, opt = {0}, conf = text;
     bool pe = true;
+    bool quit_early = false;
     if(!str_len_raw(conf)) return 0;
     ArgX *argx = 0;
+    ArgStream stream = {0};
     for(memset(&line, 0, sizeof(line)); str_splice(conf, &line, '\n'); ++line_nb) {
         if(!line.str) continue;
         line = str_trim(line);
         line = str_iE(line, str_find_ch(line, '#'));
         argx = 0;
         pe = true;
-        if(!str_len_raw(line)) continue;
+        if(!line.len) continue;
+        //printff("LINE:%.*s", STR_F(line));
+#if 1
+        argstream_free(&stream);
+        stream.is_config = true;
+        for(memset(&opt, 0, sizeof(opt)); str_splice(line, &opt, '='); ) {
+            array_push(stream.vals, str_trim(opt));
+        }
+        TRYC(argstream_parse(arg, &stream, &quit_early));
+#else
         for(memset(&opt, 0, sizeof(opt)); str_splice(line, &opt, '='); ) {
             //printff(" OPT:%.*s, pe=%u",STR_F(opt), pe);
             if(!opt.str) continue;
@@ -1689,9 +1738,10 @@ ErrDecl arg_config_from_str(struct Arg *arg, StrC text) {
                 }
             }
         }
+#endif
 parse_continue: ; /* semicolon to remove warning */
     }
-    arg_parse_setref(arg);
+    //arg_parse_setref(arg);
     return err;
 error:
     if(pe) {
