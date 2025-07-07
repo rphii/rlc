@@ -1331,6 +1331,12 @@ void vstr_sort(VStr vstr) {
     }
 }
 
+void vstr_clear(VStr *vstr) {
+    ASSERT_ARG(vstr);
+    vstr_free_set(vstr);
+    array_clear(*vstr);
+}
+
 void str_print(Str str) { /*{{{*/
     printf("%.*s", STR_F(str));
 } /*}}}*/
