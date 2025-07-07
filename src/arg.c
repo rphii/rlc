@@ -748,7 +748,6 @@ void argx_fmt(Str *out, Arg *arg, ArgX *x, bool detailed) {
         str_clear(&tmp);
         str_fmtx(&tmp, arg->fmt.pos, "%.*s", STR_F(x->info.opt));
         str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.opt, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
-        //no_type = true;
     } else if(x->group->table == &arg->tables.opt && !x->attr.is_env) {
         /* format OPTIONAL value: short option + full option */
         if(x->info.c) {
@@ -773,13 +772,12 @@ void argx_fmt(Str *out, Arg *arg, ArgX *x, bool detailed) {
         str_clear(&tmp);
         argx_fmt_type(&tmp, arg, x);
         str_fmt_al(out, &arg->print.p_al2, arg->print.p_al2.i0_prev, arg->print.bounds.opt + 2, arg->print.bounds.max, " %.*s", STR_F(tmp));
-    }
-    no_type = (detailed);
-    if(!no_type) {
         str_clear(&tmp);
         str_fmtx(&tmp, arg->fmt.desc, "%.*s", STR_F(x->info.desc));
         str_fmt_al(out, &arg->print.p_al2, arg->print.bounds.desc, arg->print.bounds.opt + 4, arg->print.bounds.max, "%.*s", STR_F(tmp));
-
+    }
+    no_type = (detailed);
+    if(!no_type) {
         str_clear(&tmp);
         if(argx_fmt_val(&tmp, arg, x, x->val, str("="))) {
             str_fmt_al(out, &arg->print.p_al2, arg->print.p_al2.progress, arg->print.bounds.opt + 4, arg->print.bounds.max, " ");
