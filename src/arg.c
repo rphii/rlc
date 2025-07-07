@@ -162,11 +162,11 @@ typedef struct ArgStream {
     size_t i;
     size_t n_pos_parsed;
     bool force_done_parsing;
+    bool try_parse;
     VArgX queue;
 } ArgStream;
 
 typedef struct ArgParse {
-    bool try_parse;
     ArgBase *base;  // need the info of prefix...
     struct {
         bool get;
@@ -1093,7 +1093,7 @@ ErrDecl arg_parse_getv(ArgParse *parse, ArgStream *stream, Str *argV, bool *need
     ASSERT_ARG(parse);
     ASSERT_ARG(stream->argv);
     ASSERT_ARG(argV);
-    bool pe = !parse->try_parse;
+    bool pe = !stream->try_parse;
     /* parse->compgen? */
     unsigned int pfx = parse->base->prefix;
     StrC result;
@@ -1146,7 +1146,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgStream *stream, ArgX *argx, bool *quit_ea
     ASSERT_ARG(argx);
     //printff("PARSE [%.*s]", STR_F(argx->info.opt));
     /* add to queue for post processing */
-    bool pe = !parse->try_parse;
+    bool pe = !stream->try_parse;
     TRYG(vargx_push_back(&stream->queue, argx));
     StrC argV = str("");
     /* check if we want to get help for this */
@@ -1259,22 +1259,23 @@ ErrDecl argx_parse(ArgParse *parse, ArgStream *stream, ArgX *argx, bool *quit_ea
         } break;
         case ARG_TRY_OPT: {
             /* get current parse state */
-            if(parse->try_parse) break;
-            ArgParse p = *parse;
+            if(stream->try_parse) break;
+            //ArgParse p = *parse;
             bool discard_quit = false;
-            p.try_parse = true;
+            ArgStream s = *stream;
+            s.try_parse = true;
             /* get next value and parse */
             Str argv = {0};
-            if(arg_parse_getv(&p, stream, &argv, &discard_quit)) goto arg_try_opt_error;
+            if(arg_parse_getv(parse, &s, &argv, &discard_quit)) goto arg_try_opt_error;
             ArgX *x = 0;
             char pfx = parse->base->prefix;
             if(!(argv.len > 2 && str_at(argv, 0) == pfx && str_at(argv, 1) == pfx)) goto arg_try_opt_error;
             if(arg_parse_getopt_long(argx->table, &x, str_i0(argv, 2))) goto arg_try_opt_error;
-            if(argx_parse(&p, stream, x, &discard_quit)) goto arg_try_opt_error;
+            if(argx_parse(parse, &s, x, &discard_quit)) goto arg_try_opt_error;
 arg_try_opt_error:
             /* restore parse state */
-            p.try_parse = false;
-            *parse = p;
+            s.try_parse = false;
+            *stream = s;
         } break;
         case ARG_HELP: {
             parse->help.get_explicit = true;
