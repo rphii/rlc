@@ -389,7 +389,7 @@ void json_fix_str(Str *out, Str json_str) {
                     if(!cstr_from_u8_point(u, &p)) {
                         ASSERT(p.bytes <= 3, "expect to have 3 or less characters (0xFFFF max)...");
                         for(size_t k = 0; k < p.bytes; ++k) {
-                            *str_it(json_str, ++j) = u[k];
+                            *str_it(json_str, j++) = u[k];
                         }
                     }
                 }
