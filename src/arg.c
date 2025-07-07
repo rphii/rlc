@@ -769,11 +769,12 @@ void argx_fmt(Str *out, Arg *arg, ArgX *x, bool detailed) {
         str_fmtx(&tmp, fmt, "%.*s", STR_F(x->info.opt));
         str_fmt_al(out, &arg->print.p_al2, i0, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
     }
-    if(!no_type) {
+    if(true) {
         str_clear(&tmp);
         argx_fmt_type(&tmp, arg, x);
         str_fmt_al(out, &arg->print.p_al2, arg->print.p_al2.i0_prev, arg->print.bounds.opt + 2, arg->print.bounds.max, " %.*s", STR_F(tmp));
     }
+    no_type = (detailed);
     if(!no_type) {
         str_clear(&tmp);
         str_fmtx(&tmp, arg->fmt.desc, "%.*s", STR_F(x->info.desc));
@@ -1003,15 +1004,18 @@ int arg_help(struct Arg *arg) { /*{{{*/
             ArgX *argx = array_at(arg->pos.list, i);
             argx_fmt(&out, arg, argx, false);
         }
-        /* all other stuff */
-        for(size_t i = 0; i < vargxgroup_length(arg->groups); ++i) {
-            ArgXGroup **group = vargxgroup_get_at(&arg->groups, i);
-            argx_fmt_group(&out, arg, *group);
-        }
-        if(str_len_raw(arg->base.epilog)) {
-            //arg_handle_print(arg, ARG_PRINT_NONE, "%.*s", STR_F(arg->base.epilog));
-            //printf("\n");
-            str_fmt_al(&out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "%.*s\n", STR_F(arg->base.epilog));
+
+        if(arg->parse.help.get_explicit) {
+            /* all other stuff */
+            for(size_t i = 0; i < vargxgroup_length(arg->groups); ++i) {
+                ArgXGroup **group = vargxgroup_get_at(&arg->groups, i);
+                argx_fmt_group(&out, arg, *group);
+            }
+            if(str_len_raw(arg->base.epilog)) {
+                //arg_handle_print(arg, ARG_PRINT_NONE, "%.*s", STR_F(arg->base.epilog));
+                //printf("\n");
+                str_fmt_al(&out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "%.*s\n", STR_F(arg->base.epilog));
+            }
         }
     }
     str_free(&tmp);
