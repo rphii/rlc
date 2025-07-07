@@ -1495,9 +1495,6 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
             goto error_skip_help;
         }
     }
-#if 0
-    arg_help(arg);
-#else
     /* now go over the queue and do post processing */
     vargx_sort(&arg->instream.queue);
     for(size_t i = 0; i < vargx_length(arg->instream.queue); ++i) {
@@ -1514,14 +1511,13 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
             if(*quit_early) goto quit_early;
         }
     }
-#endif
 quit_early:
     if(arg->base.compgen_wordlist) {
         arg_help(arg);
         *quit_early = true;
         goto clean;
     }
-    if((array_len(arg->instream.vals) < 2 && arg->base.show_help)) {
+    if(array_len(arg->instream.vals) < 2 && arg->base.show_help && !arg->parse.help.get_explicit) {
         arg_help(arg);
         *quit_early = true;
     } else if(!arg->parse.help.get && arg->n_pos_parsed < array_len(arg->pos.list)) {
