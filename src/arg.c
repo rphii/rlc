@@ -165,7 +165,6 @@ typedef struct ArgStream {
 } ArgStream;
 
 typedef struct ArgParse {
-    bool done_compgen;
     bool try_parse;
     VArgX queue;
     ArgBase *base;  // need the info of prefix...
@@ -231,6 +230,7 @@ typedef struct Arg {
     ArgFmt fmt;
     ArgParse parse;
     ArgPrint print;
+    bool done_compgen;
 } Arg;
 
 /*}}}*/
@@ -908,10 +908,10 @@ void argx_compgen(struct Arg *arg, struct ArgX *x) {
 
 void arg_compgen(struct Arg *arg) {
     ASSERT_ARG(arg);
-    if(arg->parse.done_compgen) return;
-    arg->parse.done_compgen = true;
+    if(arg->done_compgen) return;
+    arg->done_compgen = true;
     if(arg->parse.help.group) return;
-    arg->parse.done_compgen = true;
+    arg->done_compgen = true;
     /* optional help */
     TArgXKV **kv = 0;
     ArgXTable *opt_table = &arg->tables.opt;
