@@ -851,7 +851,7 @@ void argx_fmt_group(Str *out, Arg *arg, ArgXGroup *group) {
         str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
     } else {
         str_clear(&tmp);
-        str_fmtx(&tmp, arg->fmt.program, "%.*s ", STR_F(arg->instream.vals[0]));
+        str_fmtx(&tmp, arg->fmt.program, "%.*s ", STR_F(arg->base.program));
         str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "%.*s", STR_F(tmp));
     }
     /* each thing */
