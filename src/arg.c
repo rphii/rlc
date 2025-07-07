@@ -1537,11 +1537,6 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     /* prepare parsing */
     ArgStream tmpstream = {0};
     unsigned char pfx = arg->base.prefix;
-    /* start parsing */
-    int config_status = 0;
-    for(size_t i = 0; i < array_len(arg->parse.config_files_base); ++i) {
-        config_status |= arg_config_from_file(arg, array_at(arg->parse.config_files_base, i));
-    }
     /* gather environment variables */
     TArgXKV **kv = 0;
     while((kv = targx_iter_all(&arg->tables.opt.lut, kv))) {
@@ -1554,6 +1549,11 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         if(!cenv) continue;
         TRYC(argx_parse(parse, &tmpstream, x, quit_early));
         //if(parse->help.get) goto error;
+    }
+    /* start parsing */
+    int config_status = 0;
+    for(size_t i = 0; i < array_len(arg->parse.config_files_base); ++i) {
+        config_status |= arg_config_from_file(arg, array_at(arg->parse.config_files_base, i));
     }
     /* parse instream */
     arg->instream.is_config = false;
