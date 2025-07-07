@@ -957,7 +957,7 @@ void arg_compgen(struct Arg *arg) {
                 argx_print_opt(&arg->print.compgen_nfirst, "%.*s", STR_F(x->info.opt));
             } else {
                 int len = array_len(arg->instream.vals);
-                if(len > 1 && *arg->instream.vals[len - 1].str == '-') {
+                if(len >= 1 && *arg->instream.vals[len - 1].str == '-') {
                     argx_print_opt(&arg->print.compgen_nfirst, "%c%c%.*s", arg->base.prefix, arg->base.prefix, STR_F(x->info.opt));
                 }
             }
