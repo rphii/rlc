@@ -167,7 +167,6 @@ typedef struct ArgParse {
     bool done_compgen;
     bool force_done_parsing;
     bool try_parse;
-    ArgStream instream;
     VArgX queue;
     ArgBase *base;  // need the info of prefix...
     struct {
@@ -220,6 +219,7 @@ typedef struct ArgFmt {
 } ArgFmt;
 
 typedef struct Arg {
+    ArgStream instream;
     ArgBase base;
     struct {
         ArgXTable pos;
@@ -838,7 +838,7 @@ void argx_fmt_group(Str *out, Arg *arg, ArgXGroup *group) {
         str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "\n");
     } else {
         str_clear(&tmp);
-        str_fmtx(&tmp, arg->fmt.program, "%s ", arg->parse.instream.argv[0]);
+        str_fmtx(&tmp, arg->fmt.program, "%s ", arg->instream.argv[0]);
         str_fmt_al(out, &arg->print.p_al2, 0, 0, arg->print.bounds.max, "%.*s", STR_F(tmp));
     }
     /* each thing */
@@ -927,8 +927,8 @@ void arg_compgen(struct Arg *arg) {
             if(x->group && x->group->parent) {
                 argx_print_opt(&arg->print.compgen_nfirst, "%.*s", STR_F(x->info.opt));
             } else {
-                int len = arg->parse.instream.argc;
-                if(len > 1 && *arg->parse.instream.argv[len - 1] == '-') {
+                int len = arg->instream.argc;
+                if(len > 1 && *arg->instream.argv[len - 1] == '-') {
                     argx_print_opt(&arg->print.compgen_nfirst, "%c%c%.*s", arg->base.prefix, arg->base.prefix, STR_F(x->info.opt));
                 }
             }
@@ -936,7 +936,7 @@ void arg_compgen(struct Arg *arg) {
     }
     if(!arg->parse.help.x) {
         /* positional help */
-        size_t i = arg->parse.instream.n_pos_parsed;
+        size_t i = arg->instream.n_pos_parsed;
         if(i < array_len(arg->pos.list)) {
             ArgX *x = array_at(arg->pos.list, i);
             //printff("X = %.*s", STR_F(x->info.opt));
@@ -1084,7 +1084,7 @@ error:
 #define ERR_arg_parse_getv(...) "failed getting an argument"
 ErrDecl arg_parse_getv(ArgParse *parse, ArgStream *stream, Str *argV, bool *need_help) {
     ASSERT_ARG(parse);
-    ASSERT_ARG(parse->instream.argv);
+    ASSERT_ARG(stream->argv);
     ASSERT_ARG(argV);
     bool pe = !parse->try_parse;
     /* parse->compgen? */
@@ -1258,12 +1258,12 @@ ErrDecl argx_parse(ArgParse *parse, ArgStream *stream, ArgX *argx, bool *quit_ea
             p.try_parse = true;
             /* get next value and parse */
             Str argv = {0};
-            if(arg_parse_getv(&p, &p.instream, &argv, &discard_quit)) goto arg_try_opt_error;
+            if(arg_parse_getv(&p, stream, &argv, &discard_quit)) goto arg_try_opt_error;
             ArgX *x = 0;
             char pfx = parse->base->prefix;
             if(!(argv.len > 2 && str_at(argv, 0) == pfx && str_at(argv, 1) == pfx)) goto arg_try_opt_error;
             if(arg_parse_getopt_long(argx->table, &x, str_i0(argv, 2))) goto arg_try_opt_error;
-            if(argx_parse(&p, &p.instream, x, &discard_quit)) goto arg_try_opt_error;
+            if(argx_parse(&p, stream, x, &discard_quit)) goto arg_try_opt_error;
 arg_try_opt_error:
             /* restore parse state */
             p.try_parse = false;
@@ -1373,14 +1373,14 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     ASSERT_ARG(argv);
     arg_parse_setref(arg);
     ArgParse *parse = &arg->parse;
-    parse->instream.argv = (char **)argv;
-    parse->instream.argc = argc;
+    arg->instream.argv = (char **)argv;
+    arg->instream.argc = argc;
+    arg->instream.i = 1;
     parse->rest.vec = arg->base.rest_vec;
     parse->rest.desc = arg->base.rest_desc;
     parse->rest.pos = &arg->pos;
     Str temp_clean_env = {0};
     ArgX *argx = 0;
-    parse->instream.i = 1;
     int err = 0;
     /* prepare parsing */
     unsigned char pfx = arg->base.prefix;
@@ -1406,9 +1406,9 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         //if(parse->help.get) goto error;
     }
     /* check optional arguments */
-    while(parse->instream.i < parse->instream.argc) {
+    while(arg->instream.i < arg->instream.argc) {
         StrC argV = str("");
-        TRYC(arg_parse_getv(parse, &parse->instream, &argV, &need_help));
+        TRYC(arg_parse_getv(parse, &arg->instream, &argV, &need_help));
         if(need_help) break;
         if(*quit_early) goto quit_early;
         if(!str_len_raw(argV)) continue;
@@ -1421,7 +1421,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
                 /* long option */
                 TRYC(arg_parse_getopt_long(&arg->tables.opt, &argx, arg_query));
                 if(!argx->attr.is_env) {
-                    TRYC(argx_parse(parse, &parse->instream, argx, quit_early));
+                    TRYC(argx_parse(parse, &arg->instream, argx, quit_early));
                 } else {
                     ASSERT_ARG(0);
                 }
@@ -1432,7 +1432,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
                     const unsigned char query = str_at(arg_queries, i);
                     TRYC(arg_parse_getopt_short(arg, &argx, query));
                     if(!argx->attr.is_env) {
-                        TRYC(argx_parse(parse, &parse->instream, argx, quit_early));
+                        TRYC(argx_parse(parse, &arg->instream, argx, quit_early));
                     } else {
                         ASSERT_ARG(0);
                     }
@@ -1440,19 +1440,19 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
                 }
                 //ArgX *argx = arg->opt_short[
             }
-        } else if(parse->instream.n_pos_parsed < array_len(arg->pos.list)) {
+        } else if(arg->instream.n_pos_parsed < array_len(arg->pos.list)) {
             /* check for positional */
-            arg_parse_getv_undo(parse, &parse->instream);
-            ArgX *x = array_at(arg->pos.list, parse->instream.n_pos_parsed);
-            TRYC(argx_parse(parse, &parse->instream, x, quit_early));
-            ++parse->instream.n_pos_parsed;
+            arg_parse_getv_undo(parse, &arg->instream);
+            ArgX *x = array_at(arg->pos.list, arg->instream.n_pos_parsed);
+            TRYC(argx_parse(parse, &arg->instream, x, quit_early));
+            ++arg->instream.n_pos_parsed;
         } else if(parse->rest.vec) {
             /* no argument, push rest */
             array_push(*parse->rest.vec, argV);
         }
         /* in case of trying to get help, also search pos and then env and then group */
-        if(parse->help.get_explicit && parse->instream.i < parse->instream.argc) {
-            (void)arg_parse_getv(parse, &parse->instream, &argV, &need_help);
+        if(parse->help.get_explicit && arg->instream.i < arg->instream.argc) {
+            (void)arg_parse_getv(parse, &arg->instream, &argV, &need_help);
             ArgX *x = targx_get(&arg->tables.opt.lut, argV);
             //printff("GET HELP [%.*s]", STR_F(argV));
             if(argV.len) {
@@ -1467,7 +1467,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
                 arg->parse.help.x = x;
             }
             if(!x && !arg->parse.help.group) {
-                arg_parse_getv_undo(parse, &parse->instream);
+                arg_parse_getv_undo(parse, &arg->instream);
             }
         }
     }
@@ -1504,11 +1504,11 @@ quit_early:
         *quit_early = true;
         goto clean;
     }
-    if((parse->instream.argc < 2 && arg->base.show_help)) {
+    if((arg->instream.argc < 2 && arg->base.show_help)) {
         arg_help(arg);
         *quit_early = true;
-    } else if(!arg->parse.help.get && parse->instream.n_pos_parsed < array_len(arg->pos.list)) {
-        THROW("missing %zu positional arguments", array_len(arg->pos.list) - parse->instream.n_pos_parsed);
+    } else if(!arg->parse.help.get && arg->instream.n_pos_parsed < array_len(arg->pos.list)) {
+        THROW("missing %zu positional arguments", array_len(arg->pos.list) - arg->instream.n_pos_parsed);
     }
 clean:
     str_free(&temp_clean_env);
