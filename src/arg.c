@@ -720,9 +720,10 @@ bool argx_fmt_val(Str *out, Arg *arg, ArgX *x, ArgXVal val, StrC prefix) {
             if(!val.v) break;
             str_fmtx(out, arg->fmt.val_delim, "%.*s", STR_F(prefix));
             str_fmtx(out, arg->fmt.val_delim, "[");
-            for(size_t i = 0; i < array_len(*val.v); ++i) {
+            size_t len = array_len(*val.v);
+            for(size_t i = 0; i < len; ++i) {
                 if(i) str_fmtx(out, arg->fmt.val_delim, ",");
-                str_push(out, '\n');
+                if(len > 1) str_push(out, '\n');
                 Str s = array_at(*val.v, i);
                 str_fmtx(out, arg->fmt.val, "%.*s", STR_F(s));
             }
