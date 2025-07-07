@@ -534,6 +534,13 @@ struct ArgX *argx_env(struct ArgXGroup *group, StrC opt, StrC desc, bool hide_va
     return x;
 }
 
+struct ArgX *argx_get(struct ArgXGroup *group, Str opt) {
+    ASSERT_ARG(group);
+    ASSERT_ARG(group->table);
+    TArgXKV *kv = targx_get_kv(&group->table->lut, opt);
+    return kv ? kv->val : 0;
+}
+
 /* }}} */
 
 /* 2) ASSIGN SPECIFIC OPTIONS {{{ */

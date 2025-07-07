@@ -51,7 +51,8 @@ void argx_type(struct ArgX *x, Str type);
 void argx_func(struct ArgX *x, ssize_t priority, void *func, void *data, bool allow_compgen, bool quit_early);
 void argx_hide_value(struct ArgX *x, bool hide_value);
 
-struct ArgX *argx_new(struct TArgX *group, const unsigned char c, const Str opt, const Str desc);
+struct ArgX *argx_get(struct ArgXGroup *group, Str opt);
+//struct ArgX *argx_new(struct TArgX *group, const unsigned char c, const Str opt, const Str desc);
 
 void arg_help_set(struct Arg *arg, struct ArgX *x);
 int arg_help(struct Arg *arg);
