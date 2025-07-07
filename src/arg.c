@@ -1855,9 +1855,6 @@ void argx_builtin_opt_source(struct ArgXGroup *group, Str source) {
           argx_vstr(x, &arg->parse.config_files_base, 0);
         x=argx_init(group, 0, str("try-opt"), str("try parsing an option, especially useful for within sources, to suppress errors"));
           argx_try_parse(x);
-        // TODO: need better error handling!
-        //x=argx_init(group, 0, str("source-check"), str("check sources for validity"));
-        //  argx_bool(x, &arg->base.source_check, 0);
     }
 }
 
