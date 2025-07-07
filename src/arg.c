@@ -408,6 +408,13 @@ error:
 
 /* 1) ASSIGN MAIN ID {{{ */
 
+void argx_str(ArgX *x, Str *val, Str *ref) {
+    ASSERT_ARG(x);
+    ASSERT_ARG(val);
+    x->id = ARG_STRING;
+    x->val.s = val;
+    x->ref.s = ref;
+}
 void argx_col(ArgX *x, Color *val, Color *ref) {
     ASSERT_ARG(x);
     ASSERT_ARG(val);
