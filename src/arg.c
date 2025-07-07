@@ -777,7 +777,7 @@ void argx_fmt(Str *out, Arg *arg, ArgX *x, bool detailed) {
         str_fmtx(&tmp, fmt, "%.*s", STR_F(x->info.opt));
         str_fmt_al(out, &arg->print.p_al2, i0, arg->print.bounds.opt + 2, arg->print.bounds.max, "%.*s", STR_F(tmp));
     }
-    if(true) {
+    if(x->info.desc.len) {
         str_clear(&tmp);
         argx_fmt_type(&tmp, arg, x);
         str_fmt_al(out, &arg->print.p_al2, arg->print.p_al2.i0_prev, arg->print.bounds.opt + 2, arg->print.bounds.max, " %.*s", STR_F(tmp));
