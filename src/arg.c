@@ -1545,8 +1545,9 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         str_copy(&temp_clean_env, x->info.opt);
         char *cenv = getenv(temp_clean_env.str);
         vstr_clear(&tmpstream.vals);
-        array_push(tmpstream.vals, str_l(cenv));
         if(!cenv) continue;
+        argstream_free(&tmpstream);
+        array_push(tmpstream.vals, str_l(cenv));
         TRYC(argx_parse(parse, &tmpstream, x, quit_early));
         //if(parse->help.get) goto error;
     }
