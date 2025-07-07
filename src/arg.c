@@ -161,11 +161,11 @@ typedef struct ArgStream {
     int argc;
     size_t i;
     size_t n_pos_parsed;
+    bool force_done_parsing;
 } ArgStream;
 
 typedef struct ArgParse {
     bool done_compgen;
-    bool force_done_parsing;
     bool try_parse;
     VArgX queue;
     ArgBase *base;  // need the info of prefix...
@@ -1101,14 +1101,14 @@ repeat:
     if(stream->i < stream->argc) {
         char *argv = stream->argv[stream->i++];
         result = str_l(argv);
-        if(!parse->force_done_parsing && str_len_raw(result) == 2 && str_at(result, 0) == pfx && str_at(result, 1) == pfx) {
-            parse->force_done_parsing = true;
+        if(!stream->force_done_parsing && str_len_raw(result) == 2 && str_at(result, 0) == pfx && str_at(result, 1) == pfx) {
+            stream->force_done_parsing = true;
             goto repeat;
         }
         *argV = result;
         //printff("GOT ARGUMENT %.*s", STR_F(*argV));
     } else {
-        if(parse->force_done_parsing) {
+        if(stream->force_done_parsing) {
         } else if(parse->base->compgen_wordlist) {
             *need_help = true;
         } else if(!parse->help.get) {
@@ -1420,7 +1420,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
         if(*quit_early) goto quit_early;
         if(!str_len_raw(argV)) continue;
         //printff(" [%.*s] %zu / %zu", STR_F(argV), parse->i, parse->argc);
-        if(!parse->force_done_parsing && str_len_raw(argV) >= 1 && str_at(argV, 0) == pfx) {
+        if(!arg->instream.force_done_parsing && str_len_raw(argV) >= 1 && str_at(argV, 0) == pfx) {
             /* regular checking for options */
             if(str_len_raw(argV) >= 2 && str_at(argV, 1) == pfx) {
                 ASSERT(str_len_raw(argV) > 2, ERR_UNREACHABLE);
