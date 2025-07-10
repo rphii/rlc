@@ -1165,6 +1165,12 @@ bool argx_parse_is_origin_from_pos(ArgParse *parse, ArgX *argx) {
     return argx_parse_is_origin_from_pos(parse, argx->group->parent);
 }
 
+ArgXVal *argxval_to_set(ArgX *argx, ArgStream *stream) {
+    ArgXVal *v = &argx->val;
+    if(stream->is_config && argx->ref.x) v = &argx->ref;
+    return v;
+}
+
 #define ERR_argx_parse(parse, stream, argx, ...) "failed parsing argument " F("[%.*s]", BOLD FG_WT_B) " " F("%s", ARG_TYPE_F), STR_F(argx->info.opt), arglist_str(argx->id)
 ErrDecl argx_parse(ArgParse *parse, ArgStream *stream, ArgX *argx, bool *quit_early) {
     ASSERT_ARG(parse);
@@ -1194,65 +1200,65 @@ ErrDecl argx_parse(ArgParse *parse, ArgStream *stream, ArgX *argx, bool *quit_ea
             if(stream->i < array_len(stream->vals)) {
                 TRYC_P(pe, arg_parse_getv(parse, stream, &argV, &need_help)); //printff("GOT VALUE [%.*s]", STR_F(argV));
                 if(need_help) break;
-                if(str_as_bool(argV, argx->val.b)) {
+                if(str_as_bool(argV, argxval_to_set(argx, stream)->b)) {
                     if(argx->attr.require_tf) {
                         THROW_P(pe, "failed parsing bool");
                     } else {
-                        *argx->val.b = true;
+                        *argxval_to_set(argx, stream)->b = true;
                         arg_parse_getv_undo(parse, stream);
                     }
                 }
             } else if(argx->attr.require_tf) {
                 THROW_P(pe, "failed parsing bool");
             } else {
-                *argx->val.b = true;
+                *argxval_to_set(argx, stream)->b = true;
             }
             if(need_help) break;
-            ++argx->count;
+            if(!stream->is_config) ++argx->count;
         } break;
         case ARG_FLAG: {
             *argx->val.b = true;
-            ++argx->count;
+            if(!stream->is_config) ++argx->count;
         } break;
         case ARG_SSZ: {
             TRYC_P(pe, arg_parse_getv(parse, stream, &argV, &need_help));
             if(need_help) break;
-            TRYC_P(pe, str_as_ssize(argV, argx->val.z, 0));
-            ++argx->count;
+            TRYC_P(pe, str_as_ssize(argV, argxval_to_set(argx, stream)->z, 0));
+            if(!stream->is_config) ++argx->count;
         } break;
         case ARG_INT: {
             TRYC_P(pe, arg_parse_getv(parse, stream, &argV, &need_help));
             if(need_help) break;
             ssize_t z = 0;
             TRYC_P(pe, str_as_ssize(argV, &z, 0));
-            *argx->val.i = (int)z;
-            ++argx->count;
+            *argxval_to_set(argx, stream)->i = (int)z;
+            if(!stream->is_config) ++argx->count;
         } break;
         case ARG_FLOAT: {
             TRYC_P(pe, arg_parse_getv(parse, stream, &argV, &need_help));
             if(need_help) break;
-            TRYC_P(pe, str_as_double(argV, argx->val.f));
-            ++argx->count;
+            TRYC_P(pe, str_as_double(argV, argxval_to_set(argx, stream)->f));
+            if(!stream->is_config) ++argx->count;
         } break;
         case ARG_COLOR: {
             TRYC_P(pe, arg_parse_getv(parse, stream, &argV, &need_help));
             if(need_help) break;
-            TRYC_P(pe, str_as_color(argV, argx->val.c));
-            ++argx->count;
+            TRYC_P(pe, str_as_color(argV, argxval_to_set(argx, stream)->c));
+            if(!stream->is_config) ++argx->count;
         } break;
         case ARG_STRING: {
             TRYC_P(pe, arg_parse_getv(parse, stream, &argV, &need_help));
             if(need_help) break;
-            *argx->val.s = argV;
-            ++argx->count;
+            *argxval_to_set(argx, stream)->s = argV;
+            if(!stream->is_config) ++argx->count;
         } break;
         case ARG_VECTOR: {
             TRYC_P(pe, arg_parse_getv(parse, stream, &argV, &need_help));
             if(need_help) break;
-            array_push(*argx->val.v, argV);
-            ++argx->count;
+            array_push(*argxval_to_set(argx, stream)->v, argV);
+            if(!stream->is_config) ++argx->count;
             if(argx_parse_is_origin_from_pos(parse, argx)) {
-                parse->rest.vec = argx->val.v;
+                parse->rest.vec = argxval_to_set(argx, stream)->v;
                 parse->rest.desc = argx->info.desc;
             }
         } break;
@@ -1262,7 +1268,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgStream *stream, ArgX *argx, bool *quit_ea
             ArgX *x = 0;
             TRYC_P(pe, arg_parse_getopt_long(argx->o->table, &x, argV));
             TRYC_P(pe, argx_parse(parse, stream, x, quit_early));
-            ++argx->count;
+            if(!stream->is_config) ++argx->count;
         } break;
         case ARG_FLAGS: {
             TRYC_P(pe, arg_parse_getv(parse, stream, &argV, &need_help));
@@ -1279,7 +1285,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgStream *stream, ArgX *argx, bool *quit_ea
                 ArgX *x = 0;
                 TRYC_P(pe, arg_parse_getopt_long(argx->o->table, &x, flag));
                 TRYC_P(pe, argx_parse(parse, stream, x, quit_early));
-                ++argx->count;
+                if(!stream->is_config) ++argx->count;
             }
         } break;
         case ARG_TRY_OPT: {
@@ -1524,7 +1530,6 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     ASSERT_ARG(arg->parse.base);
     ASSERT_ARG(quit_early);
     ASSERT_ARG(argv);
-    arg_parse_setref(arg);
     ArgParse *parse = &arg->parse;
     for(size_t i = 1; i < argc; ++i) {
         array_push(arg->instream.vals, str_l(argv[i]));
@@ -1556,6 +1561,7 @@ ErrDecl arg_parse(struct Arg *arg, const unsigned int argc, const char **argv, b
     for(size_t i = 0; i < array_len(arg->parse.config_files_base); ++i) {
         config_status |= arg_config_from_file(arg, array_at(arg->parse.config_files_base, i));
     }
+    arg_parse_setref(arg);
     /* parse instream */
     arg->instream.is_config = false;
     TRYC(argstream_parse(arg, &arg->instream, quit_early));
