@@ -5,7 +5,6 @@ sources = [
   'color.c',
   'file.c',
   'json.c',
-  'map.c',
   'str.c',
   'utf8.c',
   ]
@@ -20,7 +19,6 @@ headers = [
   'file.h',
   'json.h',
   'lut.h',
-  'map.h',
   'platform-detect.h',
   'str.h',
   'utf8.h',
