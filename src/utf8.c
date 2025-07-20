@@ -31,7 +31,7 @@ ErrImpl cstr_to_u8_point(U8Str in, U8Point *point) {
     // extract info from bytes
     for(int i = 0; i < point->bytes; i++) {
         // add number to point
-        if(!in[i]) THROW(ERR_CSTR_INVALID);
+        if(!in[i]) return -1;
         tinker.val |= (uint32_t)((in[i] & mask) << shift);
         if(mask == 0x3F) {
             if((unsigned char)(in[i] & ~mask) != 0x80) {
