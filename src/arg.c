@@ -1273,7 +1273,7 @@ ErrDecl argx_parse(ArgParse *parse, ArgStream *stream, ArgX *argx, bool *quit_ea
         case ARG_FLAGS: {
             TRYC_P(pe, arg_parse_getv(parse, stream, &argV, &need_help));
             if(need_help) break;
-            ASSERT(argx->o, ERR_NULLPTR);
+            ASSERT_ARG(argx->o);
             if(!argx->count) {
                 for(size_t i = 0; i < array_len(argx->o->list); ++i) {
                     ArgX *x = array_at(argx->o->list, i);
@@ -1716,7 +1716,7 @@ ErrDecl arg_config_from_str(struct Arg *arg, StrC text) {
                         THROW_P(pe, "option cannot have a value");
                     } break;
                     case ARG_FLAGS: {
-                        ASSERT(argx->o, ERR_NULLPTR);
+                        ASSERT_ARG(argx->o);
                         for(size_t i = 0; i < array_len(argx->o->list); ++i) {
                             ArgX *x = array_at(argx->o->list, i);
                             bool *b = x->ref.b ? x->ref.b : x->val.b;
