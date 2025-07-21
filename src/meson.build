@@ -4,7 +4,6 @@ sources = [
   'array.c',
   'color.c',
   'file.c',
-  'json.c',
   'str.c',
   'utf8.c',
   ]
@@ -18,7 +17,6 @@ headers = [
   'endian-detect.h',
   'err.h',
   'file.h',
-  'json.h',
   'lut.h',
   'platform-detect.h',
   'str.h',
@@ -26,8 +24,8 @@ headers = [
   'vec.h',
   ]
 
-install_headers(headers, subdir: 'rphii')
-rphiic = library('rphiic',
+install_headers(headers, subdir: 'rl')
+rlc = library('rlc',
   sources,
   link_args: '-lm',
   install: true,
