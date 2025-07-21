@@ -1,4 +1,4 @@
-project('rphiic', 'c',
+project('rlc', 'c',
   meson_version: '>=1.1')
 
 subdir('src')
@@ -6,9 +6,9 @@ subdir('bash')
 
 pkg = import('pkgconfig')
 pkg.generate(
-  libraries: rphiic,
+  libraries: rlc,
   version: '9999',
-  name: 'rphiic',
-  description: 'Collection of rphii\'s C-libraries all in one place.',
+  name: 'rlc',
+  description: 'Essential meta-package for rl.',
   )
 
