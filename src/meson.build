@@ -15,6 +15,7 @@ headers = [
   'attr.h',
   'color.h',
   'colorprint.h',
+  'endian-detect.h',
   'err.h',
   'file.h',
   'json.h',
