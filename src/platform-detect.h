@@ -54,8 +54,10 @@
 
 #if defined(PLATFORM_WINDOWS)
     #define PLATFORM_CH_SUBDIR  '\\'
+    #define PLATFORM_S_SUBDIR   "\\"
 #else
     #define PLATFORM_CH_SUBDIR  '/'
+    #define PLATFORM_S_SUBDIR   "/"
 #endif
 
 #define PLATFORM_DETECT_H
