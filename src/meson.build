@@ -6,6 +6,7 @@ sources = [
   'file.c',
   'str.c',
   'utf8.c',
+  'err.c',
   ]
 
 headers = [
