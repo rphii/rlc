@@ -12,10 +12,10 @@
 #define SIZE_IS_NEG(x)      (((SIZE_MAX >> 1) + 1) & (x))
 
 #ifndef SSIZE_MIN
-#define SSIZE_MIN           ((ssize_t)1 << (8*sizeof(ssize_t)-1))
+#define SSIZE_MIN           ((SIZE_MAX)/2+1)
 #endif
 #ifndef SSIZE_MAX
-#define SSIZE_MAX           ~((ssize_t)1 << (8*sizeof(ssize_t)-1))
+#define SSIZE_MAX           ((SIZE_MAX)/2)
 #endif
 
 #define SIZE_ARRAY(x)       (sizeof(x)/sizeof(*x))
