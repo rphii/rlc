@@ -20,7 +20,7 @@ void color_fmt_rgb_fmt(Str *out, Color color, Str fmt) {
     str_free(&text);
 }
 
-uint8_t color_as_gray(Color in, double gamma) {
+uint8_t color_as_brightness(Color in, double gamma) {
     /*
      * Y = .2126 * R^gamma + .7152 * G^gamma + .0722 * B^gamma
      * L* = 116 * Y ^ 1/3 - 16

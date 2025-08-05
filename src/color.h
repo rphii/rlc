@@ -42,7 +42,7 @@ typedef struct Color {
 typedef struct Str Str;
 void color_fmt_rgb(Str *out, Color color);
 void color_fmt_rgb_fmt(Str *out, Color color, Str fmt);
-uint8_t color_as_gray(Color in, double gamma);
+uint8_t color_as_brightness(Color in, double gamma);
 
 #define COLOR_H
 #endif
