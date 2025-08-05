@@ -37,9 +37,12 @@ typedef struct Color {
 #define COLOR_FUCHSIA 	        COLOR_RGB(0xFF,0x00,0xFF)
 #define COLOR_PURPLE 	        COLOR_RGB(0x80,0x00,0x80)
 
+#define COLOR_GAMMA_DEFAULT     2.2
+
 typedef struct Str Str;
 void color_fmt_rgb(Str *out, Color color);
 void color_fmt_rgb_fmt(Str *out, Color color, Str fmt);
+uint8_t color_as_gray(Color in, double gamma);
 
 #define COLOR_H
 #endif
