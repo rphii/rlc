@@ -1,7 +1,7 @@
 #include "color.h"
-#include "str.h"
 #include <math.h>
 
+#if 0
 void color_fmt_rgb(Str *out, Color color) { /*{{{*/
     ASSERT_ARG(out);
     if(!str_is_dynamic(*out)) ABORT("attempting to format constant string");
@@ -19,6 +19,7 @@ void color_fmt_rgb_fmt(Str *out, Color color, Str fmt) {
     str_fmt_fgbg(out, text, COLOR_NONE, color, false, false, false);
     str_free(&text);
 }
+#endif
 
 uint8_t color_as_brightness(Color in, double gamma) {
     /*
