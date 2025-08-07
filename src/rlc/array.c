@@ -116,15 +116,10 @@ void *_array_pop(void *array ARRAY_DEBUG_DEFS, size_t size) {
 
 void _array_free_index(Array *v, size_t index) {
     if(!v->size) return;
-    printff("1");
     array_assert_arg(v->size);
-    printff("2");
     void *val = (void *)&v->data + v->size * index;
-    printff("3");
     if(!val) return;
-    printff("4 v->f %p ; val %p", v->f, val);
     v->f(val);
-    printff("5");
 }
 
 void _array_free(void *array) {
@@ -135,9 +130,7 @@ void _array_free(void *array) {
     if(v->f) {
         //for(size_t index = 0; index < v->capacity; ++index) {
         for(size_t index = 0; index < v->length; ++index) {
-            printff("free index %zu of %p",index,v);
             _array_free_index(v, index);
-            printff("free ok");
         }
     }
     free(v);
