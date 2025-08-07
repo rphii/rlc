@@ -1,7 +1,7 @@
 project('rlc', 'c',
   meson_version: '>=1.1')
 
-subdir('src/rl')
+subdir('src')
 subdir('bash')
 
 pkg = import('pkgconfig')
