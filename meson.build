@@ -3,11 +3,3 @@ project('rlc', 'c',
 
 subdir('src')
 
-pkg = import('pkgconfig')
-pkg.generate(
-  libraries: librlc,
-  version: '9999',
-  name: 'rlc',
-  description: 'Essential meta-package for rl*',
-  )
-
