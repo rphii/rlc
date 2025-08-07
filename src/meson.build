@@ -18,11 +18,11 @@ headers = [
   ]
 
 install_headers(headers, subdir: 'rl')
-rlc = library('rlc',
+librlc = library('rlc',
   sources,
   link_args: '-lm',
   install: true,
   )
 
-dep_rlc = declare_dependency(link_with: rlc)
+rlc_dep = declare_dependency(link_with: librlc)
 
