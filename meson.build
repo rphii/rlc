@@ -12,5 +12,3 @@ pkg.generate(
   description: 'Essential meta-package for rl.',
   )
 
-dep_rlc = declare_dependency(link_with: rlc)
-

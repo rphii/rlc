@@ -24,3 +24,5 @@ rlc = library('rlc',
   install: true,
   )
 
+dep_rlc = declare_dependency(link_with: rlc)
+
