@@ -26,6 +26,6 @@ librlc = library('rlc',
 
 rlc_dep = declare_dependency(
   link_with: librlc,
-  include_directories: include_directories('.'),
+  include_directories: include_directories('..'),
   )
 
