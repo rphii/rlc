@@ -1,4 +1,3 @@
-
 sources = [
   'rlc/array.c',
   'rlc/color.c',
@@ -6,7 +5,6 @@ sources = [
   ]
 
 headers = [
-  'rlc.h',
   'rlc/array.h',
   'rlc/attr.h',
   'rlc/color.h',
@@ -21,10 +19,11 @@ headers = [
 cc = meson.get_compiler('c')
 m_dep = cc.find_library('m', required: false)
 
-install_headers(headers)
+install_headers(headers, subdir: 'rlc')
+install_headers('rlc.h')
 librlc = library('rlc',
   sources,
-  link_args: [m_dep],
+  dependencies: [m_dep],
   install: true,
   )
 
@@ -32,4 +31,5 @@ rlc_dep = declare_dependency(
   link_with: librlc,
   include_directories: '.',
   )
+
 
