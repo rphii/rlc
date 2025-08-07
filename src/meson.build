@@ -24,5 +24,8 @@ librlc = library('rlc',
   install: true,
   )
 
-rlc_dep = declare_dependency(link_with: librlc)
+rlc_dep = declare_dependency(
+  link_with: librlc,
+  include_directories: include_directories('src'),
+  )
 
