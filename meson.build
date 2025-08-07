@@ -6,9 +6,9 @@ subdir('bash')
 
 pkg = import('pkgconfig')
 pkg.generate(
-  libraries: rlc,
+  libraries: librlc,
   version: '9999',
   name: 'rlc',
-  description: 'Essential meta-package for rl.',
+  description: 'Essential meta-package for rl*',
   )
 
