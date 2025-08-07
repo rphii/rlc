@@ -27,6 +27,15 @@ librlc = library('rlc',
   install: true,
   )
 
+pkg = import('pkgconfig')
+pkg.generate(
+  libraries: librlc,
+  version: '9999',
+  name: 'rlc',
+  description: 'Essential meta-package for rl*',
+  )
+
+
 rlc_dep = declare_dependency(
   link_with: librlc,
   include_directories: '.',
