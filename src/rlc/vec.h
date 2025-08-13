@@ -755,7 +755,7 @@ typedef enum {
         VEC_ASSERT_REAL(vec); \
         VEC_ASSERT(val, M); \
         T *item = VEC_REF(M) *A##_static_get(vec, index + vec->first); \
-        if(F != 0) VEC_TYPE_FREE(F, item, T); \
+        /* BAD! IDEA! E.G. WHEN SORGING! if(F != 0) VEC_TYPE_FREE(F, item, T);*/ \
         vec_memcpy(item, VEC_REF(M) val, sizeof(T)); \
     }
 
