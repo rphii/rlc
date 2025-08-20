@@ -680,8 +680,9 @@ typedef enum {
         VEC_ASSERT_REAL(vec->last > vec->first); \
         if(val) { \
             size_t first = vec->first; \
-            T *item = VEC_REF(M) *A##_static_get(vec, first); \
-            vec_memcpy(val, item, sizeof(T)); \
+            VEC_ITEM(T, M) *item = A##_static_get(vec, first); \
+            vec_memcpy(val, VEC_REF(M) *item, sizeof(T)); \
+            vec_memset(item, 0, sizeof(*item)); \
         } \
         vec->first++; \
     }
@@ -699,8 +700,9 @@ typedef enum {
         VEC_ASSERT_REAL(vec->last > vec->first); \
         if(val) { \
             size_t back = vec->last - 1; \
-            T *item = VEC_REF(M) *A##_static_get(vec, back); \
-            vec_memcpy(val, item, sizeof(T)); \
+            VEC_ITEM(T, M) *item  = A##_static_get(vec, back); \
+            vec_memcpy(val, VEC_REF(M) *item, sizeof(T)); \
+            vec_memset(item, 0, sizeof(*item)); \
         } \
         vec->last--; \
     }
@@ -775,6 +777,7 @@ typedef enum {
         VEC_ITEM(T, M) pop = *item; \
         if(val) { \
             vec_memcpy(val, VEC_REF(M) *item, sizeof(T)); \
+            vec_memset(item, 0, sizeof(*item)); \
         } \
         VEC_ITEM(T, M) *last = A##_static_get(vec, vec->last - 1); \
         vec->last--; \
