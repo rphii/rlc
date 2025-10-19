@@ -132,7 +132,7 @@
         for(;;) { \
             /*printff("  %zu", i);*/\
             if(!*item) break; \
-            if(intend_to_set && (*item)->hash == LUT_EMPTY) break; \
+            if((*item)->hash == LUT_EMPTY && intend_to_set) break; \
             if((*item)->hash == hash) { \
                 if(C != 0) { if(!LUT_TYPE_CMP(C, (*item)->key, key, TK, MK)) return item; } \
                 else { if(!memcmp(LUT_REF(MK)(*item)->key, LUT_REF(MK)key, sizeof(*LUT_REF(MK)key))) return item; } \
@@ -151,7 +151,7 @@
         LUT_ASSERT_ARG(items); \
         if(!lut->used) return 0; \
         if(*items) return -1; \
-        *items = malloc(sizeof(N##KV *) * lut->used); \
+        *items = malloc(sizeof(**items) * lut->used); \
         if(!items) return -1; \
         *len = 0; \
         for(size_t i = 0; i < LUT_CAP(lut->width); i++) { \
@@ -204,32 +204,30 @@
         LUT_ASSERT_REAL(width > lut->width, "expect larger new width then current"); \
         if(width <= lut->width) return -1; \
         if(width < LUT_WIDTH_MIN) width = LUT_WIDTH_MIN; \
-        /*printff("NEW WIDTH %zu", width);*/ \
+        /*printff("\rNEW WIDTH %zu", width);usleep(1e6); \
+        printff("\rNEW WIDTH %zu", width);usleep(1e6);*/ \
         N grown = {0}; \
-        grown.buckets = malloc(sizeof(grown.buckets) * LUT_CAP(width)); \
+        grown.buckets = malloc(sizeof(*grown.buckets) * LUT_CAP(width)); \
         if(!grown.buckets) return -1; \
         grown.width = width; \
         grown.used = lut->used; \
-        memset(grown.buckets, 0, sizeof(grown.buckets) * LUT_CAP(width)); \
+        memset(grown.buckets, 0, sizeof(*grown.buckets) * LUT_CAP(width)); \
         /* re-add values */ \
         for(size_t i = 0; i < LUT_CAP(lut->width); ++i) { \
             N##KV *src = lut->buckets[i]; \
             if(!src) continue; \
             if(src->hash == LUT_EMPTY) { \
-                if(src) { \
-                    /*str_free(src->val); \
-                    str_free(src->key); \
-                    TODO: do this in del */ \
-                    free(src); \
-                } \
+                free(src); \
                 continue; \
             } \
             size_t hash = src->hash; \
             N##KV **item = A##_static_get_item(&grown, src->key, hash, true); \
+            /*printff("\r[%zu] -> [%zu] src hash: %zx", i, item-grown.buckets, src->hash);*/\
             *item = src; \
         } \
         if(lut->buckets) { \
             free(lut->buckets); \
+            /*usleep(1e7);*/\
         } \
         /* assign grown table */ \
         *lut = grown; \
@@ -369,8 +367,10 @@
         LUT_ASSERT_ARG_M(key, MK); \
         if(!lut->width) return 0; \
         size_t hash = H(key); \
-        N##KV *item = *A##_static_get_item(lut, key, hash, false); \
-        return item ? LUT_REF(MV)item->val : 0; \
+        N##KV **item = A##_static_get_item(lut, key, hash, false); \
+        /*printff("\rgot [%zu]",item-lut->buckets);usleep(1e6);\
+        printff("\rgot [%zu]",item-lut->buckets);usleep(1e6);*/\
+        return *item ? LUT_REF(MV)(*item)->val : 0; \
     }
 
 #define LUT_IMPLEMENT_COMMON_GET_KV(N, A, TK, MK, TV, MV, H, C, FK, FV) \
