@@ -19,7 +19,7 @@ static inline void *_array_grow2(void *array ARRAY_DEBUG_DEFS, size_t size, size
     } while(0)
 
 typedef struct Array {
-    ArrayFree f;
+    Array_Free f;
     size_t size;
     size_t length;
     size_t capacity;
@@ -137,7 +137,7 @@ void _array_free(void *array) {
     *p = 0;
 }
 
-void _array_free_set(void *array ARRAY_DEBUG_DEFS, size_t size, ArrayFree f) {
+void _array_free_set(void *array ARRAY_DEBUG_DEFS, size_t size, Array_Free f) {
     array_assert_arg(array);
     void **p = array;
     if(!*p) {

@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-typedef void (*ArrayFree)(void *);
+typedef void (*Array_Free)(void *);
 
 /* debug optimization {{{ */
 
@@ -31,14 +31,14 @@ typedef void (*ArrayFree)(void *);
 #define array_resize(array, length)     _array_resize(&array ARRAY_DEBUG_INFO, sizeof(*array), length)
 #define array_push(array, item)         (*(typeof(array))_array_push(&array ARRAY_DEBUG_INFO, sizeof(*array)) = item)
 #define array_free(array)               _array_free(&array)
-#define array_free_set(array, type, f)  _array_free_set(&array ARRAY_DEBUG_INFO, sizeof(type), f)
+#define array_free_set(array, f)        _array_free_set(&array ARRAY_DEBUG_INFO, sizeof(*array), (Array_Free)(f))
 
 /* take address manually */
 #define array_pgrow(array, capacity)     _array_grow(array ARRAY_DEBUG_INFO, sizeof(**array), capacity)
 #define array_presize(array, length)     _array_resize(array ARRAY_DEBUG_INFO, sizeof(**array), length)
 #define array_ppush(array, item)         (*(typeof(* array))_array_push(&array ARRAY_DEBUG_INFO, sizeof(**array)) = item)
 #define array_pfree(array)               _array_free(array)
-#define array_pfree_set(array, type, f)  _array_free_set(array ARRAY_DEBUG_INFO, sizeof(type), f)
+#define array_pfree_set(array, f)        _array_free_set(array ARRAY_DEBUG_INFO, sizeof(**array), (Array_Free)(f))
 
 /* don't take address */
 #define array_copy(array)               _array_copy(array ARRAY_DEBUG_INFO, sizeof(*array))
@@ -48,6 +48,8 @@ typedef void (*ArrayFree)(void *);
 #define array_len(array)                _array_len(array)
 #define array_cap(array)                _array_cap(array)
 #define array_clear(array)              _array_clear(array)
+#define array_itE(array)                (typeof(array))_array_addr(array ARRAY_DEBUG_INFO, sizeof(*array), _array_len(array) - 1)
+#define array_atE(array)                *(typeof(array))_array_addr(array ARRAY_DEBUG_INFO, sizeof(*array), _array_len(array) - 1)
 
 /*}}}*/
 
@@ -63,7 +65,7 @@ size_t _array_len(const void *array);
 size_t _array_cap(const void *array);
 void _array_clear(void *array);
 void _array_free(void *array);
-void _array_free_set(void *array ARRAY_DEBUG_DEFS, size_t size, ArrayFree f);
+void _array_free_set(void *array ARRAY_DEBUG_DEFS, size_t size, Array_Free f);
 
 /*}}}*/
 
