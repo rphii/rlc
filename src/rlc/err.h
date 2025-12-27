@@ -77,6 +77,7 @@
     } while(0)
 
 void Assert_x(int result, char *stmt, const char *file, int line, const char *func, char *fmt, ...);
+void rlc_trace(void);
 
 #ifndef NDEBUG
 #if 1
