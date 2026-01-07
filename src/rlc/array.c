@@ -7,26 +7,23 @@
 #include <stdio.h>
 #include <rlc/err.h>
 
-static inline void *array_init(ARRAY_DEBUG_DEF);
-static inline void *_array_grow2(void *array ARRAY_DEBUG_DEFS, size_t size, size_t capacity);
+static inline void *array_init();
+static inline void *_array_grow2(void *array, size_t size, size_t capacity);
 
-#define array_assert_arg(arg)     assert(arg && "null pointer argument!");
-#define array_base(array)   ((array) - offsetof(Array, data))
+#define array_assert_arg(arg)   ASSERT(arg, "null pointer argument!");
+#define array_base(array)       ((array) - offsetof(Array, data))
 
 #define array_error(msg, ...)     do { \
-        fprintf(stderr, "\n" ARRAY_DEBUG_FMT "array error: " msg "\n" ARRAY_DEBUG_ARGS, ##__VA_ARGS__); \
-        exit(1); \
+        ABORT("\n" "array error: " msg "\n", ##__VA_ARGS__); \
     } while(0)
 
 typedef struct Array {
-    Array_Free f;
-    size_t size;
     size_t length;
     size_t capacity;
     void *data;
 } Array;
 
-static inline void *array_init(ARRAY_DEBUG_DEF) {
+static inline void *array_init() {
     Array *v = malloc(sizeof(Array));
     if(!v) {
         array_error("failed creating array");
@@ -35,9 +32,9 @@ static inline void *array_init(ARRAY_DEBUG_DEF) {
     return &v->data;
 }
 
-static inline void *_array_grow2(void *array ARRAY_DEBUG_DEFS, size_t size, size_t capacity) {
+static inline void *_array_grow2(void *array, size_t size, size_t capacity) {
     if(!array) {
-        array = array_init(ARRAY_DEBUG_ARG);
+        array = array_init();
     }
     Array *v = array_base(array);
     if(capacity <= v->capacity) return array;
@@ -60,30 +57,30 @@ static inline void *_array_grow2(void *array ARRAY_DEBUG_DEFS, size_t size, size
     return &v->data;
 }
 
-void _array_grow(void *array ARRAY_DEBUG_DEFS, size_t size, size_t capacity) {
+void _array_grow(void *array, size_t size, size_t capacity) {
     array_assert_arg(array);
     void **p = array;
-    *p = _array_grow2(*p ARRAY_DEBUG_ARGS, size, capacity);
+    *p = _array_grow2(*p, size, capacity);
 }
 
-void _array_resize(void *array ARRAY_DEBUG_DEFS, size_t size, size_t length) {
+void _array_resize(void *array, size_t size, size_t length) {
     array_assert_arg(array);
     void **p = array;
-    *p = _array_grow2(*p ARRAY_DEBUG_ARGS, size, length);
+    *p = _array_grow2(*p, size, length);
     Array *v = array_base(*p);
     v->length = length;
 }
 
-void *_array_copy(void *array ARRAY_DEBUG_DEFS, size_t size) {
+void *_array_copy(void *array, size_t size) {
     if(!array) return 0;
-    void *v = array_init(ARRAY_DEBUG_ARG);
+    void *v = array_init();
     size_t len = array_len(array);
-    _array_grow(&v ARRAY_DEBUG_ARGS, size, len);
+    _array_grow(&v, size, len);
     memcpy(v, array, size * len);
     return v;
 }
 
-void *_array_addr(const void *array ARRAY_DEBUG_DEFS, size_t size, size_t index) {
+void *_array_addr(const void *array, size_t size, size_t index) {
     array_assert_arg(array);
 #if !defined(NDEBUG)
     Array *v = (void *)array_base(array);
@@ -94,15 +91,15 @@ void *_array_addr(const void *array ARRAY_DEBUG_DEFS, size_t size, size_t index)
     return (void *)array + size * index;
 }
 
-void *_array_push(void *array ARRAY_DEBUG_DEFS, size_t size) {
+void *_array_push(void *array, size_t size) {
     void **p = array; Array *v = *p ? array_base(*p) : 0;
-    *p = _array_grow2(*p ARRAY_DEBUG_ARGS, size, v ? v->length + 1 : 1);
+    *p = _array_grow2(*p, size, v ? v->length + 1 : 1);
     v = array_base(*p);
     size_t index = v->length++;
     return (void *)&v->data + size * index;
 }
 
-void *_array_pop(void *array ARRAY_DEBUG_DEFS, size_t size) {
+void *_array_pop(void *array, size_t size) {
     array_assert_arg(array);
     Array *v = array_base(array);
 #if !defined(NDEBUG)
@@ -114,12 +111,12 @@ void *_array_pop(void *array ARRAY_DEBUG_DEFS, size_t size) {
     return array + size * index;
 }
 
-void _array_free_index(Array *v, size_t index) {
-    if(!v->size) return;
-    array_assert_arg(v->size);
-    void *val = (void *)&v->data + v->size * index;
+void _array_free_index(Array *v, size_t index, size_t size, Array_Free f) {
+    if(!size) return;
+    array_assert_arg(size);
+    void *val = (void *)&v->data + size * index;
     if(!val) return;
-    v->f(val);
+    if(f) f(val);
 }
 
 void _array_free(void *array) {
@@ -131,15 +128,14 @@ void _array_free(void *array) {
     *p = 0;
 }
 
-void _array_free_ext(void *array ARRAY_DEBUG_DEFS, size_t size, Array_Free f) {
+void _array_free_ext(void *array, size_t size, Array_Free f) {
     array_assert_arg(array);
     array_assert_arg(f);
     void **p = array;
     if(!*p) return;
     Array *v = array_base(*p);
-    //for(size_t index = 0; index < v->capacity; ++index) {
     for(size_t index = 0; index < v->length; ++index) {
-        _array_free_index(v, index);
+        _array_free_index(v, index, size, f);
     }
     *p = 0;
 }
@@ -156,13 +152,11 @@ size_t _array_cap(const void *array) {
     return v->capacity;
 }
 
-void _array_clear(void *array) {
+void _array_clear_ext(void *array, size_t size, Array_Free f) {
     if(!array) return;
     Array *v = array_base(array);
-    if(v->f) {
-        for(size_t index = 0; index < v->length; ++index) {
-            _array_free_index(v, index);
-        }
+    for(size_t index = 0; index < v->length; ++index) {
+        _array_free_index(v, index, size, f);
     }
     v->length = 0;
 }
