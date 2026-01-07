@@ -31,14 +31,7 @@ typedef void (*Array_Free)(void *);
 #define array_resize(array, length)     _array_resize(&array ARRAY_DEBUG_INFO, sizeof(*array), length)
 #define array_push(array, item)         (*(typeof(array))_array_push(&array ARRAY_DEBUG_INFO, sizeof(*array)) = item)
 #define array_free(array)               _array_free(&array)
-#define array_free_set(array, f)        _array_free_set(&array ARRAY_DEBUG_INFO, sizeof(*array), (Array_Free)(f))
-
-/* take address manually */
-#define array_pgrow(array, capacity)     _array_grow(array ARRAY_DEBUG_INFO, sizeof(**array), capacity)
-#define array_presize(array, length)     _array_resize(array ARRAY_DEBUG_INFO, sizeof(**array), length)
-#define array_ppush(array, item)         (*(typeof(* array))_array_push(&array ARRAY_DEBUG_INFO, sizeof(**array)) = item)
-#define array_pfree(array)               _array_free(array)
-#define array_pfree_set(array, f)        _array_free_set(array ARRAY_DEBUG_INFO, sizeof(**array), (Array_Free)(f))
+#define array_free_ext(array, f)        _array_free_ext(&array ARRAY_DEBUG_INFO, sizeof(*array), (Array_Free)(f))
 
 /* don't take address */
 #define array_copy(array)               _array_copy(array ARRAY_DEBUG_INFO, sizeof(*array))
@@ -65,7 +58,7 @@ size_t _array_len(const void *array);
 size_t _array_cap(const void *array);
 void _array_clear(void *array);
 void _array_free(void *array);
-void _array_free_set(void *array ARRAY_DEBUG_DEFS, size_t size, Array_Free f);
+void _array_free_ext(void *array ARRAY_DEBUG_DEFS, size_t size, Array_Free f);
 
 /*}}}*/
 

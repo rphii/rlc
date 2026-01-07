@@ -127,25 +127,21 @@ void _array_free(void *array) {
     void **p = array;
     if(!*p) return;
     Array *v = array_base(*p);
-    if(v->f) {
-        //for(size_t index = 0; index < v->capacity; ++index) {
-        for(size_t index = 0; index < v->length; ++index) {
-            _array_free_index(v, index);
-        }
-    }
     free(v);
     *p = 0;
 }
 
-void _array_free_set(void *array ARRAY_DEBUG_DEFS, size_t size, Array_Free f) {
+void _array_free_ext(void *array ARRAY_DEBUG_DEFS, size_t size, Array_Free f) {
     array_assert_arg(array);
+    array_assert_arg(f);
     void **p = array;
-    if(!*p) {
-        *p = array_init(ARRAY_DEBUG_ARG);
-    }
+    if(!*p) return;
     Array *v = array_base(*p);
-    v->size = size;
-    v->f = f;
+    //for(size_t index = 0; index < v->capacity; ++index) {
+    for(size_t index = 0; index < v->length; ++index) {
+        _array_free_index(v, index);
+    }
+    *p = 0;
 }
 
 size_t _array_len(const void *array) {
