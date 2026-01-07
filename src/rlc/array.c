@@ -152,6 +152,12 @@ size_t _array_cap(const void *array) {
     return v->capacity;
 }
 
+void _array_clear(void *array) {
+    if(!array) return;
+    Array *v = array_base(array);
+    v->length = 0;
+}
+
 void _array_clear_ext(void *array, size_t size, Array_Free f) {
     if(!array) return;
     Array *v = array_base(array);
