@@ -69,7 +69,10 @@
     } while(0)
 
 #define ABORT(fmt, ...)      do { \
-        ERR_PRINTF(F("[ABORT]", BOLD FG_BK BG_RD_B) " " F("%s:%d:%s (end of trace)", FG_WT_B) " " fmt "\n" , __FILE__, __LINE__, __func__, ##__VA_ARGS__); exit(-1); \
+        ERR_PRINTF(F("[ABORT]", BOLD FG_BK BG_RD_B) " " F("%s:%d:%s (begin of trace)", FG_WT_B) "\n" , __FILE__, __LINE__, __func__); \
+        rlc_trace(); \
+        ERR_PRINTF(F("[ABORT]", BOLD FG_BK BG_RD_B) " " F("%s:%d:%s (end of trace)", FG_WT_B) " " fmt "\n" , __FILE__, __LINE__, __func__, ##__VA_ARGS__); \
+        exit(-1); \
     } while(0)
 
 #define INFO(fmt, ...)       do { \

@@ -24,9 +24,9 @@ void rlc_trace(void) {
     size = backtrace(array, RLC_TRACE_MAX);
     strings = backtrace_symbols(array, size);
     if(strings) {
-        printf("Obtained %d stack frames.\n", size);
+        printf(F("|", BG_RD_B FG_BK BOLD) " Obtained %d stack frames:\n", size);
         for(i = 0; i < size; i++) {
-            printf("%s\n", strings[i]);
+            printf(F("|", BG_RD_B FG_BK BOLD) " %-3u * %s\n", i, strings[i]);
         }
     }
     free(strings);

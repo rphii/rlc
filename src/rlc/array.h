@@ -4,6 +4,9 @@
 
 typedef void (*Array_Free)(void *);
 
+#define ARRAY_FREE(T)   \
+    typeof((void)(*)(T))
+
 /* functions for use {{{ */
 
 /* take address automatically */
@@ -11,7 +14,7 @@ typedef void (*Array_Free)(void *);
 #define array_resize(array, length)     _array_resize(&array, sizeof(*array), length)
 #define array_push(array, item)         (*(typeof(array))_array_push(&array, sizeof(*array)) = item)
 #define array_free(array)               _array_free(&array)
-#define array_free_ext(array, f)        _array_free_ext(&array, sizeof(*array), (Array_Free)(f))
+#define array_free_ext(array, f)        _array_free_ext(&array, sizeof(*array), (Array_Free)(void(*)(typeof(array)))(f))
 
 /* don't take address */
 #define array_copy(array)               _array_copy(array, sizeof(*array))
@@ -21,7 +24,7 @@ typedef void (*Array_Free)(void *);
 #define array_len(array)                _array_len(array)
 #define array_cap(array)                _array_cap(array)
 #define array_clear(array)              _array_clear(array)
-#define array_clear_ext(array, f)       _array_clear_ext(array, (Array_Free)(f))
+#define array_clear_ext(array, f)       _array_clear_ext(array, (Array_Free)(void(*)(typeof(array)))(f))
 #define array_itE(array)                (typeof(array))_array_addr(array, sizeof(*array), _array_len(array) - 1)
 #define array_atE(array)                *(typeof(array))_array_addr(array, sizeof(*array), _array_len(array) - 1)
 

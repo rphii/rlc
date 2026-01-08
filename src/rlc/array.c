@@ -52,7 +52,7 @@ static inline void *_array_grow2(void *array, size_t size, size_t capacity) {
         array_error("failed allocation of: %zu elements (%zu bytes)", require, bytes);
     }
     v = temp;
-    memset((void *)&v->data + size * v->capacity, 0, size * (require - v->capacity));
+    memset((unsigned char *)&v->data + size * v->capacity, 0, size * (require - v->capacity));
     v->capacity = require;
     return &v->data;
 }
@@ -88,7 +88,7 @@ void *_array_addr(const void *array, size_t size, size_t index) {
         array_error("index %zu is out of bounds %zu", index, v->length);
     }
 #endif
-    return (void *)array + size * index;
+    return (unsigned char *)array + size * index;
 }
 
 void *_array_push(void *array, size_t size) {
@@ -96,7 +96,7 @@ void *_array_push(void *array, size_t size) {
     *p = _array_grow2(*p, size, v ? v->length + 1 : 1);
     v = array_base(*p);
     size_t index = v->length++;
-    return (void *)&v->data + size * index;
+    return (unsigned char *)&v->data + size * index;
 }
 
 void *_array_pop(void *array, size_t size) {
@@ -111,10 +111,10 @@ void *_array_pop(void *array, size_t size) {
     return array + size * index;
 }
 
-void _array_free_index(Array *v, size_t index, size_t size, Array_Free f) {
+void _array_free_index(Array *v, size_t size, size_t index, Array_Free f) {
     if(!size) return;
     array_assert_arg(size);
-    void *val = (void *)&v->data + size * index;
+    void *val = (unsigned char *)&v->data + size * index;
     if(!val) return;
     if(f) f(val);
 }
@@ -135,8 +135,9 @@ void _array_free_ext(void *array, size_t size, Array_Free f) {
     if(!*p) return;
     Array *v = array_base(*p);
     for(size_t index = 0; index < v->length; ++index) {
-        _array_free_index(v, index, size, f);
+        _array_free_index(v, size, index, f);
     }
+    free(v);
     *p = 0;
 }
 
@@ -162,7 +163,7 @@ void _array_clear_ext(void *array, size_t size, Array_Free f) {
     if(!array) return;
     Array *v = array_base(array);
     for(size_t index = 0; index < v->length; ++index) {
-        _array_free_index(v, index, size, f);
+        _array_free_index(v, size, index, f);
     }
     v->length = 0;
 }
