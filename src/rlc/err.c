@@ -26,7 +26,7 @@ void rlc_trace_fatal(void) {
     if(strings) {
         printf(F("*", FG_RD_B BG_BK BOLD) " Obtained %d stack frames: (begin of trace)\n", size);
         for(i = 0; i < size; i++) {
-            printf(F("*", FG_RD_B BG_BK BOLD) " %-3u * %s\n", i, strings[i]);
+            printf(F("*", FG_RD_B BG_BK BOLD) " %-3u -> %s\n", i, strings[i]);
         }
         free(strings);
     }
