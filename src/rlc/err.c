@@ -12,20 +12,19 @@ void Assert_x(int result, char *x, const char *file, int line, const char *func,
         va_start(va, fmt);
         vsnprintf(buf, 4096, fmt, va);
         va_end(va);
-        ERR_PRINTF(F("[ABORT]", BOLD FG_BK BG_RD_B) " assertion of '%s' failed... " F("%s:%d:%s (end of trace) %s", FG_WT_B) " " "\n" , x, file, line, func, buf);
-        rlc_trace();
-        exit(-1);
+        ERR_PRINTF(F("[ASSERT]", BOLD FG_BK BG_RD_B) " " F("%s:%d:%s", FG_WT_B) " assertion of '%s' failed: %s\n" , file, line, func, x, buf);
+        rlc_trace_fatal();
     }
 }
 
-void rlc_trace(void) {
+void rlc_trace_fatal(void) {
     void *array[RLC_TRACE_MAX];
     char **strings;
     int size, i;
     size = backtrace(array, RLC_TRACE_MAX);
     strings = backtrace_symbols(array, size);
     if(strings) {
-        printf(F("*", FG_RD_B BG_BK BOLD) " Obtained %d stack frames:\n", size);
+        printf(F("*", FG_RD_B BG_BK BOLD) " Obtained %d stack frames: (begin of trace)\n", size);
         for(i = 0; i < size; i++) {
             printf(F("*", FG_RD_B BG_BK BOLD) " %-3u * %s\n", i, strings[i]);
         }
@@ -46,6 +45,7 @@ void rlc_trace(void) {
         case 2: printf(" Sincerely, yours truly. (end of trace)\n"); break;
         default: printf(" Try rebooting, please. (end of trace)\n"); break;
     }
+    exit(-1);
 }
 
 
