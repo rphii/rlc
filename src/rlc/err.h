@@ -69,9 +69,8 @@
     } while(0)
 
 #define ABORT(fmt, ...)      do { \
-        ERR_PRINTF(F("[ABORT]", BOLD FG_BK BG_RD_B) " " F("%s:%d:%s (begin of trace)", FG_WT_B) "\n" , __FILE__, __LINE__, __func__); \
-        rlc_trace(); \
-        exit(-1); \
+        ERR_PRINTF(F("[ABORT]", BOLD FG_BK BG_RD_B) " " F("%s:%d:%s", FG_WT_B) " " fmt "\n" , __FILE__, __LINE__, __func__, ##__VA_ARGS__); \
+        rlc_trace_fatal(); \
     } while(0)
 
 #define INFO(fmt, ...)       do { \
@@ -79,7 +78,7 @@
     } while(0)
 
 void Assert_x(int result, char *stmt, const char *file, int line, const char *func, char *fmt, ...);
-void rlc_trace(void);
+ATTR_NORETURN void rlc_trace_fatal(void);
 
 #ifndef NDEBUG
 #if 1
