@@ -85,7 +85,7 @@ void rlc_trace(void);
 #ifndef NDEBUG
 #if 1
 #define ASSERT(stmt, fmt, ...)   do { \
-    Assert_x((bool)((stmt)), ERR_STRINGIFY(smt), __FILE__, __LINE__, __func__, fmt, ##__VA_ARGS__); } while(0)
+    Assert_x((bool)((stmt)), ERR_STRINGIFY(stmt), __FILE__, __LINE__, __func__, fmt, ##__VA_ARGS__); } while(0)
 #else
     if (!(stmt)) { \
         ABORT("assertion of '" ERR_STRINGIFY(stmt) "' failed... " fmt, ##__VA_ARGS__); } \
