@@ -33,8 +33,8 @@ typedef void (*Array_Free)(void *);
 
 /* macros {{{ */
 #define array_extend(array, other)      do { \
-            for(typeof(array) it = array; it < array_itE(array); ++it) { \
-                array_push(array, *it); \
+            for(typeof(array) it_array_internal = other; it_array_internal < array_itE(other); ++it_array_internal) { \
+                array_push(array, *it_array_internal); \
             } \
         } while(0)
 /*}}}*/
