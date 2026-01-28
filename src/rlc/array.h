@@ -31,6 +31,14 @@ typedef void (*Array_Free)(void *);
 
 /*}}}*/
 
+/* macros {{{ */
+#define array_extend(array, other)      do { \
+            for(typeof(array) it = array; it < array_itE(array); ++it) { \
+                array_push(array, *it); \
+            } \
+        } while(0)
+/*}}}*/
+
 /* internal functions {{{ */
 
 void _array_grow(void *array, size_t size, size_t capacity);
