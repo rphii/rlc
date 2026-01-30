@@ -24,7 +24,7 @@ typedef void (*Array_Free)(void *);
 #define array_len(array)                _array_len(array)
 #define array_cap(array)                _array_cap(array)
 #define array_clear(array)              _array_clear(array)
-#define array_clear_ext(array, f)       _array_clear_ext(array, (Array_Free)(void(*)(typeof(array)))(f))
+#define array_clear_ext(array, f)       _array_clear_ext(array, sizeof(*array), (Array_Free)(void(*)(typeof(array)))(f))
 #define array_itE(array)                (array ? (typeof(array))array + _array_len(array) : 0)
 #define array_itL(array)                (typeof(array))_array_addr(array, sizeof(*array), _array_len(array) - 1)
 #define array_atL(array)                *(typeof(array))_array_addr(array, sizeof(*array), _array_len(array) - 1)
