@@ -1,8 +1,8 @@
-#ifndef COLOR_H
+#ifndef RL_COLOR_H
 
 #include <stdint.h>
 
-typedef struct Color {
+typedef struct RL_Color {
     union {
         uint32_t rgba;
         struct {
@@ -12,40 +12,35 @@ typedef struct Color {
             uint8_t r;
         };
     };
-} Color;
+} RL_Color;
 
-#define COLOR_RGBA(R,G,B,A)     (Color){ .r = (R), .g = (G), .b = (B), .a = (A)}
+#define RL_COLOR_RGBA(R,G,B,A)      (RL_Color){ .r = (R), .g = (G), .b = (B), .a = (A)}
 
-#define COLOR_RGB(R,G,B)        (Color){ .r = (R), .g = (G), .b = (B), .a = 0xFF }
-#define COLOR_RGB_NEGATIVE(col) COLOR_RGB(~col.r, ~col.g, ~col.b)
+#define RL_COLOR_RGB(R,G,B)         (RL_Color){ .r = (R), .g = (G), .b = (B), .a = 0xFF }
+#define RL_COLOR_RGB_NEGATIVE(col)  RL_COLOR_RGB(~col.r, ~col.g, ~col.b)
 
-#define COLOR_NONE              COLOR_RGBA(0, 0, 0, 0)
-#define COLOR_WHITE 	        COLOR_RGB(0xFF,0xFF,0xFF)
-#define COLOR_SILVER 	        COLOR_RGB(0xC0,0xC0,0xC0)
-#define COLOR_GRAY 	            COLOR_RGB(0x80,0x80,0x80)
-#define COLOR_BLACK 	        COLOR_RGB(0x00,0x00,0x00)
-#define COLOR_RED 	            COLOR_RGB(0xFF,0x00,0x00)
-#define COLOR_MAROON 	        COLOR_RGB(0x80,0x00,0x00)
-#define COLOR_YELLOW 	        COLOR_RGB(0xFF,0xFF,0x00)
-#define COLOR_OLIVE 	        COLOR_RGB(0x80,0x80,0x00)
-#define COLOR_LIME 	            COLOR_RGB(0x00,0xFF,0x00)
-#define COLOR_GREEN 	        COLOR_RGB(0x00,0x80,0x00)
-#define COLOR_AQUA 	            COLOR_RGB(0x00,0xFF,0xFF)
-#define COLOR_TEAL 	            COLOR_RGB(0x00,0x80,0x80)
-#define COLOR_BLUE 	            COLOR_RGB(0x00,0x00,0xFF)
-#define COLOR_NAVY 	            COLOR_RGB(0x00,0x00,0x80)
-#define COLOR_FUCHSIA 	        COLOR_RGB(0xFF,0x00,0xFF)
-#define COLOR_PURPLE 	        COLOR_RGB(0x80,0x00,0x80)
+#define RL_COLOR_NONE               RL_COLOR_RGBA(0, 0, 0, 0)
+#define RL_COLOR_WHITE 	            RL_COLOR_RGB(0xFF,0xFF,0xFF)
+#define RL_COLOR_SILVER 	        RL_COLOR_RGB(0xC0,0xC0,0xC0)
+#define RL_COLOR_GRAY 	            RL_COLOR_RGB(0x80,0x80,0x80)
+#define RL_COLOR_BLACK 	            RL_COLOR_RGB(0x00,0x00,0x00)
+#define RL_COLOR_RED 	            RL_COLOR_RGB(0xFF,0x00,0x00)
+#define RL_COLOR_MAROON 	        RL_COLOR_RGB(0x80,0x00,0x00)
+#define RL_COLOR_YELLOW 	        RL_COLOR_RGB(0xFF,0xFF,0x00)
+#define RL_COLOR_OLIVE 	            RL_COLOR_RGB(0x80,0x80,0x00)
+#define RL_COLOR_LIME 	            RL_COLOR_RGB(0x00,0xFF,0x00)
+#define RL_COLOR_GREEN 	            RL_COLOR_RGB(0x00,0x80,0x00)
+#define RL_COLOR_AQUA 	            RL_COLOR_RGB(0x00,0xFF,0xFF)
+#define RL_COLOR_TEAL 	            RL_COLOR_RGB(0x00,0x80,0x80)
+#define RL_COLOR_BLUE 	            RL_COLOR_RGB(0x00,0x00,0xFF)
+#define RL_COLOR_NAVY 	            RL_COLOR_RGB(0x00,0x00,0x80)
+#define RL_COLOR_FUCHSIA 	        RL_COLOR_RGB(0xFF,0x00,0xFF)
+#define RL_COLOR_PURPLE 	        RL_COLOR_RGB(0x80,0x00,0x80)
 
-#define COLOR_GAMMA_DEFAULT     2.2
+#define RL_COLOR_GAMMA_DEFAULT     2.2
 
-#if 0
-typedef struct Str Str;
-void color_fmt_rgb(Str *out, Color color);
-void color_fmt_rgb_fmt(Str *out, Color color, Str fmt);
-#endif
-uint8_t color_as_brightness(Color in, double gamma);
+uint8_t rl_color_as_brightness(RL_Color in, double gamma);
 
-#define COLOR_H
+#define RL_COLOR_H
 #endif
 

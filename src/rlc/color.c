@@ -1,27 +1,7 @@
 #include "color.h"
 #include <math.h>
 
-#if 0
-void color_fmt_rgb(Str *out, Color color) { /*{{{*/
-    ASSERT_ARG(out);
-    if(!str_is_dynamic(*out)) ABORT("attempting to format constant string");
-    Str text = STR_DYN();
-    str_fmt(&text, "#%02x%02x%02x", color.r, color.g, color.b);
-    str_fmt_fgbg(out, text, COLOR_NONE, color, false, false, false);
-    str_free(&text);
-} /*}}}*/
-
-void color_fmt_rgb_fmt(Str *out, Color color, Str fmt) {
-    ASSERT_ARG(out);
-    if(!str_is_dynamic(*out)) ABORT("attempting to format constant string");
-    Str text = STR_DYN();
-    str_extend(&text, fmt);
-    str_fmt_fgbg(out, text, COLOR_NONE, color, false, false, false);
-    str_free(&text);
-}
-#endif
-
-uint8_t color_as_brightness(Color in, double gamma) {
+uint8_t rl_color_as_brightness(RL_Color in, double gamma) {
     /*
      * Y = .2126 * R^gamma + .7152 * G^gamma + .0722 * B^gamma
      * L* = 116 * Y ^ 1/3 - 16
