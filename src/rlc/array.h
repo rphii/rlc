@@ -1,4 +1,4 @@
-#ifndef ARRAY_SIMPLE_H
+#ifndef RL_ARRAY_SIMPLE_H
 
 #include <stddef.h>
 
@@ -56,6 +56,6 @@ void _rl_array_free_ext(void *array, size_t size, RL_Array_Free f);
 
 /*}}}*/
 
-#define ARRAY_SIMPLE_H
+#define RL_ARRAY_SIMPLE_H
 #endif
 

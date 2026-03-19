@@ -81,7 +81,7 @@ typedef enum {
     VEC_ERROR_REALLOC,
     /* errors above */
     VEC_ERROR__COUNT,
-} VecErrorList;
+} RL_Vec_Error_List;
 
 #define VEC_ITEM_BY_VAL(T)  T
 #define VEC_ITEM_BY_REF(T)  T *

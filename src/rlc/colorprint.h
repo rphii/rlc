@@ -1,4 +1,4 @@
-#ifndef COLORPRHINT_H
+#ifndef RL_COLORPRHINT_H
 
 #ifndef COLORPRINT_DISABLE
 #define F(msg,fmt) "\033[" fmt "m" msg "\033[0m"
@@ -111,6 +111,6 @@
 #define BG_WT_B
 #endif
 
-#define COLORPRINT_H
+#define RL_COLORPRINT_H
 #endif
 
