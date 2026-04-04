@@ -33,7 +33,7 @@ uint8_t color_as_brightness(Color in, double gamma) {
     double A = (double)in.a / 255.0;
     double Y = 0.2126 * pow(R, gamma) + 0.7152 * pow(G, gamma) + 0.0722 * pow(B, gamma);
     double L = 116.0 * pow(Y, 1.0/3.0) - 16.0;
-    if(L < 0) return L;
+    if(L < 0) return 0;
     result = (uint8_t)round(A * L);
     return result;
 }
